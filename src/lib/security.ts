@@ -8,8 +8,26 @@ import type { LoginEventType, SecurityTokenType } from "@/lib/enums";
 
 const CSRF_COOKIE = "auth_csrf_token";
 
-/** Failed sign-ins are counted over this window before the account locks. */
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+/**
+ * Failed sign-ins are counted over this window before the account locks.
+ *
+ * Three minutes, not fifteen. Fifteen is the safer number in isolation, but it
+ * is the wrong trade here: the people hitting this are students who mistyped
+ * their own password, and a quarter of an hour locked out of the library the
+ * evening before a deadline is a real cost paid by real users, every time.
+ *
+ * What actually stops a brute-force attack on this app is not the window:
+ *
+ *   * every password must be 8+ characters with upper, lower, digit and symbol
+ *     (`strongPassword` in validation.ts), so the search space is enormous;
+ *   * every attempt costs a bcrypt comparison at cost factor 12 — roughly a
+ *     quarter of a second of CPU, which no amount of parallelism removes.
+ *
+ * Five attempts per three minutes is 100 an hour. Against that password space
+ * it is not a meaningful improvement over 20 an hour, and it is the difference
+ * between a student getting back in before they give up and not.
+ */
+const LOGIN_WINDOW_MS = 3 * 60 * 1000;
 /** Per-account attempt budget. */
 const LOGIN_LIMIT = 5;
 /**
@@ -18,6 +36,14 @@ const LOGIN_LIMIT = 5;
  * innocent students whenever one person fat-fingers their password.
  */
 const IP_LOGIN_LIMIT = 20;
+
+/**
+ * How long a lockout lasts, told to the user.
+ *
+ * Rounded up to whole minutes, so a three-minute window never reports "Try
+ * again in 0 minutes" — which reads as broken rather than as "almost".
+ */
+const LOCKOUT_MINUTES = Math.max(1, Math.ceil(LOGIN_WINDOW_MS / 60000));
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -200,7 +226,7 @@ export async function getLoginRateLimit(email: string, ipAddress: string) {
   return {
     limited: failedByEmail >= LOGIN_LIMIT || failedByIp >= IP_LOGIN_LIMIT,
     remaining: Math.max(LOGIN_LIMIT - failedByEmail, 0),
-    retryAfterMinutes: Math.ceil(LOGIN_WINDOW_MS / 60000),
+    retryAfterMinutes: LOCKOUT_MINUTES,
   };
 }
 
