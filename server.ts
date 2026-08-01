@@ -201,13 +201,28 @@ function assertDurableStorage() {
     const databaseDir = dirname(databaseFile);
 
     if (!existsSync(databaseDir)) {
+      /*
+       * Railway names the volume's real mount point in the environment. When it
+       * is there, the fix is not a thing to go and look up — it is a value we
+       * already hold, so the message states it outright rather than describing
+       * where to find it.
+       */
+      const mounted = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
+
       problems.push(
         `  DATABASE_URL points into a directory that does not exist:\n` +
           `      ${databaseUrl}  ->  needs  ${databaseDir}/\n` +
-          `    Nothing is mounted there. On Railway this means the volume's\n` +
-          `    Mount Path is not "${databaseDir}" — check Settings -> Volumes and\n` +
-          `    make the two match. Migrations "succeed" against the container's\n` +
-          `    own disk and are then thrown away, so this must fail here instead.`,
+          (mounted
+            ? `    The volume attached to this service is mounted at "${mounted}",\n` +
+              `    not "${databaseDir}". Either change the volume's Mount Path to\n` +
+              `    "${databaseDir}", or set these two variables to match it:\n` +
+              `      DATABASE_URL=file:${mounted}/coe.db\n` +
+              `      STORAGE_DIR=${mounted}/storage`
+            : `    Nothing is mounted there. On Railway this means the volume's\n` +
+              `    Mount Path is not "${databaseDir}" — check Settings -> Volumes\n` +
+              `    and make the two match.`) +
+          `\n    Migrations "succeed" against the container's own disk and are\n` +
+          `    then thrown away, so this must fail here instead.`,
       );
     }
   }
