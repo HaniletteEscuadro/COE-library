@@ -28,6 +28,22 @@ In the service → **Settings → Volumes → Add volume**, mount path:
 /data
 ```
 
+> **Use `/data`, not `/var/data`.**
+>
+> `render.yaml` in this same repository mounts its disk at `/var/data`, because
+> that is Render's convention. Copying that value onto Railway while leaving
+> `DATABASE_URL` at `/data` is an easy mistake and a confusing one: the volume
+> mounts fine, `prisma migrate deploy` creates `/data` on the container's own
+> disk, reports **"All migrations have been successfully applied"**, and then
+> the container is replaced and that directory goes with it. Every request
+> afterwards fails with `Cannot open database because the directory does not
+> exist`, and the only symptom is a health check timing out.
+>
+> Whichever path you choose, the volume's **Mount Path** and the two variables
+> below must name the *same* directory. The server refuses to start when they
+> disagree and prints the volume's real location, so this is caught at boot
+> rather than discovered later.
+
 ### Then set these variables
 
 Service → **Variables**:

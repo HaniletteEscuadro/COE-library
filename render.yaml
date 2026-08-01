@@ -31,6 +31,9 @@ services:
 
     disk:
       name: coe-data
+      # Render's convention. On Railway the documented path is /data — do not
+      # copy this value across without changing DATABASE_URL and STORAGE_DIR to
+      # match, or the app will write to the container's own disk and lose it.
       mountPath: /var/data
       sizeGB: 5
 
