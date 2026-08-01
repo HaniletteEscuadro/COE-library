@@ -18,8 +18,9 @@
 import "dotenv/config";
 
 import { createHash } from "crypto";
+import { existsSync } from "fs";
 import { createServer } from "http";
-import { join, relative, resolve, isAbsolute } from "path";
+import { dirname, join, relative, resolve, isAbsolute } from "path";
 import next from "next";
 import { getToken } from "next-auth/jwt";
 import { Server, type Socket } from "socket.io";
@@ -172,6 +173,43 @@ function assertDurableStorage() {
         `      Railway   DATABASE_URL=file:/data/coe.db\n` +
         `      Render    DATABASE_URL=file:/var/data/coe.db`,
     );
+  }
+
+  /*
+   * Does the directory the database is supposed to live in actually exist?
+   *
+   * The check above proves the path is *outside* the app — which is what makes
+   * it survivable — but not that anything is mounted there. Those are different
+   * failures and only one of them was caught.
+   *
+   * The uncaught one looks like this, and it happened on the first real deploy:
+   * the volume's mount path was not the one DATABASE_URL named, so `prisma
+   * migrate deploy` created /data on the container's own disk, wrote eight
+   * migrations into it, and reported success. The container then stopped, the
+   * volume was mounted somewhere else, and the next container had no /data at
+   * all. The server started fine and every request failed:
+   *
+   *     prisma:error Cannot open database because the directory does not exist
+   *
+   * The only visible symptom was a health check timing out, several minutes and
+   * one misleading "migrations applied successfully" later.
+   *
+   * A missing directory here means the volume is not where DATABASE_URL says it
+   * is, so refuse to start and say which two values disagree.
+   */
+  if (databaseFile) {
+    const databaseDir = dirname(databaseFile);
+
+    if (!existsSync(databaseDir)) {
+      problems.push(
+        `  DATABASE_URL points into a directory that does not exist:\n` +
+          `      ${databaseUrl}  ->  needs  ${databaseDir}/\n` +
+          `    Nothing is mounted there. On Railway this means the volume's\n` +
+          `    Mount Path is not "${databaseDir}" — check Settings -> Volumes and\n` +
+          `    make the two match. Migrations "succeed" against the container's\n` +
+          `    own disk and are then thrown away, so this must fail here instead.`,
+      );
+    }
   }
 
   // Mirrors the default in src/lib/storage.ts.
