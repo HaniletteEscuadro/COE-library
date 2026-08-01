@@ -313,6 +313,50 @@ function assertProductionConfig() {
   assertDurableStorage();
 }
 
+/**
+ * Say what is actually in the database, on every boot.
+ *
+ * "Is my data still there?" should not need a shell, a query tool, or a student
+ * reporting that their account vanished. One line in the deploy log answers it:
+ *
+ *     > data: 14 accounts, 22 materials, 6 announcements at /var/data/coe.db
+ *
+ * A count that resets to zero after a deploy means the volume is not holding
+ * anything, and that is visible immediately rather than a week later. Read it
+ * together with the migration output just above: `prisma migrate deploy`
+ * printing "No pending migrations to apply" is the other half of the same
+ * signal — a database that had to be rebuilt from scratch prints all eight.
+ *
+ * Never throws. This is diagnostics; a failure here must not stop a server that
+ * is otherwise serving perfectly well.
+ */
+async function reportStoredData() {
+  try {
+    const databaseFile = sqliteFilePath(process.env.DATABASE_URL ?? "");
+
+    const [accounts, materials, announcements] = await Promise.all([
+      prisma.user.count({ where: { deletedAt: null } }),
+      prisma.material.count({ where: { deletedAt: null } }),
+      prisma.announcement.count({ where: { deletedAt: null } }),
+    ]);
+
+    console.log(
+      `> data: ${accounts} accounts, ${materials} materials, ` +
+        `${announcements} announcements` +
+        (databaseFile ? ` at ${databaseFile}` : ""),
+    );
+
+    if (accounts === 0) {
+      console.log(
+        "  (an empty database is expected on a brand-new volume; if it was not\n" +
+          "   empty before this deploy, the data is not on the volume)",
+      );
+    }
+  } catch (error) {
+    console.warn("> data: could not be counted", error);
+  }
+}
+
 async function main() {
   assertProductionConfig();
 
@@ -503,6 +547,8 @@ async function main() {
   httpServer.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> Socket.IO listening on path /api/socket`);
+    // Fire-and-forget: diagnostics must never delay or block serving.
+    void reportStoredData();
   });
 
   // Detach bus listeners on shutdown so nodemon/tsx restarts do not stack up
