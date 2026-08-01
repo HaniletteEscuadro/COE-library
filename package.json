@@ -24,7 +24,7 @@
     "gen:secret": "node scripts/gen-secret.mjs",
     "preflight": "node scripts/preflight.mjs",
     "build": "node scripts/bundle-portal.mjs && prisma generate && next build",
-    "start": "prisma migrate deploy && tsx server.ts",
+    "start": "prisma migrate deploy && node scripts/deploy-seed.mjs && tsx server.ts",
     "start:local": "tsx server.ts",
     "start:next": "next start",
     "lint": "eslint",
