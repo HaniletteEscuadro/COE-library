@@ -124,10 +124,14 @@ no code changes:
 | **Fly.io** | `fly volumes create`, then mount at `/var/data` |
 | **VPS** (DigitalOcean, Hetzner) | `npm ci && npm run build`, then run `npx tsx server.ts` behind nginx |
 
-The build and start commands are the same everywhere:
+The build and start commands are the same everywhere.
+
+> `npm install`, not `npm ci`. On Railway, `npm ci` deletes `node_modules`
+> before installing and collides with the build cache Railway mounts inside it,
+> failing with `EBUSY: resource busy or locked`. See the note in `railway.json`.
 
 ```bash
-npm ci && npx prisma generate && npm run build
+npm install && npx prisma generate && npm run build
 npx prisma migrate deploy
 npx tsx server.ts
 ```

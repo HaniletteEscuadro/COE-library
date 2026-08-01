@@ -1,7 +1,30 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "//buildCommand": [
+      "Stated here rather than left to Railway, and stated with `npm install`",
+      "rather than `npm ci`.",
+      "",
+      "`npm ci` deletes node_modules before installing — that is what it is for.",
+      "Railway mounts a build cache at /app/node_modules/.cache, and a mount",
+      "point cannot be removed by the process it is mounted into, so every build",
+      "died before installing anything:",
+      "",
+      "    npm error EBUSY: resource busy or locked,",
+      "    rmdir '/app/node_modules/.cache'",
+      "",
+      "`npm install` installs into the existing directory and leaves the mount",
+      "alone. package-lock.json is committed and agrees with package.json, so",
+      "the resolved tree is the same one; what is given up is `ci`'s guarantee",
+      "that it *must* match. Commit a dependency change together with its",
+      "lockfile change and the two stay in step.",
+      "",
+      "Config-as-code takes precedence over the dashboard, so this also",
+      "overrides any Build Command typed into the Railway UI — which is where",
+      "the failing `npm ci` was coming from."
+    ],
+    "buildCommand": "npm install --no-audit --no-fund && npx prisma generate && npm run build"
   },
   "deploy": {
     "healthcheckPath": "/api/health",
