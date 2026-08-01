@@ -2,6 +2,21 @@
   "name": "auth-system",
   "version": "0.1.0",
   "private": true,
+  "//engines": [
+    "Prisma 7 requires Node 20.19+, 22.12+ or 24.0+, and Next 16 requires 20.9+.",
+    "Without this, Railway's Nixpacks picked its own default and the build died",
+    "on `npm ci` with 'Prisma only supports Node.js versions 20.19+, 22.12+,",
+    "24.0+'. The floor is stated here so any host refuses early and clearly",
+    "instead of failing halfway through an install.",
+    "",
+    "The exact version a host installs comes from .nvmrc (22) — Nixpacks reads",
+    "that first. This range stays open-ended so local development on Node 24",
+    "does not warn on every npm command."
+  ],
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "dev:next": "next dev",
