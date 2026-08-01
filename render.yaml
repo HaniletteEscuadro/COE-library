@@ -31,9 +31,10 @@ services:
 
     disk:
       name: coe-data
-      # Render's convention. On Railway the documented path is /data — do not
-      # copy this value across without changing DATABASE_URL and STORAGE_DIR to
-      # match, or the app will write to the container's own disk and lose it.
+      # The same path RAILWAY.md uses, deliberately: the two files disagreed
+      # once and the mismatch cost an afternoon of failed deploys. Whatever this
+      # says, DATABASE_URL and STORAGE_DIR below must name the same directory —
+      # the server refuses to start when they do not.
       mountPath: /var/data
       sizeGB: 5
 

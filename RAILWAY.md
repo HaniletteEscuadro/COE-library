@@ -25,24 +25,24 @@ So: attach a volume first, then point both at it.
 In the service → **Settings → Volumes → Add volume**, mount path:
 
 ```
-/data
+/var/data
 ```
 
-> **Use `/data`, not `/var/data`.**
+> **`/var/data`, the same path `render.yaml` uses.**
 >
-> `render.yaml` in this same repository mounts its disk at `/var/data`, because
-> that is Render's convention. Copying that value onto Railway while leaving
-> `DATABASE_URL` at `/data` is an easy mistake and a confusing one: the volume
-> mounts fine, `prisma migrate deploy` creates `/data` on the container's own
-> disk, reports **"All migrations have been successfully applied"**, and then
-> the container is replaced and that directory goes with it. Every request
-> afterwards fails with `Cannot open database because the directory does not
-> exist`, and the only symptom is a health check timing out.
+> This used to say `/data` while `render.yaml` said `/var/data`, and that one
+> inconsistency cost an afternoon of failed deploys: the Render value was
+> copied onto Railway's volume while `DATABASE_URL` was left at `/data`. The
+> volume mounted fine, `prisma migrate deploy` created `/data` on the
+> container's own disk, reported **"All migrations have been successfully
+> applied"**, and then the container was replaced and that directory went with
+> it. Every request afterwards failed with `Cannot open database because the
+> directory does not exist`, and the only symptom was a health check timing out.
 >
-> Whichever path you choose, the volume's **Mount Path** and the two variables
-> below must name the *same* directory. The server refuses to start when they
-> disagree and prints the volume's real location, so this is caught at boot
-> rather than discovered later.
+> One path for both hosts now. The rule that matters either way: the volume's
+> **Mount Path** and the two variables below must name the *same* directory.
+> The server refuses to start when they disagree, and prints the volume's real
+> location so the fix is in the message.
 
 ### Then set these variables
 
@@ -50,8 +50,8 @@ Service → **Variables**:
 
 | Variable | Value | Why |
 |---|---|---|
-| `DATABASE_URL` | `file:/data/coe.db` | database on the volume, not the container |
-| `STORAGE_DIR` | `/data/storage` | uploads on the volume |
+| `DATABASE_URL` | `file:/var/data/coe.db` | database on the volume, not the container |
+| `STORAGE_DIR` | `/var/data/storage` | uploads on the volume |
 | `NEXTAUTH_URL` | `https://<your-app>.up.railway.app` | session cookies and the Socket.IO CORS origin |
 | `NEXTAUTH_SECRET` | a long random string | signs the session JWTs |
 | `NODE_ENV` | `production` | |
@@ -189,7 +189,7 @@ would land on the container's own disk instead of the mounted volume:
     DATABASE_URL points inside the app directory:
         file:./dev.db  ->  /app/dev.db
       Every account is erased on the next deploy. Put it on the volume:
-        Railway   DATABASE_URL=file:/data/coe.db
+        Railway   DATABASE_URL=file:/var/data/coe.db
         Render    DATABASE_URL=file:/var/data/coe.db
 ```
 

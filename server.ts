@@ -170,8 +170,7 @@ function assertDurableStorage() {
       `  DATABASE_URL points inside the app directory:\n` +
         `      ${databaseUrl}  ->  ${databaseFile}\n` +
         `    Every account is erased on the next deploy. Put it on the volume:\n` +
-        `      Railway   DATABASE_URL=file:/data/coe.db\n` +
-        `      Render    DATABASE_URL=file:/var/data/coe.db`,
+        `      DATABASE_URL=file:/var/data/coe.db   (Railway and Render alike)`,
     );
   }
 
@@ -236,8 +235,7 @@ function assertDurableStorage() {
         `inside the app directory:\n` +
         `      ${storageRoot}\n` +
         `    Every uploaded file is erased on the next deploy. Put it on the volume:\n` +
-        `      Railway   STORAGE_DIR=/data/storage\n` +
-        `      Render    STORAGE_DIR=/var/data/storage`,
+        `      STORAGE_DIR=/var/data/storage   (Railway and Render alike)`,
     );
   }
 
