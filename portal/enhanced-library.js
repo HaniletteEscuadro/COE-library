@@ -2364,8 +2364,28 @@ function closeMaterialDetail() {
 window.closeMaterialDetail = closeMaterialDetail;
 
 // New function for isSafeImageSource
+/**
+ * May this value be used as an `<img src>`?
+ *
+ * Three shapes are allowed, and the third was missing:
+ *
+ *   * `data:image/...;base64,...` — a file held in this browser;
+ *   * an absolute http(s) URL — an external image;
+ *   * `/api/library/preview/...` — **how the shared library serves the bytes**.
+ *
+ * Without that last one, every image uploaded to the server fell through to
+ * "File preview not available", while PDFs and videos previewed correctly —
+ * because their check (`isRenderablePreviewSource`) already accepted the path
+ * and this one did not. The two had drifted apart.
+ *
+ * Adding it does not widen what is allowed in any meaningful sense: this
+ * function already accepts any absolute https URL, and a same-origin path from
+ * our own authenticated route is narrower than that.
+ */
 function isSafeImageSource(value) {
-    return /^(data:image\/[a-z0-9.+-]+;base64,|https?:\/\/)/i.test(String(value || ''));
+    const source = String(value || '');
+    if (source.startsWith('/api/library/preview/')) return true;
+    return /^(data:image\/[a-z0-9.+-]+;base64,|https?:\/\/)/i.test(source);
 }
 
 function updateMaterialActionButtons() {
