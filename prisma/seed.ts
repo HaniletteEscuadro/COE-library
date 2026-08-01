@@ -61,7 +61,12 @@ async function seedAdmin() {
   const password = requireEnv("SEED_ADMIN_PASSWORD");
 
   if (password.length < 12) {
-    throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters.");
+    throw new Error(
+      `SEED_ADMIN_PASSWORD is ${password.length} characters; it must be at ` +
+        `least 12. This account can reach every student record, so it is held ` +
+        `to a higher bar than the 8 the sign-up form allows. Example of a ` +
+        `valid one: "${password}!COE" — the same password with a suffix.`,
+    );
   }
 
   const passwordHash = await hashPassword(password);

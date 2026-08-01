@@ -269,6 +269,41 @@ function assertProductionConfig() {
     process.exit(1);
   }
 
+  /*
+   * A bare hostname is corrected rather than refused.
+   *
+   * `NEXTAUTH_URL=coelibrary.up.railway.app` is the single most common way to
+   * get this wrong, and it used to stop the deploy dead. But there is nothing
+   * ambiguous about it: a value with no scheme is a hostname, and in production
+   * the scheme is https. Refusing to start over a missing "https://" is being
+   * pedantic about something we can simply resolve.
+   *
+   * `process.env` is updated in place, before `app.prepare()`, because NextAuth
+   * reads the variable itself — correcting only a local copy would leave its
+   * callbacks and cookies still pointing at the wrong place, which is the
+   * failure this is meant to remove.
+   *
+   * A value that is malformed in a way we cannot resolve — a scheme we do not
+   * understand, or something that is not a URL at all — is still refused below.
+   */
+  const rawUrl = (process.env.NEXTAUTH_URL ?? "").trim();
+
+  if (rawUrl && !/^[a-z][a-z0-9+.-]*:\/\//i.test(rawUrl)) {
+    const corrected = `https://${rawUrl.replace(/^\/+/, "")}`;
+    console.warn(
+      `\n  NEXTAUTH_URL had no scheme, so https:// was added:\n` +
+        `      ${JSON.stringify(rawUrl)}  ->  ${JSON.stringify(corrected)}\n` +
+        `  Set it with the scheme to silence this.\n`,
+    );
+    process.env.NEXTAUTH_URL = corrected;
+  }
+
+  // A trailing slash makes NextAuth build callback URLs with a double slash,
+  // which some providers reject. Harmless to strip, confusing to leave.
+  if (process.env.NEXTAUTH_URL?.endsWith("/")) {
+    process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL.replace(/\/+$/, "");
+  }
+
   if (!/^https?:\/\//.test(process.env.NEXTAUTH_URL ?? "")) {
     console.error(
       `\n  Cannot start: NEXTAUTH_URL must be the full public address, ` +
