@@ -1,0 +1,588 @@
+/* ===========================================================================
+   MOBILE LAYER FOR THE LIVE FEATURES
+   ---------------------------------------------------------------------------
+   `mobile.css` already handles the original portal: the off-canvas sidebar,
+   horizontal-scroll containment, tap targets. It loads before this file and
+   knows nothing about the pieces added since:
+
+     the library file-explorer list      the material viewer + fullscreen
+     the two approval queues             the upload destination banner
+     the server-backed admin panel       the Q&A review notes
+
+   Loaded LAST on purpose. Several of those components pin their layout with
+   `!important` at a high specificity to survive the 846 KB base stylesheet, so
+   a mobile override has to be at least as strong or it silently loses — which
+   is exactly the trap that left the explorer showing five columns on a 375px
+   screen.
+
+   Everything is inside a max-width or pointer query, so desktop is untouched.
+   =========================================================================== */
+
+@media (max-width: 900px) {
+
+  /* --- 0. The account menu ---------------------------------------------
+     styles.css hides `.nav-right` below 700px, and the profile dropdown that
+     holds Sign Out lives inside it — so on a phone there was no way to see
+     which account you were using or to sign out of it. mobile.js puts an
+     account button in the top bar; this is what it looks like. */
+
+  /* Push the account button to the right edge. Without this the flex row
+     packs everything against the menu button. */
+  .m-bar-title {
+    flex: 1 1 auto !important;
+  }
+
+  .m-bar-account {
+    border-radius: 50% !important;
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+  }
+
+  .m-account-sheet {
+    display: none;
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    left: auto;
+    /* Above the bar (8000) and the drawer, or it opens behind them. */
+    z-index: 8100;
+    min-width: 216px;
+    max-width: calc(100vw - 20px);
+    padding: 6px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e4ecf4;
+    box-shadow: 0 18px 44px rgba(2, 8, 23, 0.22);
+  }
+
+  .m-account-sheet.is-open {
+    display: block;
+  }
+
+  .m-account-who {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 9px 12px 11px;
+    border-bottom: 1px solid #eef2f7;
+    margin-bottom: 5px;
+  }
+
+  .m-account-name {
+    font-size: 0.92rem;
+    color: #0f172a;
+    /* A long name must not stretch the sheet off the screen edge. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .m-account-role {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .m-account-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    /* 48px: this is the row somebody taps to leave, and a mis-tap on Sign Out
+       is worse than a mis-tap on anything else here. */
+    min-height: 48px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: #0f172a;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .m-account-item .material-icons {
+    font-size: 20px;
+    color: #64748b;
+  }
+
+  .m-account-item:active {
+    background: #f1f5f9;
+  }
+
+  .m-account-item.is-danger,
+  .m-account-item.is-danger .material-icons {
+    color: #b91c1c;
+  }
+
+  .m-account-item.is-danger:active {
+    background: #fef2f2;
+  }
+
+  body.dark-theme .m-account-sheet,
+  :root[data-theme="dark"] .m-account-sheet {
+    background: #16202e;
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  body.dark-theme .m-account-who,
+  :root[data-theme="dark"] .m-account-who {
+    border-bottom-color: rgba(148, 163, 184, 0.16);
+  }
+
+  body.dark-theme .m-account-name,
+  body.dark-theme .m-account-item,
+  :root[data-theme="dark"] .m-account-name,
+  :root[data-theme="dark"] .m-account-item {
+    color: #e8eef6;
+  }
+
+  body.dark-theme .m-account-item:active,
+  :root[data-theme="dark"] .m-account-item:active {
+    background: rgba(148, 163, 184, 0.14);
+  }
+
+  /* --- 1. Nothing may push the page sideways ---------------------------- */
+
+  /* One overflowing child scrolls the whole document, and a fixed-width table
+     is the usual culprit. These are the new grids; each is told it may shrink. */
+  .lib-explorer,
+  .coe-approval-queue,
+  .coe-admin-row,
+  .coe-admin-head,
+  .coe-admin-log,
+  .up-destination {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* --- 2. Library explorer ---------------------------------------------- */
+
+  /*
+   * Two columns on a phone: the name, and the lesson. Everything else is
+   * dropped rather than stacked — five extra lines per file would turn the
+   * list back into the wall of tiles it replaced.
+   *
+   * Written through `--lib-cols` because the specificity guard in
+   * coe-explorer.css pins `grid-template-columns: var(--lib-cols) !important`.
+   */
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-explorer {
+    --lib-cols: minmax(0, 1fr);
+    border-radius: 10px !important;
+  }
+
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-explorer-head {
+    display: none !important;
+  }
+
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-row {
+    /* Name on one line, lesson under it, buttons under that. Comfortable to
+       tap without being a card. */
+    row-gap: 6px !important;
+    padding: 11px 13px !important;
+    min-height: 0 !important;
+  }
+
+  /* Size and date are dropped: on a phone the row is one column, and four more
+     lines per file would turn the list back into the wall of tiles it
+     replaced. The lesson is no longer a column of its own — it is the row's
+     own heading now, so it survives without a rule. */
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-col-size,
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-modified {
+    display: none !important;
+  }
+
+  /* The lesson. Wraps to two lines rather than being cut mid-word at the screen
+     edge — a lesson name is what the row is chosen by, so it has to be read
+     whole. Two is the ceiling: more and the buttons leave the screen. */
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-title {
+    font-size: 0.92rem !important;
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden !important;
+  }
+
+  /* "Topic · filename". One line was enough when this held a filename alone;
+     it now carries the subject too, and truncating at the dot would leave the
+     student with the topic and no idea which file. */
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-path {
+    font-size: 0.76rem !important;
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden !important;
+  }
+
+  /* Hover cannot reveal anything on a touch screen, so the buttons live in the
+     row. `position: static` needs !important — the guard pins it absolute. */
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-col-actions {
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    justify-content: flex-start !important;
+    padding: 2px 0 0 !important;
+    background: none !important;
+    gap: 4px !important;
+  }
+
+  /* 40px is the smallest comfortable tap target; 30px was a mouse size. */
+  .lib-act {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .lib-act .material-icons {
+    font-size: 21px !important;
+  }
+
+  /* --- 3. Material viewer ------------------------------------------------ */
+
+  /* Full screen on a phone. A centred dialog with margins wastes the third of
+     the screen a document reader most needs. */
+  #material-detail-modal.is-open {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  #material-detail-modal.is-open .material-detail-content {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Preview keeps roughly half the screen; the details and comments scroll
+     under it rather than competing for the same space. */
+  #material-detail-modal.is-open .detail-preview {
+    min-height: 44dvh !important;
+  }
+
+  #material-detail-modal.is-open .detail-preview iframe {
+    min-height: 44dvh !important;
+  }
+
+  #material-detail-modal.is-open .detail-preview img,
+  #material-detail-modal.is-open .detail-preview video {
+    max-height: 44dvh !important;
+  }
+
+  /*
+   * The header is left alone.
+   *
+   * An earlier version set `flex-wrap: wrap` and a right padding here to make
+   * room for a button that used to live in the header. That button is now
+   * absolutely positioned outside the flow, and those two rules were part of
+   * what crushed the title into a single-character column — so neither is
+   * needed and neither is safe.
+   */
+
+  #material-detail-modal.is-open .detail-fullscreen-btn {
+    width: 44px !important;
+    height: 44px !important;
+    top: 62px;
+    right: 12px;
+  }
+
+  #material-detail-modal.is-open .close-btn {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 30px !important;
+  }
+
+  /* --- 4. Approval queues (library + Q&A) -------------------------------- */
+
+  .coe-approval-queue {
+    padding: 13px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .coe-approval-item {
+    /* Title first, buttons on their own full-width line under it. Side by side
+       leaves the title about eight characters wide. */
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .coe-approval-info strong {
+    white-space: normal !important;
+    font-size: 0.9rem !important;
+  }
+
+  .coe-approval-actions {
+    justify-content: stretch !important;
+  }
+
+  .coe-approval-actions button,
+  .coe-approval-actions .coe-approval-peek {
+    flex: 1 1 0 !important;
+    min-height: 42px !important;
+    text-align: center !important;
+  }
+
+  /* --- 5. Admin panel ---------------------------------------------------- */
+
+  .coe-admin-head {
+    display: none !important;
+  }
+
+  .coe-admin-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 9px !important;
+    padding: 13px 12px !important;
+  }
+
+  .coe-admin-who strong {
+    white-space: normal !important;
+  }
+
+  .coe-admin-who small {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* Role and status are the reason to open this screen, so they get the width
+     rather than being squeezed beside a delete button. */
+  .coe-admin-controls {
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .coe-admin-controls select {
+    flex: 1 1 140px !important;
+    max-width: none !important;
+    min-height: 42px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .coe-admin-del {
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 auto !important;
+  }
+
+  .coe-admin-log {
+    grid-template-columns: 20px minmax(0, 1fr) !important;
+    row-gap: 2px !important;
+  }
+
+  /* The timestamp moves under the text instead of squeezing it. */
+  .coe-admin-log time {
+    grid-column: 2 !important;
+    font-size: 0.72rem !important;
+  }
+
+  .coe-admin-log small {
+    white-space: normal !important;
+  }
+
+  /* --- 6. Upload form ---------------------------------------------------- */
+
+  .up-destination {
+    flex-wrap: wrap !important;
+    padding: 12px 13px !important;
+  }
+
+  .up-destination-note {
+    width: 100% !important;
+    text-align: center !important;
+    margin-top: 2px !important;
+  }
+
+  /* A two-up row of selects is unusable at 375px. */
+  .admin-create-form .form-row-group {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Anything typed into must be at least 16px, or iOS Safari zooms the page in
+     on focus and leaves it zoomed. */
+  .admin-create-form input,
+  .admin-create-form select,
+  .up-form input,
+  .up-form select,
+  .up-form textarea,
+  #comment-text,
+  #gd-link-url {
+    font-size: 16px !important;
+    min-height: 44px !important;
+  }
+
+  #comment-text,
+  .up-form textarea {
+    min-height: 88px !important;
+  }
+
+  /* --- 7. Q&A ------------------------------------------------------------ */
+
+  .qa-review-note {
+    align-items: flex-start !important;
+    font-size: 0.76rem !important;
+  }
+
+  .question-card {
+    padding: 13px !important;
+  }
+
+  /* --- 8. Toasts --------------------------------------------------------- */
+
+  /* Full width at the top, clear of the notch, and above the sidebar drawer.
+     The desktop rule centres with `left:50%` + `translateX(-50%)`; both have to
+     go, or pinning `left`/`right` leaves the toast shifted half a screen off. */
+  #coe-toast-host {
+    left: 8px !important;
+    right: 8px !important;
+    top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  #coe-toast-host .coe-toast {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   SIGN-IN PAGE — no longer used, kept only so the rules are not lost.
+
+   `login.html` used to load styles.css + login-polish.css + this file, and
+   needed the fixes below because none of those handled the two things that
+   actually break a sign-in on a phone: an input smaller than 16px, and a page
+   that can scroll sideways.
+
+   It now loads one self-contained stylesheet, `coe-login.css`, which carries
+   both fixes itself — so this block no longer applies to anything. It is left
+   here rather than deleted in case another page ever adopts `.auth-body`.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  body.auth-body,
+  body.portal-auth-body {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+
+  /*
+   * 16px minimum.
+   *
+   * iOS Safari zooms the viewport in when a field smaller than 16px takes
+   * focus, and does not zoom back out — so a user tapping the password box
+   * ends up on a page they have to pinch their way around, with the submit
+   * button off screen.
+   */
+  body.auth-body input,
+  body.auth-body select,
+  body.portal-auth-body input,
+  body.portal-auth-body select {
+    font-size: 16px !important;
+    min-height: 46px !important;
+  }
+
+  body.auth-body button[type="submit"],
+  body.portal-auth-body button[type="submit"] {
+    min-height: 48px !important;
+    font-size: 1rem !important;
+  }
+
+  /* The password eye and other in-field buttons need a real tap target. */
+  body.portal-auth-body .password-toggle {
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Small phones. Below this a two-column anything stops being readable.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 400px) {
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-row {
+    padding: 10px 11px !important;
+  }
+
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-title {
+    font-size: 0.88rem !important;
+  }
+
+  .coe-approval-actions button,
+  .coe-approval-actions .coe-approval-peek {
+    font-size: 0.8rem !important;
+    padding: 6px 8px !important;
+  }
+
+  .coe-admin-controls select {
+    flex: 1 1 100% !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Landscape phone. Height is the scarce dimension, not width — a 44dvh preview
+   plus a header leaves almost nothing, so the preview takes most of it and the
+   details scroll.
+   --------------------------------------------------------------------------- */
+
+@media (max-height: 500px) and (orientation: landscape) {
+  #material-detail-modal.is-open .detail-preview,
+  #material-detail-modal.is-open .detail-preview iframe {
+    min-height: 62dvh !important;
+  }
+
+  #material-detail-modal.is-open .material-detail-header {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Touch, at any width. `:hover` never fires on a touch screen — or worse,
+   sticks after a tap — so nothing may be hidden behind it.
+   --------------------------------------------------------------------------- */
+
+@media (hover: none) {
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-col-actions {
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: none !important;
+  }
+
+  /* A row is tapped, so it must give the same feedback a button does. */
+  body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-row:active {
+    background: var(--surface-hover-strong, rgba(0, 0, 0, 0.07)) !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Notched phones. The viewer covers the whole screen, so it has to keep its
+   controls out from under the camera cutout and the home indicator.
+   --------------------------------------------------------------------------- */
+
+@supports (padding: max(0px)) {
+  @media (max-width: 900px) {
+    #material-detail-modal.is-open .material-detail-header {
+      padding-top: max(14px, env(safe-area-inset-top)) !important;
+    }
+
+    #material-detail-modal.is-open .material-detail-content {
+      padding-bottom: env(safe-area-inset-bottom) !important;
+    }
+  }
+}

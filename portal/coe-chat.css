@@ -1,0 +1,709 @@
+/**
+ * Live chat thread and organisation notices.
+ *
+ * THE PROBLEM WITH THE OLD THREAD
+ * -------------------------------
+ * Messages were fixed-height rows with the text clipped, so a long message was
+ * a line and a half and then nothing — you could send a paragraph and nobody
+ * could read it. And every line repeated the sender's name and avatar, so a
+ * back-and-forth was mostly furniture.
+ *
+ * Here a message is as tall as its words. Runs from the same person inside five
+ * minutes are grouped under one name, which is what leaves room for the words.
+ */
+
+/* ==========================================================================
+   CHAT THREAD
+   ========================================================================== */
+
+#comm-chat-thread {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  padding: 14px 16px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  /* Fills whatever the shell gives it rather than a fixed height, so the
+     composer stays pinned and the history scrolls. */
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  scroll-behavior: smooth;
+}
+
+.coe-msg {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 28px;
+  align-items: start;
+  gap: 10px;
+  padding: 3px 4px;
+  border-radius: 8px;
+  position: relative;
+}
+
+/* A grouped message keeps the same columns so its text lines up under the one
+   above; the avatar slot holds the timestamp instead. */
+.coe-msg.is-grouped {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.coe-msg:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.035));
+}
+
+.coe-msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Timestamp in the avatar column on grouped lines. Hidden until hover so a run
+   of messages is not a column of clock readings. */
+.coe-msg-gutter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 2px;
+  height: 20px;
+}
+
+.coe-msg-gutter time {
+  font-size: 0.64rem;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.coe-msg:hover .coe-msg-gutter time {
+  opacity: 0.5;
+}
+
+.coe-msg-main {
+  min-width: 0;
+}
+
+.coe-msg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 1px;
+  flex-wrap: wrap;
+}
+
+.coe-msg-head strong {
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+
+.coe-msg-head time {
+  font-size: 0.68rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.coe-msg-role {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(26, 115, 232, 0.15);
+  color: #1257b8;
+}
+
+/*
+ * The message itself.
+ *
+ * No height limit and no ellipsis — this is the whole point. `pre-wrap` keeps
+ * the line breaks somebody typed, and `anywhere` breaks a pasted URL rather
+ * than letting it widen the thread and scroll the panel sideways.
+ */
+.coe-msg-body {
+  /* Up from 0.9rem. This is prose people read for minutes at a time, not a
+     label — and it was the smallest text on the page. */
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  /* A measure, not a width. Past roughly 75 characters the eye loses the start
+     of the next line, which is why newspapers use columns. */
+  max-width: 72ch;
+}
+
+.coe-msg-del {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #5f6368);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 120ms ease;
+}
+
+.coe-msg:hover .coe-msg-del,
+.coe-msg:focus-within .coe-msg-del {
+  opacity: 1;
+}
+
+.coe-msg-del:hover {
+  color: #d93025;
+  background: rgba(217, 48, 37, 0.10);
+}
+
+.coe-msg-del .material-icons {
+  font-size: 16px;
+}
+
+/* ==========================================================================
+   THE COMPOSER
+   --------------------------------------------------------------------------
+   It was a single-line <input> with a 520-character limit — you could type
+   four lines' worth of message and see one line of it, with the beginning
+   scrolled out of reach. It is a <textarea> now that grows as you type
+   (autoGrow in coe-chat.js) up to ten lines, then scrolls.
+
+   The selectors carry `#messages-panel.comm-clean-tab` and `!important` to
+   match the pinned rules near the end of styles.css, which set the old input's
+   colour and size with the same weight. Anything weaker silently loses.
+   ========================================================================== */
+
+/*
+ * A column, not a grid.
+ *
+ * styles.css pins this element to
+ *
+ *     grid-template-columns: 44px 44px 44px minmax(0, 1fr) 48px !important
+ *
+ * in three places, so every child lands in a fixed cell: the emoji picker, the
+ * preview, the row of tools and the hint underneath were dealt out across five
+ * narrow columns. The hint ended up on top of the microphone button and the
+ * text box was squeezed to a sliver.
+ *
+ * `display: flex` with a column direction overrides the grid outright, so the
+ * children stack the way they read: preview, then the row, then the hint.
+ */
+body:not(.auth-body) #messages-panel .msgr-composer,
+body:not(.auth-body) #messages-panel .discord-composer,
+body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-composer,
+body:not(.auth-body) #messages-panel.comm-clean-tab .discord-composer {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  grid-template-columns: none !important;
+  padding: 12px 16px 14px !important;
+  border-top: 1px solid var(--border-subtle, rgba(15, 23, 42, 0.09)) !important;
+  background: var(--surface, #fff) !important;
+}
+
+/* The emoji panel is a pop-over, not a row in the stack. */
+body:not(.auth-body) #messages-panel .msgr-emoji-pop {
+  position: absolute !important;
+  bottom: 100% !important;
+  left: 16px !important;
+  margin-bottom: 8px !important;
+  z-index: 20 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-composer {
+  position: relative !important;
+}
+
+/* Bottom-aligned: as the box grows it should go up, leaving the send button
+   and the tools sitting level with the last line rather than floating in the
+   middle of a tall composer. */
+body:not(.auth-body) #messages-panel .msgr-composer-row {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-tools {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  flex: 0 0 auto !important;
+  /* Level with the send button while the composer grows past them. */
+  padding-bottom: 4px !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-input-pill {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 4px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  padding: 6px 8px 6px 14px !important;
+  /* 16px, not a pill: the box is three lines tall before anything is typed and
+     grows to twelve. A capsule radius around a paragraph reads as a mistake. */
+  border: 1.5px solid var(--border-subtle, #cbd5e1) !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  transition: border-color 140ms ease, box-shadow 140ms ease !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-input-pill:focus-within {
+  border-color: #0f766e !important;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12) !important;
+}
+
+body:not(.auth-body) #messages-panel #comm-chat-input,
+body:not(.auth-body) #messages-panel.comm-clean-tab #comm-chat-input,
+body:not(.auth-body) #messages-panel.comm-clean-tab .discord-composer #comm-chat-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  /* Height is owned by autoGrow(); these are the floor and the ceiling it
+     works between, repeated here so the box is the right size before the
+     first keystroke and if the script never runs.
+
+     The floor is three lines — you should be able to read a sentence back
+     before you have finished writing it, not after. */
+  min-height: 74px !important;
+  max-height: 290px !important;
+  padding: 10px 6px !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  resize: none !important;
+  overflow-y: hidden !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  line-height: 1.55 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f766e !important;
+  /* Without this a textarea shows a scrollbar gutter at one row on some
+     builds, which makes the empty composer look broken. */
+  scrollbar-width: thin !important;
+}
+
+body:not(.auth-body) #messages-panel #comm-chat-input::placeholder,
+body:not(.auth-body) #messages-panel.comm-clean-tab #comm-chat-input::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+  font-weight: 450 !important;
+  opacity: 1 !important;
+}
+
+/* Inline tools stay on the last line as the box grows. */
+body:not(.auth-body) #messages-panel .msgr-inline-tool {
+  flex: 0 0 auto !important;
+  align-self: flex-end !important;
+  margin-bottom: 2px !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-send {
+  flex: 0 0 auto !important;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  border: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #0f766e !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  transition: background 140ms ease, transform 100ms ease !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-send:hover {
+  background: #0b5f59 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-send:active {
+  transform: scale(0.94) !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-send .material-icons {
+  font-size: 20px !important;
+}
+
+/* --- The line under the composer ----------------------------------------- */
+
+.msgr-composer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 0 4px;
+  min-height: 16px;
+}
+
+.msgr-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  opacity: 0.85;
+}
+
+.msgr-hint kbd {
+  font-family: inherit;
+  font-size: 0.7rem;
+  padding: 1px 5px;
+  border: 1px solid var(--border-subtle, rgba(15, 23, 42, 0.14));
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-sunken, rgba(15, 23, 42, 0.03));
+}
+
+.msgr-count {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.msgr-count.is-near {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* The hint is desktop advice: a phone keyboard's Enter key is the send key and
+   there is no Shift+Enter to explain. */
+@media (max-width: 900px) {
+  .msgr-hint {
+    display: none;
+  }
+
+  .msgr-composer-foot {
+    justify-content: flex-end;
+    min-height: 0;
+    margin-top: 4px;
+  }
+
+  body:not(.auth-body) #messages-panel #comm-chat-input {
+    /* 16px, or iOS zooms the whole page in when the box is focused. */
+    font-size: 16px !important;
+    /* Two lines to start on a phone rather than three — the keyboard already
+       takes half the screen, and the thread needs what is left. */
+    min-height: 58px !important;
+    max-height: 180px !important;
+  }
+}
+
+body.dark-theme .msgr-hint kbd,
+:root[data-theme="dark"] .msgr-hint kbd {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.10);
+}
+
+body.dark-theme #messages-panel .msgr-input-pill,
+:root[data-theme="dark"] #messages-panel .msgr-input-pill {
+  background: #16202e !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+body.dark-theme #messages-panel #comm-chat-input,
+:root[data-theme="dark"] #messages-panel #comm-chat-input {
+  color: #e8eef6 !important;
+  -webkit-text-fill-color: #e8eef6 !important;
+}
+
+/* --- Day separator ------------------------------------------------------- */
+
+.coe-chat-day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 8px;
+}
+
+.coe-chat-day::before,
+.coe-chat-day::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border-faint, rgba(148, 163, 184, 0.24));
+}
+
+.coe-chat-day span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+/* --- Empty state --------------------------------------------------------- */
+
+.coe-chat-empty {
+  margin: auto;
+  text-align: center;
+  padding: 40px 20px;
+  opacity: 0.7;
+}
+
+.coe-chat-empty .material-icons {
+  font-size: 42px;
+  opacity: 0.4;
+}
+
+.coe-chat-empty strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.coe-chat-empty small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+}
+
+/* --- Room list ----------------------------------------------------------- */
+
+.coe-chat-room {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.coe-chat-room:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+}
+
+.coe-chat-room.active {
+  background: var(--accent-surface, rgba(26, 115, 232, 0.12));
+}
+
+.coe-chat-room .material-icons {
+  font-size: 20px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.coe-chat-room-copy {
+  min-width: 0;
+}
+
+.coe-chat-room-copy strong {
+  display: block;
+  font-size: 0.86rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coe-chat-room-copy small {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A room with something new in it while you are reading another. */
+.coe-chat-room.has-unread strong::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--accent, #1a73e8);
+  vertical-align: middle;
+}
+
+/* ==========================================================================
+   ORGANISATION NOTICES
+   ========================================================================== */
+
+.org-notice-card {
+  margin: 18px 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--surface, rgba(255, 255, 255, 0.04));
+}
+
+.org-notice-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.org-notice-head > .material-icons {
+  font-size: 24px;
+  color: var(--accent, #1a73e8);
+  flex-shrink: 0;
+}
+
+.org-notice-head div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.org-notice-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.org-notice-head p {
+  margin: 2px 0 0;
+  font-size: 0.79rem;
+  opacity: 0.68;
+}
+
+.org-notice-all {
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.org-notice-all:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+}
+
+.org-notice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.org-notice {
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.03));
+  border-left: 3px solid var(--border-subtle, rgba(148, 163, 184, 0.35));
+}
+
+.org-notice.is-urgent { border-left-color: #d93025; }
+.org-notice.is-event { border-left-color: #1e8e3e; }
+.org-notice.is-academic { border-left-color: #1a73e8; }
+
+.org-notice-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.org-notice-top h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.org-notice-pin {
+  font-size: 15px;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+/* Full text, wrapped. A notice truncated to one line is a notice nobody read. */
+.org-notice-body {
+  margin: 5px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  opacity: 0.85;
+}
+
+.org-notice-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 0.73rem;
+  opacity: 0.6;
+}
+
+.org-notice-scope {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-hover, rgba(0, 0, 0, 0.06));
+}
+
+.org-notice-empty {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 0.83rem;
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   PHONE
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  #comm-chat-thread {
+    padding: 12px !important;
+  }
+
+  .coe-msg {
+    grid-template-columns: 34px minmax(0, 1fr) 26px;
+    gap: 8px;
+  }
+
+  .coe-msg-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.72rem;
+  }
+
+  .coe-msg-body {
+    font-size: 0.88rem;
+    max-width: none;
+  }
+
+  /* No hover on touch, so the remove control is simply always there. */
+  .coe-msg-del {
+    opacity: 1;
+    width: 26px;
+    height: 26px;
+  }
+
+  .coe-msg-gutter time {
+    opacity: 0.4;
+  }
+
+  .org-notice-head {
+    flex-wrap: wrap;
+  }
+
+  .org-notice-all {
+    width: 100%;
+    margin-top: 4px;
+  }
+}
+
+body.dark-theme .coe-msg-role,
+:root[data-theme="dark"] .coe-msg-role {
+  background: rgba(138, 180, 248, 0.18);
+  color: #a8c7fa;
+}

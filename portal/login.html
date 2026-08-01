@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign in to COE Studio — the Araullo University College of Engineering student portal.">
+    <meta name="theme-color" content="#0b1220">
+    <title>Sign in | COE Studio</title>
+    <link rel="icon" href="assets/coe-engineering.jpg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!--
+        One stylesheet, self-contained.
+
+        The previous page pulled in styles.css (846 KB), login-polish.css and
+        coe-mobile.css to style a form. Almost none of it applied, and the parts
+        that did fought each other — which is why the hero paragraph rendered
+        dark-on-dark. This page owns its own styles and inherits nothing.
+    -->
+    <link rel="stylesheet" href="coe-login.css?v=login-2026-08a">
+</head>
+<body class="auth-body portal-auth-body">
+
+<main class="lg">
+    <!--
+        Brand panel.
+
+        On a phone this collapses to a short header so the sign-in form is on
+        screen without scrolling. The credits deliberately live in the form
+        column below (not here), because anything in this panel sits *above* the
+        form on a narrow screen — and nobody should have to scroll past an
+        attribution list to type their password.
+    -->
+    <section class="lg-brand" aria-label="Araullo University College of Engineering">
+        <div class="lg-brand-inner">
+            <div class="lg-lockup">
+                <span class="lg-crest" aria-hidden="true">AU</span>
+                <div>
+                    <strong>Araullo University</strong>
+                    <span>PHINMA Education</span>
+                </div>
+            </div>
+
+            <div class="lg-title">
+                <span>College of</span>
+                <h1>Engineering</h1>
+                <p>Course materials, tasks, announcements and student support — in one place.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Form panel -->
+    <section class="lg-panel" aria-label="Account access">
+        <button type="button" class="lg-theme" id="theme-toggle" aria-label="Switch between light and dark">
+            <span class="material-icons" aria-hidden="true">light_mode</span>
+        </button>
+
+        <div class="lg-card">
+            <header class="lg-head">
+                <h2 id="auth-title">Welcome back</h2>
+                <p id="auth-subtitle">Sign in to your COE Studio account.</p>
+            </header>
+
+            <p class="lg-message" id="auth-message" role="status" aria-live="polite" hidden></p>
+
+            <!-- Sign in -->
+            <form class="lg-form" id="login-form" novalidate>
+                <label class="lg-field">
+                    <span>University email</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">mail</span>
+                        <input type="email" id="login-email" name="email"
+                               placeholder="you@au.edu.ph" autocomplete="username"
+                               inputmode="email" autocapitalize="none" autocorrect="off"
+                               spellcheck="false" enterkeyhint="next" required>
+                    </div>
+                </label>
+
+                <label class="lg-field">
+                    <span class="lg-field-row">
+                        Password
+                        <a href="#" data-mode="reset">Forgot password?</a>
+                    </span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">lock</span>
+                        <input type="password" id="login-password" name="password"
+                               placeholder="Enter your password" autocomplete="current-password"
+                               enterkeyhint="go" required>
+                        <button type="button" class="lg-reveal" id="login-password-toggle" aria-label="Show password">
+                            <span class="material-icons" aria-hidden="true">visibility</span>
+                        </button>
+                    </div>
+                </label>
+
+                <label class="lg-check">
+                    <input type="checkbox" id="login-remember">
+                    <span>Keep me signed in on this device</span>
+                </label>
+
+                <button type="submit" class="lg-submit">
+                    <span>Sign in</span>
+                    <span class="material-icons" aria-hidden="true">arrow_forward</span>
+                </button>
+
+                <!--
+                    Hidden until the server confirms the Google provider is
+                    configured. A button that always errors is worse than none —
+                    which is exactly what the old Google and Microsoft buttons
+                    were. There is no Microsoft provider, so there is no button.
+                -->
+                <div class="lg-alt" id="google-block" hidden>
+                    <span class="lg-divider">or</span>
+                    <button type="button" class="lg-google" id="google-button">
+                        <span class="lg-google-mark" aria-hidden="true">G</span>
+                        Continue with Google
+                    </button>
+                </div>
+            </form>
+
+            <!-- Create account -->
+            <form class="lg-form" id="register-form" novalidate hidden>
+                <label class="lg-field">
+                    <span>Full name</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">badge</span>
+                        <input type="text" id="reg-name" placeholder="Juana Dela Cruz" autocomplete="name"
+                               autocapitalize="words" enterkeyhint="next" required>
+                    </div>
+                </label>
+
+                <label class="lg-field">
+                    <span>Username</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">alternate_email</span>
+                        <input type="text" id="reg-username" placeholder="@juana.coe" autocomplete="username"
+                               autocapitalize="none" autocorrect="off" spellcheck="false"
+                               enterkeyhint="next" required>
+                    </div>
+                </label>
+
+                <label class="lg-field">
+                    <span>University email</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">mail</span>
+                        <input type="email" id="reg-email" placeholder="you@au.edu.ph" autocomplete="email"
+                               inputmode="email" autocapitalize="none" autocorrect="off"
+                               spellcheck="false" enterkeyhint="next" required>
+                    </div>
+                </label>
+
+                <label class="lg-field">
+                    <span>Course</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">school</span>
+                        <select id="reg-course" required>
+                            <option value="CE">Civil Engineering</option>
+                            <option value="EE">Electrical Engineering</option>
+                        </select>
+                    </div>
+                </label>
+
+                <label class="lg-field">
+                    <span>Password</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">vpn_key</span>
+                        <input type="password" id="reg-password" placeholder="Create a password"
+                               autocomplete="new-password" enterkeyhint="next" required>
+                        <button type="button" class="lg-reveal" id="reg-password-toggle" aria-label="Show password">
+                            <span class="material-icons" aria-hidden="true">visibility</span>
+                        </button>
+                    </div>
+                </label>
+
+                <!-- The server's actual rules, checked live. -->
+                <ul class="lg-rules" id="password-rules" aria-live="polite"></ul>
+
+                <label class="lg-field">
+                    <span>Confirm password</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">verified_user</span>
+                        <input type="password" id="reg-confirm" placeholder="Re-enter your password"
+                               autocomplete="new-password" enterkeyhint="go" required>
+                        <button type="button" class="lg-reveal" id="reg-confirm-toggle" aria-label="Show password">
+                            <span class="material-icons" aria-hidden="true">visibility</span>
+                        </button>
+                    </div>
+                </label>
+
+                <button type="submit" class="lg-submit">
+                    <span>Create account</span>
+                    <span class="material-icons" aria-hidden="true">person_add</span>
+                </button>
+            </form>
+
+            <!-- Reset password -->
+            <form class="lg-form" id="reset-form" novalidate hidden>
+                <label class="lg-field">
+                    <span>University email</span>
+                    <div class="lg-input">
+                        <span class="material-icons" aria-hidden="true">mail</span>
+                        <input type="email" id="reset-email" placeholder="you@au.edu.ph" autocomplete="email"
+                               inputmode="email" autocapitalize="none" autocorrect="off"
+                               spellcheck="false" enterkeyhint="go" required>
+                    </div>
+                </label>
+
+                <p class="lg-hint">
+                    If the address belongs to an account, a reset link is created for it.
+                    We answer the same way either way, so this form cannot be used to
+                    find out who has an account.
+                </p>
+
+                <button type="submit" class="lg-submit">
+                    <span>Send reset link</span>
+                    <span class="material-icons" aria-hidden="true">send</span>
+                </button>
+
+                <p class="lg-dev-link" id="reset-dev-link" hidden>
+                    Email delivery is not configured on this server, so use this link:
+                    <a href="#" id="reset-dev-anchor">Open reset link</a>
+                </p>
+            </form>
+
+            <footer class="lg-foot">
+                <span id="footer-register">
+                    New here? <a href="#" data-mode="register">Create an account</a>
+                </span>
+                <span id="footer-login" hidden>
+                    Already have an account? <a href="#" data-mode="login">Sign in</a>
+                </span>
+            </footer>
+
+            <!-- Below the form on every size: on a phone the brand panel is
+                 already above it, and an attribution list should never be
+                 something you scroll past to reach the password field. -->
+            <dl class="lg-credits">
+                <div>
+                    <dt>Activity Organizer</dt>
+                    <dd>COE Student Council <span>A.Y. 2025&ndash;2026</span></dd>
+                </div>
+                <div>
+                    <dt>Developed by</dt>
+                    <dd>Emmanuel Gepullano <span>Full Stack Developer</span></dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+</main>
+
+<!-- coe-api.js must load first: it owns the session, CSRF and login calls. -->
+<script src="coe-api.js?v=live-2026-08a"></script>
+<script src="coe-login.js?v=login-2026-08a"></script>
+</body>
+</html>

@@ -1,0 +1,1172 @@
+/**
+ * COESC tab — College of Engineering Student Council.
+ *
+ * DESIGN NOTES
+ * ------------
+ * The brief was "modern 2030, clean dashboard". What that means in practice
+ * here, and what it deliberately does not mean:
+ *
+ *   * One accent, not five. The council is one body, so the page uses a single
+ *     indigo ramp and lets CE/EE be the only colour distinction that carries
+ *     meaning. A dashboard that colours everything communicates nothing.
+ *   * Borders instead of drop shadows. The ask was a "maliit na border" on the
+ *     officer cards; a hairline border reads as crisper than a shadow at small
+ *     sizes and does not smear on a low-DPI projector, which is what these get
+ *     shown on.
+ *   * Generous whitespace and one weight of hierarchy per block. Role above
+ *     name, name larger — the eye should land on the person, not the label.
+ *   * Everything sized in rem and laid out with auto-fit grids, so the same
+ *     markup is a 5-across org chart on a laptop and a single column on a phone
+ *     without a media query per breakpoint.
+ *
+ * Scoped under `.coesc-panel` so none of this can leak into the rest of the
+ * portal, which has its own much older styling.
+ */
+
+.coesc-panel {
+    --coesc-accent: #4f46e5;
+    --coesc-accent-soft: #eef2ff;
+    --coesc-accent-line: #c7d2fe;
+    --coesc-ink: #0f172a;
+    --coesc-muted: #64748b;
+    --coesc-line: #e2e8f0;
+    --coesc-surface: #ffffff;
+    --coesc-canvas: #f8fafc;
+    --coesc-ce: #0ea5e9;
+    --coesc-ee: #f59e0b;
+    --coesc-ok: #059669;
+    --coesc-warn: #d97706;
+    --coesc-bad: #dc2626;
+    --coesc-radius: 16px;
+
+    display: grid;
+    gap: 1.5rem;
+    color: var(--coesc-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.coesc-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    padding: 2.25rem 2.5rem;
+    background: linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #6366f1 100%);
+    color: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* A soft light source rather than a flat panel. Purely decorative, so it is
+   pointer-events:none and hidden from assistive tech. */
+.coesc-hero::after {
+    content: "";
+    position: absolute;
+    inset: -40% -10% auto auto;
+    width: 28rem;
+    height: 28rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 62%);
+    pointer-events: none;
+}
+
+.coesc-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.coesc-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.coesc-eyebrow .material-icons {
+    font-size: 1rem;
+}
+
+.coesc-hero h1 {
+    margin: 0.75rem 0 0.5rem;
+    font-size: clamp(1.65rem, 3vw, 2.4rem);
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.coesc-hero p {
+    margin: 0;
+    max-width: 46ch;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+}
+
+.coesc-hero-stats {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.coesc-hero-stat {
+    min-width: 7rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--coesc-radius);
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(6px);
+}
+
+.coesc-hero-stat strong {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.coesc-hero-stat span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* --------------------------------------------------------------------------
+   Section shell
+   -------------------------------------------------------------------------- */
+
+.coesc-section {
+    background: var(--coesc-surface);
+    border: 1px solid var(--coesc-line);
+    border-radius: 20px;
+    padding: 1.65rem 1.75rem 1.85rem;
+}
+
+.coesc-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.35rem;
+}
+
+.coesc-section-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.coesc-section-head h2 .material-icons {
+    font-size: 1.3rem;
+    color: var(--coesc-accent);
+}
+
+.coesc-section-head p {
+    margin: 0.35rem 0 0;
+    color: var(--coesc-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    max-width: 62ch;
+}
+
+.coesc-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.9rem;
+    height: 1.9rem;
+    padding: 0 0.55rem;
+    border-radius: 999px;
+    background: var(--coesc-accent);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.coesc-empty {
+    margin: 0;
+    padding: 1.5rem;
+    border: 1px dashed var(--coesc-line);
+    border-radius: var(--coesc-radius);
+    color: var(--coesc-muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Org chart
+   -------------------------------------------------------------------------- */
+
+/* The org chart.
+   ---------------------------------------------------------------------------
+   A real hierarchy, not a grid of cards: the point of this block is that
+   somebody can see at a glance who reports to whom.
+
+   The connector lines are drawn entirely from the nodes, using the
+   first-child/last-child trick, so the horizontal bar spans exactly the
+   outermost siblings whether a tier holds one seat or seven. Nothing is
+   absolutely positioned and nothing is measured in JavaScript, which is what
+   keeps the lines aligned when a long name wraps to a second line or the
+   viewport changes. */
+
+.coesc-tree {
+    --coesc-link: #cbd5e1;
+    --coesc-drop: 1.75rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Long councils scroll sideways rather than crushing the cards. */
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem 0.25rem;
+}
+
+.coesc-tier {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.coesc-tier-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--coesc-muted);
+    background: var(--coesc-surface);
+    padding: 0 0.6rem;
+    margin-bottom: 0.35rem;
+    /* Sits above the connector so the line appears to pass behind it. */
+    position: relative;
+    z-index: 1;
+}
+
+.coesc-tier-nodes {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.coesc-node {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* Room for the connector that is drawn into this padding. */
+    padding-top: var(--coesc-drop);
+}
+
+/* --- Connectors ---------------------------------------------------------- */
+
+/* Vertical drop from the bar down into each card. */
+.coesc-tier--linked .coesc-node::after,
+.coesc-tier--dashed .coesc-node::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: var(--coesc-drop);
+    border-left: 2px solid var(--coesc-link);
+}
+
+/* Horizontal bar joining the siblings of a tier. Each node draws its own half;
+   the outermost two stop at their own centre, so the bar ends exactly under
+   the first and last card however many there are. */
+.coesc-tier--linked .coesc-tier-nodes > .coesc-node::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: calc(-0.5rem - 1px);
+    right: calc(-0.5rem - 1px);
+    height: 0;
+    border-top: 2px solid var(--coesc-link);
+}
+
+.coesc-tier--linked .coesc-tier-nodes > .coesc-node:first-child::before {
+    left: 50%;
+}
+
+.coesc-tier--linked .coesc-tier-nodes > .coesc-node:last-child::before {
+    right: 50%;
+}
+
+/* A single node in a tier needs no bar at all. */
+.coesc-tier--linked .coesc-tier-nodes > .coesc-node:only-child::before {
+    display: none;
+}
+
+/* The adviser's link is dashed on purpose: a faculty adviser advises the
+   council rather than sitting above the Governor in the student chain of
+   command, and a solid line would claim otherwise. */
+.coesc-tier--dashed .coesc-node::after {
+    border-left-style: dashed;
+}
+
+/* --- The card ------------------------------------------------------------ */
+
+.coesc-officer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+    gap: 1rem;
+}
+
+.coesc-officer {
+    /* The "maliit na border" from the brief: a hairline, not a shadow. */
+    border: 1px solid var(--coesc-line);
+    border-radius: var(--coesc-radius);
+    background: var(--coesc-surface);
+    padding: 1.25rem 1rem 1.1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.coesc-officer:hover {
+    border-color: var(--coesc-accent-line);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -12px rgba(79, 70, 229, 0.4);
+}
+
+.coesc-officer--adviser {
+    border-color: var(--coesc-accent-line);
+    background: linear-gradient(180deg, var(--coesc-accent-soft), var(--coesc-surface) 70%);
+    max-width: 15rem;
+}
+
+.coesc-officer-photo {
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: var(--coesc-accent-soft);
+    border: 2px solid var(--coesc-surface);
+    /* The ring reads as a frame without adding a second border colour. */
+    box-shadow: 0 0 0 1px var(--coesc-accent-line);
+    margin-bottom: 0.5rem;
+}
+
+.coesc-officer-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.coesc-initials {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--coesc-accent);
+    letter-spacing: 0.02em;
+}
+
+.coesc-officer-role {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--coesc-muted);
+}
+
+.coesc-officer-name {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+}
+
+.coesc-officer-tag {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: var(--coesc-accent-soft);
+    color: var(--coesc-accent);
+}
+
+.coesc-officer--ce .coesc-officer-tag {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.coesc-officer--ce .coesc-officer-photo {
+    box-shadow: 0 0 0 1px var(--coesc-ce);
+}
+
+.coesc-officer--ee .coesc-officer-tag {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.coesc-officer--ee .coesc-officer-photo {
+    box-shadow: 0 0 0 1px var(--coesc-ee);
+}
+
+.coesc-officer-tools {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.coesc-mini-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--coesc-line);
+    background: var(--coesc-canvas);
+    color: var(--coesc-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.coesc-mini-btn:hover {
+    border-color: var(--coesc-accent);
+    color: var(--coesc-accent);
+    background: var(--coesc-accent-soft);
+}
+
+.coesc-mini-btn .material-icons {
+    font-size: 0.9rem;
+}
+
+.coesc-manage-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    background: var(--coesc-accent-soft);
+    border: 1px solid var(--coesc-accent-line);
+    color: #3730a3;
+    font-size: 0.83rem;
+}
+
+.coesc-manage-hint .material-icons {
+    font-size: 1.05rem;
+}
+
+/* --------------------------------------------------------------------------
+   Two-column body
+   -------------------------------------------------------------------------- */
+
+.coesc-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .coesc-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Announcements
+   -------------------------------------------------------------------------- */
+
+.coesc-notice-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.coesc-notice {
+    border: 1px solid var(--coesc-line);
+    border-left: 3px solid var(--coesc-accent);
+    border-radius: 12px;
+    padding: 0.95rem 1.1rem;
+    background: var(--coesc-canvas);
+}
+
+.coesc-notice.is-urgent {
+    border-left-color: var(--coesc-bad);
+    background: #fef2f2;
+}
+
+.coesc-notice-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.coesc-notice-head h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.coesc-pin {
+    font-size: 1rem;
+    color: var(--coesc-warn);
+}
+
+.coesc-notice p {
+    margin: 0.4rem 0 0.6rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: #334155;
+}
+
+.coesc-notice-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--coesc-muted);
+}
+
+.coesc-scope {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--coesc-accent-soft);
+    color: var(--coesc-accent);
+    font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Committees and the application form
+   -------------------------------------------------------------------------- */
+
+.coesc-committee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.35rem;
+}
+
+.coesc-committee {
+    border: 1px solid var(--coesc-line);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    background: var(--coesc-canvas);
+}
+
+.coesc-committee h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.coesc-committee p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--coesc-muted);
+}
+
+.coesc-committee-state {
+    display: inline-block;
+    margin-top: 0.6rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.coesc-committee-state.is-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.coesc-committee-state.is-approved {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.coesc-form {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.coesc-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.85rem;
+}
+
+.coesc-field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.coesc-field > span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--coesc-muted);
+}
+
+.coesc-field input,
+.coesc-field select,
+.coesc-field textarea {
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--coesc-line);
+    border-radius: 10px;
+    background: var(--coesc-surface);
+    font: inherit;
+    font-size: 0.88rem;
+    color: var(--coesc-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.coesc-field textarea {
+    min-height: 6.5rem;
+    resize: vertical;
+}
+
+.coesc-field input:focus,
+.coesc-field select:focus,
+.coesc-field textarea:focus {
+    outline: none;
+    border-color: var(--coesc-accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+}
+
+.coesc-submit {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1.4rem;
+    border: none;
+    border-radius: 10px;
+    background: var(--coesc-accent);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.coesc-submit:hover:not(:disabled) {
+    background: #4338ca;
+    transform: translateY(-1px);
+}
+
+.coesc-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.coesc-note {
+    margin: 0;
+    font-size: 0.83rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 8px;
+}
+
+.coesc-note.is-ok {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.coesc-note.is-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.coesc-note.is-busy {
+    background: var(--coesc-accent-soft);
+    color: #3730a3;
+}
+
+/* --------------------------------------------------------------------------
+   My applications
+   -------------------------------------------------------------------------- */
+
+.coesc-application-list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.coesc-application-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    padding: 0.75rem 0.95rem;
+    border: 1px solid var(--coesc-line);
+    border-radius: 10px;
+    background: var(--coesc-canvas);
+}
+
+.coesc-application-row strong {
+    display: block;
+    font-size: 0.88rem;
+}
+
+.coesc-application-row small {
+    color: var(--coesc-muted);
+    font-size: 0.75rem;
+}
+
+.coesc-application-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--coesc-line);
+    font-size: 0.8rem;
+    color: #334155;
+}
+
+.coesc-status {
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.coesc-status.is-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.coesc-status.is-approved {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.coesc-status.is-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* --------------------------------------------------------------------------
+   Approvals queue
+   -------------------------------------------------------------------------- */
+
+.coesc-approval-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 0.85rem;
+}
+
+.coesc-approval {
+    border: 1px solid var(--coesc-line);
+    border-radius: 14px;
+    padding: 1rem 1.15rem 1.1rem;
+    background: var(--coesc-surface);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    transition: opacity 0.15s ease;
+}
+
+.coesc-approval.is-busy {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.coesc-approval header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.coesc-approval header time {
+    font-size: 0.72rem;
+    color: var(--coesc-muted);
+}
+
+.coesc-approval-tag {
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.coesc-approval-tag.is-application {
+    background: var(--coesc-accent-soft);
+    color: var(--coesc-accent);
+}
+
+.coesc-approval-tag.is-question {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.coesc-approval-tag.is-material {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.coesc-approval h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.coesc-approval-meta {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--coesc-muted);
+}
+
+.coesc-approval-body {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: #334155;
+    /* Long applications must not stretch one card past its neighbours. */
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.coesc-approval-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.6rem;
+}
+
+.coesc-approve,
+.coesc-reject {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.coesc-approve {
+    background: var(--coesc-ok);
+    color: #fff;
+}
+
+.coesc-approve:hover:not(:disabled) {
+    background: #047857;
+}
+
+.coesc-reject {
+    background: var(--coesc-surface);
+    border-color: var(--coesc-line);
+    color: var(--coesc-bad);
+}
+
+.coesc-reject:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: var(--coesc-bad);
+}
+
+.coesc-approve:disabled,
+.coesc-reject:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.coesc-approve .material-icons,
+.coesc-reject .material-icons {
+    font-size: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Dark mode
+   --------------------------------------------------------------------------
+   The portal has a dark theme; without this the whole tab stays white inside a
+   dark shell, which looks like a rendering bug rather than a design choice. */
+
+body.dark-mode .coesc-panel,
+[data-theme="dark"] .coesc-panel {
+    --coesc-ink: #e2e8f0;
+    --coesc-muted: #94a3b8;
+    --coesc-line: #334155;
+    --coesc-surface: #1e293b;
+    --coesc-canvas: #0f172a;
+    --coesc-accent-soft: #312e81;
+    --coesc-accent-line: #4338ca;
+}
+
+body.dark-mode .coesc-notice p,
+body.dark-mode .coesc-approval-body,
+body.dark-mode .coesc-application-note,
+[data-theme="dark"] .coesc-notice p,
+[data-theme="dark"] .coesc-approval-body,
+[data-theme="dark"] .coesc-application-note {
+    color: #cbd5e1;
+}
+
+body.dark-mode .coesc-notice.is-urgent,
+[data-theme="dark"] .coesc-notice.is-urgent {
+    background: #431a1a;
+}
+
+/* --------------------------------------------------------------------------
+   Small screens
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+    .coesc-hero {
+        padding: 1.6rem 1.35rem;
+    }
+
+    .coesc-section {
+        padding: 1.25rem 1.1rem 1.4rem;
+        border-radius: 16px;
+    }
+
+    .coesc-officer-grid {
+        grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+        gap: 0.75rem;
+    }
+
+    .coesc-officer-photo {
+        width: 4.5rem;
+        height: 4.5rem;
+    }
+
+    .coesc-approval-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Respect a reduced-motion preference: the lift on hover is decoration. */
+@media (prefers-reduced-motion: reduce) {
+    .coesc-officer,
+    .coesc-submit,
+    .coesc-mini-btn,
+    .coesc-approve,
+    .coesc-reject {
+        transition: none;
+    }
+
+    .coesc-officer:hover,
+    .coesc-submit:hover:not(:disabled) {
+        transform: none;
+    }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Fixes and additions for the org chart
+   --------------------------------------------------------------------------- */
+
+/*
+ * Make `hidden` actually hide.
+ *
+ * `[hidden]` is only a UA rule (`display: none`), so ANY author rule that sets
+ * `display` on the same element beats it. `.coesc-manage-hint { display: flex }`
+ * did exactly that, and the "you are an administrator" banner showed for every
+ * student — and worse, made a failed load look like a successful one while
+ * debugging. Scoped to this panel and marked important so no later rule here
+ * can reintroduce the same bug.
+ */
+.coesc-panel [hidden] {
+    display: none !important;
+}
+
+/* Even card widths, so the connectors meet the cards centred. */
+.coesc-node > .coesc-officer {
+    width: 11.5rem;
+    height: 100%;
+    margin: 0;
+}
+
+/* The adviser is the one card that is allowed to be wider. */
+.coesc-tier[data-tier="0"] .coesc-node > .coesc-officer {
+    width: 13rem;
+}
+
+/* Failed section loads.
+   A visible explanation beats an empty panel: blank reads as "nothing here",
+   which is how a 500 from the API looked like an empty council. */
+.coesc-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid #fecaca;
+    border-radius: var(--coesc-radius);
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.coesc-error .material-icons {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.coesc-error strong {
+    display: block;
+    font-size: 0.9rem;
+}
+
+.coesc-error p {
+    margin: 0.2rem 0 0;
+    font-size: 0.83rem;
+    line-height: 1.5;
+    color: #b91c1c;
+}
+
+.coesc-retry {
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #fecaca;
+    background: #fff;
+    color: #991b1b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.coesc-retry:hover:not(:disabled) {
+    background: #fee2e2;
+}
+
+.coesc-retry:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Dark mode for the connectors and the error box. */
+body.dark-mode .coesc-tree,
+[data-theme="dark"] .coesc-tree {
+    --coesc-link: #475569;
+}
+
+body.dark-mode .coesc-error,
+[data-theme="dark"] .coesc-error {
+    background: #431a1a;
+    border-color: #7f1d1d;
+    color: #fecaca;
+}
+
+body.dark-mode .coesc-error p,
+[data-theme="dark"] .coesc-error p {
+    color: #fca5a5;
+}
+
+body.dark-mode .coesc-retry,
+[data-theme="dark"] .coesc-retry {
+    background: #1e293b;
+    border-color: #7f1d1d;
+    color: #fecaca;
+}
+
+/*
+ * Narrow screens.
+ *
+ * A seven-across chart cannot shrink to a phone and still be readable, and
+ * horizontal scrolling to find the Treasurer is worse than no chart at all. So
+ * below 720px the tree becomes a stacked list with a single left rail: the
+ * hierarchy is still legible, top to bottom, and every name is at full size.
+ */
+@media (max-width: 720px) {
+    .coesc-tree {
+        align-items: stretch;
+        overflow-x: visible;
+    }
+
+    .coesc-tier {
+        align-items: stretch;
+    }
+
+    .coesc-tier-label {
+        align-self: flex-start;
+        margin: 0.85rem 0 0.5rem;
+        padding: 0;
+    }
+
+    .coesc-tier-nodes {
+        flex-direction: column;
+        gap: 0.6rem;
+        padding-left: 1.1rem;
+        border-left: 2px solid var(--coesc-link);
+    }
+
+    .coesc-node {
+        padding-top: 0;
+    }
+
+    /* The vertical drop becomes a short tick off the rail. */
+    .coesc-tier--linked .coesc-node::after,
+    .coesc-tier--dashed .coesc-node::after {
+        top: 50%;
+        left: -1.1rem;
+        width: 1.1rem;
+        height: 0;
+        border-left: 0;
+        border-top: 2px solid var(--coesc-link);
+    }
+
+    .coesc-tier--linked .coesc-tier-nodes > .coesc-node::before {
+        display: none;
+    }
+
+    .coesc-node > .coesc-officer,
+    .coesc-tier[data-tier="0"] .coesc-node > .coesc-officer {
+        width: 100%;
+    }
+
+    /* Landscape cards read better than tall ones in a list. */
+    .coesc-node > .coesc-officer {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+    }
+
+    .coesc-node > .coesc-officer .coesc-officer-photo {
+        width: 3.25rem;
+        height: 3.25rem;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .coesc-node > .coesc-officer .coesc-officer-tools {
+        margin-top: 0;
+        margin-left: auto;
+    }
+}

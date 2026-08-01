@@ -1,0 +1,1607 @@
+// ---------------------------------------------------------------------------
+// Aster ID / COE Studio — Prisma schema (SQLite)
+//
+// PORTING NOTES (from the original PostgreSQL schema, kept at
+// `schema.postgres.prisma.bak`). Prisma's SQLite connector does not support:
+//   * `enum`        -> modelled as `String` + a documented value set.
+//                      The single source of truth for allowed values lives in
+//                      `src/lib/enums.ts` and is enforced by Zod at every
+//                      write path, so invalid values cannot reach the DB.
+//   * scalar lists  -> `String[]` is stored as a JSON-encoded `String`.
+//   * `Json`        -> stored as a JSON-encoded `String`.
+//   * native types  -> `@db.Text` / `@db.Decimal(p,s)` dropped; SQLite is
+//                      dynamically typed and `Float` covers the decimal cases.
+//
+// Every column used for lookup, filtering, sorting or joining is indexed.
+// Uniqueness is enforced at the DB level so duplicate accounts are impossible
+// even if two registrations race.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 removed `url` from the datasource block. The connection string for
+// Migrate now comes from `prisma.config.ts`, and the runtime client gets a
+// driver adapter instead (see `src/lib/prisma.ts`).
+datasource db {
+  provider = "sqlite"
+}
+
+// ===========================================================================
+// IDENTITY
+// ===========================================================================
+
+/// A person who can sign in.
+///
+/// `email` and `username` are both unique and are always persisted
+/// lower-cased (see `normalizeEmail` / `normalizeUsername` in
+/// `src/lib/security.ts`). SQLite's default collation is case-sensitive, so
+/// normalising on the way in is what actually makes "Bob@x.com" and
+/// "bob@x.com" the same account.
+model User {
+  id       String  @id @default(cuid())
+  name     String?
+  /// Lower-cased login handle, e.g. "@juan.coe". Unique.
+  username String? @unique
+  /// Lower-cased email. Unique. Nullable only so OAuth-only rows stay legal.
+  email    String? @unique
+
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+
+  /// UserRole — "USER" | "ADMIN" | "STUDENT" | "FACULTY" | "LIBRARIAN" | "REGISTRAR"
+  role String @default("USER")
+
+  /// AccountStatus — "ACTIVE" | "INACTIVE" | "BANNED"
+  /// Drives the admin enable/disable/ban controls and is checked on every
+  /// sign-in attempt.
+  status String @default("ACTIVE")
+  /// Free-text reason recorded when an admin changes `status`.
+  statusReason    String?
+  statusChangedAt DateTime?
+  /// Admin who last changed `status` (kept as a plain id, not a relation, so
+  /// deleting an admin never blocks or rewrites another user's audit trail).
+  statusChangedBy String?
+
+  /// Discipline / course code, e.g. "CE", "EE". Mirrors the static portal.
+  discipline String?
+
+  passwordChangedAt DateTime?
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  /// Count of consecutive failed sign-ins; reset to 0 on success.
+  failedLoginCount  Int       @default(0)
+  lockedUntil       DateTime?
+  loginCount        Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// Soft delete. Non-null means the row is hidden from every normal query.
+  deletedAt DateTime?
+
+  accounts            Account[]
+  sessions            Session[]
+  activeSessions      ActiveSession[]
+  loginEvents         LoginEvent[]
+  securityTokens      SecurityToken[]
+  ownedConversations  ChatConversation[]     @relation("ConversationCreator")
+  chatMemberships     ChatMember[]
+  chatMessages        ChatMessage[]          @relation("MessageSender")
+  pinnedMessages      ChatMessage[]          @relation("MessagePinnedBy")
+  messageReactions    ChatReaction[]
+  messageReceipts     ChatReceipt[]
+  chatPresence        ChatPresence?
+  chatReports         ChatReport[]           @relation("ReportReporter")
+  moderatedReports    ChatReport[]           @relation("ReportModerator")
+  requestedTickets    ChatTicket[]           @relation("TicketRequester")
+  assignedTickets     ChatTicket[]           @relation("TicketAssignee")
+  moderationActions   ChatModerationAction[]
+  chatNotifications   ChatNotification[]
+  staffProfile        ChatStaffProfile?
+  studentProfile      StudentProfile?
+  facultyProfile      FacultyProfile?
+  libraryLoans        LibraryLoan[]          @relation("LibraryLoanBorrower")
+  managedLibraryLoans LibraryLoan[]          @relation("LibraryLoanStaff")
+  libraryHolds        LibraryHold[]
+  auditLogs           AuditLog[]             @relation("AuditActor")
+  recordedAttendance  AttendanceRecord[]     @relation("AttendanceRecordedBy")
+  postedGrades        GradeRecord[]          @relation("GradePostedBy")
+
+  // Engineering Library (digital repository)
+  createdFolders     LibraryFolder[]      @relation("FolderCreator")
+  uploadedMaterials  Material[]           @relation("MaterialUploader")
+  reviewedMaterials  Material[]           @relation("MaterialReviewer")
+  materialComments   MaterialComment[]
+  commentLikes       MaterialCommentLike[]
+  materialLikes      MaterialLike[]
+  materialFavorites  MaterialFavorite[]
+  materialBookmarks  MaterialBookmark[]
+  materialDownloads  MaterialDownload[]
+  materialViews      MaterialView[]
+  materialRatings    MaterialRating[]
+  materialReports    MaterialReport[]     @relation("ReportAuthor")
+  resolvedReports    MaterialReport[]     @relation("ReportResolver")
+  notifications      Notification[]
+
+  // Announcements and submissions
+  announcements       Announcement[]     @relation("AnnouncementAuthor")
+  announcementReads   AnnouncementRead[]
+  createdAssignments  Assignment[]       @relation("AssignmentAuthor")
+  submissions         Submission[]       @relation("SubmissionStudent")
+  gradedSubmissions   Submission[]       @relation("SubmissionGrader")
+
+  // Q&A hub ("Tanong Mo, Sagot Ko")
+  questions       Question[]       @relation("QuestionAuthor")
+  answers         Answer[]         @relation("AnswerAuthor")
+  answerVotes     AnswerVote[]
+  answerComments  AnswerComment[]  @relation("AnswerCommentAuthor")
+  qaFlags         QaFlag[]         @relation("QaFlagReporter")
+
+  councilPhotoUploads   CouncilOfficer[]       @relation("CouncilOfficerEditor")
+  committeeApplications CommitteeApplication[] @relation("CommitteeApplicant")
+  reviewedApplications  CommitteeApplication[] @relation("CommitteeReviewer")
+
+  // Admin table: default sort is newest-first, and every filter/sort column
+  // the dashboard exposes is covered here.
+  @@index([createdAt])
+  @@index([role, status])
+  @@index([status, createdAt])
+  @@index([lastLoginAt])
+  @@index([deletedAt])
+  @@index([name])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/// Single-use, hashed tokens for email verification and password reset.
+/// Only the SHA-256 hash is stored, so a database leak does not hand out
+/// working reset links.
+model SecurityToken {
+  id     String @id @default(cuid())
+  userId String
+  /// SHA-256 of the token that was emailed to the user.
+  tokenHash String @unique
+  /// SecurityTokenType — "EMAIL_VERIFICATION" | "PASSWORD_RESET"
+  type       String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+}
+
+/// One row per live sign-in. Revoking a row logs that device out immediately,
+/// which is what makes "disable this account" take effect without waiting for
+/// the JWT to expire.
+model ActiveSession {
+  id           String    @id @default(cuid())
+  userId       String
+  sessionToken String    @unique
+  ipAddress    String?
+  userAgent    String?
+  /// Parsed from `userAgent` at creation time for display in the admin panel.
+  device       String?
+  browser      String?
+  os           String?
+  rememberMe   Boolean   @default(false)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+// ===========================================================================
+// REAL-TIME ACTIVITY LOG
+// ===========================================================================
+
+/// Append-only feed powering the admin dashboard's live log.
+///
+/// Every row carries the full context the brief asks for: who, what, when,
+/// from where, and on what. `userId` is nullable and `SetNull` on delete so a
+/// deleted account's history survives; `email`/`username` are denormalised
+/// copies kept precisely so the log still reads correctly afterwards.
+model LoginEvent {
+  id       String  @id @default(cuid())
+  userId   String?
+  /// Denormalised so the entry stays readable after the user is deleted.
+  email    String?
+  username String?
+
+  /// LoginEventType — see `LOGIN_EVENT_TYPES` in `src/lib/enums.ts`.
+  /// LOGIN_SUCCESS | LOGIN_FAILED | LOGOUT | REGISTER | PASSWORD_CHANGE |
+  /// PASSWORD_RESET_REQUESTED | PASSWORD_RESET | PROFILE_UPDATED |
+  /// ACCOUNT_UPDATED | ACCOUNT_DELETED | STATUS_CHANGED | ROLE_CHANGED |
+  /// SESSION_REVOKED | EMAIL_VERIFIED
+  type    String
+  success Boolean @default(false)
+
+  ipAddress String?
+  userAgent String?
+  /// Parsed from `userAgent` so the dashboard does not re-parse per render.
+  device  String?
+  browser String?
+  os      String?
+
+  detail    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // The live feed reads "newest first", optionally narrowed by user or type.
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([userId, createdAt])
+}
+
+// ===========================================================================
+// AUDIT
+// ===========================================================================
+
+model AuditLog {
+  id      String  @id @default(cuid())
+  actorId String?
+  /// AuditAction — CREATE | UPDATE | DELETE | LOGIN | ACCESS_DENIED |
+  /// EXPORT | IMPORT | SECURITY_EVENT | STATUS_CHANGE
+  action String
+  /// AuditEntity — USER | STUDENT | FACULTY | COURSE | SECTION | ENROLLMENT |
+  /// ATTENDANCE | GRADE | BOOK | COPY | LOAN | HOLD | SYSTEM | CHAT
+  entity    String
+  entityId  String?
+  message   String
+  ipAddress String?
+  userAgent String?
+  /// JSON-encoded object (SQLite has no native JSON column).
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entity, entityId, createdAt])
+  @@index([action, createdAt])
+}
+
+// ===========================================================================
+// CHAT
+// ===========================================================================
+
+model ChatConversation {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  /// ChatConversationType — DIRECT | CHANNEL | GROUP | SUPPORT
+  type          String    @default("CHANNEL")
+  avatarUrl     String?
+  createdById   String?
+  isArchived    Boolean   @default(false)
+  lastMessageAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  createdBy User?         @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  members   ChatMember[]
+  messages  ChatMessage[]
+  reports   ChatReport[]
+  tickets   ChatTicket[]
+
+  @@index([type, isArchived, lastMessageAt])
+  @@index([createdById])
+}
+
+model ChatMember {
+  id             String @id @default(cuid())
+  conversationId String
+  userId         String
+  /// ChatMemberRole — OWNER | ADMIN | STAFF | MEMBER
+  role        String    @default("MEMBER")
+  favorite    Boolean   @default(false)
+  mutedUntil  DateTime?
+  bannedUntil DateTime?
+  lastReadAt  DateTime?
+  joinedAt    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, favorite])
+  @@index([conversationId, role])
+}
+
+model ChatMessage {
+  id             String  @id @default(cuid())
+  conversationId String
+  senderId       String?
+  /// ChatMessageType — TEXT | IMAGE | FILE | VOICE | SYSTEM
+  type            String    @default("TEXT")
+  body            String?
+  fileUrl         String?
+  fileName        String?
+  fileSize        Int?
+  mimeType        String?
+  voiceDurationMs Int?
+  replyToId       String?
+  editedAt        DateTime?
+  deletedAt       DateTime?
+  pinnedAt        DateTime?
+  pinnedById      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?            @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+  pinnedBy     User?            @relation("MessagePinnedBy", fields: [pinnedById], references: [id], onDelete: SetNull)
+  replyTo      ChatMessage?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      ChatMessage[]    @relation("MessageReplies")
+  reactions    ChatReaction[]
+  receipts     ChatReceipt[]
+  reports      ChatReport[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([pinnedAt])
+  @@index([replyToId])
+  @@index([pinnedById])
+}
+
+model ChatReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([userId, createdAt])
+}
+
+model ChatReceipt {
+  id          String    @id @default(cuid())
+  messageId   String
+  userId      String
+  deliveredAt DateTime?
+  seenAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, seenAt])
+}
+
+model ChatPresence {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  online     Boolean  @default(false)
+  socketId   String?
+  lastSeenAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatReport {
+  id             String  @id @default(cuid())
+  conversationId String
+  messageId      String?
+  reporterId     String
+  moderatorId    String?
+  reason         String
+  details        String?
+  /// ChatReportStatus — OPEN | REVIEWING | RESOLVED | DISMISSED
+  status     String   @default("OPEN")
+  resolution String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      ChatMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  reporter     User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  moderator    User?            @relation("ReportModerator", fields: [moderatorId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([conversationId, createdAt])
+  @@index([messageId])
+  @@index([reporterId])
+  @@index([moderatorId])
+}
+
+model ChatTicket {
+  id             String  @id @default(cuid())
+  conversationId String?
+  requesterId    String
+  assigneeId     String?
+  subject        String
+  description    String
+  /// ChatTicketStatus — OPEN | PENDING | RESOLVED | CLOSED
+  status    String   @default("OPEN")
+  priority  String   @default("normal")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversation ChatConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  requester    User              @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignee     User?             @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([status, priority, createdAt])
+  @@index([requesterId, createdAt])
+  @@index([conversationId])
+  @@index([assigneeId])
+}
+
+model ChatModerationAction {
+  id             String  @id @default(cuid())
+  moderatorId    String
+  targetUserId   String?
+  conversationId String?
+  messageId      String?
+  /// ChatModerationActionType — MUTE | UNMUTE | BAN | UNBAN | DELETE_MESSAGE |
+  /// PIN_MESSAGE | UNPIN_MESSAGE | RESOLVE_REPORT | ASSIGN_TICKET
+  type   String
+  reason String?
+  /// JSON-encoded object.
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  moderator User @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+
+  @@index([moderatorId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+model ChatNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model ChatStaffProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  title  String @default("Support Staff")
+  /// JSON-encoded object.
+  permissions String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================================================
+// ACADEMICS
+// ===========================================================================
+
+model AcademicDepartment {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  programs AcademicProgram[]
+  courses  Course[]
+  faculty  FacultyProfile[]
+
+  @@index([name])
+}
+
+model AcademicProgram {
+  id            String   @id @default(cuid())
+  departmentId  String
+  code          String   @unique
+  name          String
+  degreeLevel   String   @default("Bachelor")
+  durationYears Int      @default(4)
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  department AcademicDepartment @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  students   StudentProfile[]
+
+  @@index([departmentId, name])
+}
+
+model StudentProfile {
+  id            String @id @default(cuid())
+  userId        String @unique
+  programId     String?
+  studentNumber String @unique
+  yearLevel     Int    @default(1)
+  /// AcademicStatus — ACTIVE | INACTIVE | GRADUATED | SUSPENDED
+  status         String   @default("ACTIVE")
+  guardianName   String?
+  guardianPhone  String?
+  emergencyPhone String?
+  address        String?
+  admittedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program     AcademicProgram?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+  enrollments Enrollment[]
+  attendance  AttendanceRecord[]
+  grades      GradeRecord[]
+
+  @@index([programId, status])
+  @@index([yearLevel, status])
+}
+
+model FacultyProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  departmentId   String?
+  employeeNumber String   @unique
+  title          String   @default("Instructor")
+  office         String?
+  phone          String?
+  bio            String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department AcademicDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  sections   CourseSection[]
+
+  @@index([departmentId])
+}
+
+model Course {
+  id           String   @id @default(cuid())
+  departmentId String?
+  code         String   @unique
+  title        String
+  description  String?
+  credits      Int      @default(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department AcademicDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  sections   CourseSection[]
+
+  @@index([departmentId, title])
+}
+
+model CourseSection {
+  id           String  @id @default(cuid())
+  courseId     String
+  facultyId    String?
+  sectionCode  String
+  term         String
+  academicYear String
+  room         String?
+  schedule     String?
+  capacity     Int     @default(40)
+  /// CourseSectionStatus — PLANNED | OPEN | CLOSED | COMPLETED
+  status    String   @default("PLANNED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course      Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  faculty     FacultyProfile?    @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  enrollments Enrollment[]
+  attendance  AttendanceRecord[]
+  grades      GradeRecord[]
+
+  @@unique([courseId, sectionCode, term, academicYear])
+  @@index([facultyId, status])
+  @@index([term, academicYear, status])
+}
+
+model Enrollment {
+  id        String @id @default(cuid())
+  studentId String
+  sectionId String
+  /// EnrollmentStatus — ENROLLED | WAITLISTED | DROPPED | COMPLETED
+  status     String   @default("ENROLLED")
+  finalGrade String?
+  enrolledAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  section CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, sectionId])
+  @@index([sectionId, status])
+  @@index([studentId, status])
+}
+
+model AttendanceRecord {
+  id           String   @id @default(cuid())
+  studentId    String
+  sectionId    String
+  recordedById String?
+  date         DateTime
+  /// AttendanceStatus — PRESENT | LATE | ABSENT | EXCUSED
+  status    String
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  section    CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  recordedBy User?          @relation("AttendanceRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, sectionId, date])
+  @@index([sectionId, date])
+  @@index([studentId, date])
+  @@index([recordedById])
+}
+
+model GradeRecord {
+  id         String   @id @default(cuid())
+  studentId  String
+  sectionId  String
+  postedById String?
+  title      String
+  score      Float?
+  maxScore   Float?
+  weight     Float?
+  remarks    String?
+  postedAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  section  CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  postedBy User?          @relation("GradePostedBy", fields: [postedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, postedAt])
+  @@index([sectionId, postedAt])
+  @@index([postedById])
+}
+
+// ===========================================================================
+// LIBRARY
+// ===========================================================================
+
+model LibraryBook {
+  id              String  @id @default(cuid())
+  isbn            String? @unique
+  title           String
+  subtitle        String?
+  /// JSON-encoded string array (SQLite has no scalar lists).
+  authors         String  @default("[]")
+  publisher       String?
+  publicationYear Int?
+  category        String?
+  /// JSON-encoded string array.
+  subjects        String   @default("[]")
+  description     String?
+  coverUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  copies LibraryCopy[]
+  holds  LibraryHold[]
+
+  @@index([title])
+  @@index([category])
+}
+
+model LibraryCopy {
+  id      String @id @default(cuid())
+  bookId  String
+  barcode String @unique
+  /// BookCopyStatus — AVAILABLE | ON_LOAN | RESERVED | MAINTENANCE | LOST
+  status        String   @default("AVAILABLE")
+  location      String?
+  conditionNote String?
+  acquiredAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  book  LibraryBook   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  loans LibraryLoan[]
+
+  @@index([bookId, status])
+  @@index([status, location])
+}
+
+model LibraryLoan {
+  id         String  @id @default(cuid())
+  copyId     String
+  borrowerId String
+  issuedById String?
+  /// LibraryLoanStatus — ACTIVE | RETURNED | OVERDUE | LOST
+  status       String    @default("ACTIVE")
+  checkedOutAt DateTime  @default(now())
+  dueAt        DateTime
+  returnedAt   DateTime?
+  renewalCount Int       @default(0)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  copy     LibraryCopy @relation(fields: [copyId], references: [id], onDelete: Restrict)
+  borrower User        @relation("LibraryLoanBorrower", fields: [borrowerId], references: [id], onDelete: Cascade)
+  issuedBy User?       @relation("LibraryLoanStaff", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  @@index([borrowerId, status, dueAt])
+  @@index([copyId, status])
+  @@index([dueAt, status])
+  @@index([issuedById])
+}
+
+model LibraryHold {
+  id          String @id @default(cuid())
+  bookId      String
+  requesterId String
+  /// LibraryHoldStatus — ACTIVE | FULFILLED | CANCELLED | EXPIRED
+  status      String    @default("ACTIVE")
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  fulfilledAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  book      LibraryBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  requester User        @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@index([requesterId, status, createdAt])
+  @@index([bookId, status, createdAt])
+}
+
+// ===========================================================================
+// ENGINEERING LIBRARY — shared digital repository
+//
+// Distinct from the `LibraryBook` / `LibraryCopy` / `LibraryLoan` models above,
+// which model *physical* book circulation (barcodes, due dates, holds). These
+// model an uploaded-file repository: PDFs, videos, handouts and reviewers that
+// every signed-in user shares, like a Google Drive shared drive.
+//
+// Design notes:
+//   * Files are NOT stored in the database. Only metadata lives here; bytes go
+//     to disk under `storage/` (or object storage later) and `storageKey`
+//     points at them. The previous implementation base64-encoded whole files
+//     into localStorage, which capped the entire library at ~5 MB per browser.
+//   * Counter columns (`viewCount`, `downloadCount`, ...) are denormalised
+//     copies of the detail tables. Rendering a 50-card grid would otherwise
+//     need four aggregate subqueries per card.
+// ===========================================================================
+
+/// A node in the library tree: Course > Year > Subject > Professor > Category.
+///
+/// Self-referencing rather than five fixed columns, so the hierarchy can be
+/// reorganised by admins without a migration. `path` caches the materialised
+/// ancestor chain ("/ce/2nd-year/cie-113/handouts") so breadcrumbs and
+/// descendant queries do not need a recursive CTE.
+model LibraryFolder {
+  id       String  @id @default(cuid())
+  parentId String?
+  name     String
+  /// URL-safe segment, unique among siblings.
+  slug String
+  /// Full materialised path from the root, always leading- and trailing-slashed.
+  path String
+  /// FolderKind — ROOT | COURSE | YEAR | SUBJECT | PROFESSOR | CATEGORY | CUSTOM
+  kind        String  @default("CUSTOM")
+  description String?
+  /// Optional icon/colour hints for the UI.
+  icon  String?
+  color String?
+  /// Manual ordering within a parent; ties broken by name.
+  position Int @default(0)
+
+  /// Denormalised context, copied down from ancestors so a material inherits
+  /// them without walking the tree on every query.
+  course     String?
+  year       String?
+  subject    String?
+  department String?
+
+  /// When true, only ADMIN/FACULTY may upload here.
+  restricted Boolean @default(false)
+
+  /// Denormalised count of approved, non-deleted materials in this folder.
+  materialCount Int @default(0)
+
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  parent    LibraryFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  LibraryFolder[] @relation("FolderTree")
+  createdBy User?           @relation("FolderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  materials Material[]
+
+  // Sibling slugs must be unique — this is what stops two "Handouts" folders
+  // appearing under the same subject.
+  @@unique([parentId, slug])
+  @@index([path])
+  @@index([parentId, position])
+  @@index([kind])
+  @@index([course, year, subject])
+  @@index([deletedAt])
+}
+
+/// An uploaded learning material.
+model Material {
+  id       String @id @default(cuid())
+  folderId String
+
+  title       String
+  description String?
+  /// MaterialKind — REFERENCE | HANDOUT | VIDEO | LESSON | LINK | OTHER
+  kind String @default("OTHER")
+
+  // --- File ---------------------------------------------------------------
+  /// Original filename as uploaded, kept for the download filename.
+  originalName String
+  /// Opaque on-disk key. Never derived from user input — see `lib/upload.ts`.
+  storageKey String?
+  /// For GDrive/YouTube entries there is no local file, just a URL.
+  externalUrl String?
+  mimeType    String  @default("application/octet-stream")
+  /// Lower-case extension without the dot, e.g. "pdf".
+  extension String?
+  /// Bytes.
+  sizeBytes Int @default(0)
+  /// SHA-256 of the file contents; powers duplicate detection.
+  checksum     String?
+  thumbnailKey String?
+  /// Page/slide count or video duration in seconds, when known.
+  pageCount   Int?
+  durationSec Int?
+
+  // --- Classification -----------------------------------------------------
+  course     String?
+  year       String?
+  semester   String?
+  subject    String?
+  department String?
+  professor  String?
+  /// JSON-encoded string array (SQLite has no scalar lists). Mirrored into
+  /// `MaterialTag` rows so tags stay searchable and filterable.
+  tags String @default("[]")
+
+  // --- Moderation ---------------------------------------------------------
+  /// MaterialStatus — PENDING | APPROVED | REJECTED
+  /// Uploads by ADMIN/FACULTY are auto-approved; student uploads queue.
+  status         String    @default("PENDING")
+  rejectionNote  String?
+  reviewedById   String?
+  reviewedAt     DateTime?
+  /// Admin-pinned to the top of the dashboard.
+  pinned         Boolean   @default(false)
+
+  // --- Denormalised counters ----------------------------------------------
+  viewCount     Int   @default(0)
+  downloadCount Int   @default(0)
+  likeCount     Int   @default(0)
+  commentCount  Int   @default(0)
+  ratingSum     Int   @default(0)
+  ratingCount   Int   @default(0)
+
+  uploadedById String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  /// Soft delete, so admins can restore.
+  deletedAt    DateTime?
+
+  folder     LibraryFolder      @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  uploadedBy User?              @relation("MaterialUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  reviewedBy User?              @relation("MaterialReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  materialTags MaterialTag[]
+  comments   MaterialComment[]
+  likes      MaterialLike[]
+  favorites  MaterialFavorite[]
+  bookmarks  MaterialBookmark[]
+  downloads  MaterialDownload[]
+  views      MaterialView[]
+  ratings    MaterialRating[]
+  reports    MaterialReport[]
+
+  // The library grid is "approved, not deleted, newest first, in this folder".
+  @@index([folderId, status, deletedAt, createdAt])
+  @@index([status, deletedAt, createdAt])
+  // Sort orders offered by the UI.
+  @@index([downloadCount])
+  @@index([viewCount])
+  @@index([likeCount])
+  @@index([title])
+  // Free-text search targets.
+  @@index([subject])
+  @@index([course, year])
+  @@index([department])
+  @@index([kind])
+  @@index([uploadedById, createdAt])
+  @@index([pinned])
+  // Duplicate detection: same bytes uploaded into the same folder.
+  @@index([checksum])
+}
+
+/// Normalised tag rows. `Material.tags` holds the JSON copy for display; these
+/// rows exist so "filter by tag" is an indexed join rather than a LIKE scan
+/// over a JSON string.
+model MaterialTag {
+  id         String @id @default(cuid())
+  materialId String
+  /// Lower-cased for case-insensitive matching.
+  tag String
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, tag])
+  @@index([tag])
+}
+
+model MaterialComment {
+  id         String  @id @default(cuid())
+  materialId String
+  authorId   String?
+  /// Self-relation for threaded replies.
+  parentId   String?
+  body       String
+  likeCount  Int     @default(0)
+  editedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  material Material              @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  author   User?                 @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  parent   MaterialComment?      @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  MaterialComment[]     @relation("CommentThread")
+  likes    MaterialCommentLike[]
+
+  @@index([materialId, deletedAt, createdAt])
+  @@index([parentId, createdAt])
+  @@index([authorId])
+}
+
+model MaterialCommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment MaterialComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One like per user per comment — the constraint, not the UI, is what
+  // prevents double-counting.
+  @@unique([commentId, userId])
+  @@index([userId])
+}
+
+model MaterialLike {
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, userId])
+  @@index([userId, createdAt])
+}
+
+model MaterialFavorite {
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, userId])
+  @@index([userId, createdAt])
+}
+
+/// Bookmarks double as "Continue Reading": `progress` is 0-100.
+model MaterialBookmark {
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String
+  note       String?
+  /// Last page/position reached, for resuming.
+  lastPage   Int?
+  progress   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, userId])
+  @@index([userId, updatedAt])
+}
+
+/// One row per download — the audit trail behind `Material.downloadCount`.
+model MaterialDownload {
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String?
+  ipAddress  String?
+  device     String?
+  browser    String?
+  os         String?
+  createdAt  DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([materialId, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// One row per view. Also powers "Recently Viewed".
+model MaterialView {
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([materialId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model MaterialRating {
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String
+  /// 1-5, validated in `lib/validation.ts`.
+  score      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, userId])
+  @@index([materialId])
+}
+
+/// "Report broken file" submissions.
+model MaterialReport {
+  id         String  @id @default(cuid())
+  materialId String
+  reporterId String?
+  /// ReportReason — BROKEN_FILE | WRONG_FOLDER | COPYRIGHT | INAPPROPRIATE | OTHER
+  reason     String
+  details    String?
+  /// ReportStatus — OPEN | RESOLVED | DISMISSED
+  status     String    @default("OPEN")
+  resolvedById String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  reporter   User?    @relation("ReportAuthor", fields: [reporterId], references: [id], onDelete: SetNull)
+  resolvedBy User?    @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([materialId, status])
+}
+
+/// In-app notification ("New reviewer uploaded ...").
+///
+/// Separate from `ChatNotification`, which is scoped to the chat feature.
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  /// NotificationType — MATERIAL_UPLOADED | MATERIAL_APPROVED | MATERIAL_REJECTED |
+  /// COMMENT_REPLY | MATERIAL_REPORTED | SYSTEM
+  type  String
+  title String
+  body  String?
+  /// Deep link, e.g. "/library/material/<id>" — clicking opens the material.
+  href  String?
+  /// Optional actor for the "Uploaded by Juan Dela Cruz" line.
+  actorName String?
+  /// JSON-encoded extra context.
+  metadata String?
+  readAt   DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // "My unread notifications, newest first" is the hot query.
+  @@index([userId, readAt, createdAt])
+  @@index([createdAt])
+}
+
+// ===========================================================================
+// ANNOUNCEMENTS
+//
+// One shared board. There is no per-user copy: every signed-in account reads
+// the same rows, which is what makes "everyone sees the new announcement"
+// true rather than a per-browser illusion.
+// ===========================================================================
+
+model Announcement {
+  id       String  @id @default(cuid())
+  authorId String?
+
+  title String
+  body  String
+
+  /// AnnouncementCategory — GENERAL | ACADEMIC | EVENT | URGENT | SYSTEM
+  category String @default("GENERAL")
+  /// Priority — NORMAL | HIGH | URGENT. Drives ordering and the badge colour.
+  priority String @default("NORMAL")
+
+  /// Optional scoping. NULL means the whole college sees it.
+  course String?
+  year   String?
+
+  /// Which body published this: "COESC", "PICE", "IIEE", or NULL for a notice
+  /// addressed to the whole college.
+  ///
+  /// Deliberately separate from `course`. `course` says who a notice is *for*
+  /// ("CE students"); `org` says who it is *from*. Collapsing the two would
+  /// make a PICE notice and a notice for every CE student the same thing, and
+  /// would let an IIEE officer publish to CE students by setting course="CE".
+  ///
+  /// Which roles may write which value is enforced by `canPostToOrg` — an org
+  /// officer can only ever publish under their own org.
+  org String?
+
+  /// JSON-encoded string array of roles allowed to see it; empty = everyone.
+  audience String @default("[]")
+
+  pinned      Boolean   @default(false)
+  publishedAt DateTime  @default(now())
+  /// After this moment it stops appearing in the active feed.
+  expiresAt   DateTime?
+
+  /// Denormalised so the list does not need a count query per row.
+  readCount Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  author User?              @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reads  AnnouncementRead[]
+
+  // The feed is "not deleted, not expired, pinned first, newest first".
+  @@index([deletedAt, pinned, publishedAt])
+  @@index([course, year, publishedAt])
+  // Every org panel filters on this column.
+  @@index([org, publishedAt])
+  @@index([category, publishedAt])
+  @@index([expiresAt])
+  @@index([authorId])
+}
+
+/// Per-user read receipt, so the bell can show an accurate unread count.
+model AnnouncementRead {
+  id             String   @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One receipt per user per announcement — the constraint, not the UI, is
+  // what keeps readCount honest.
+  @@unique([announcementId, userId])
+  @@index([userId, readAt])
+}
+
+// ===========================================================================
+// ASSIGNMENTS AND SUBMISSIONS
+//
+// An Assignment is set once by faculty and visible to the class; a Submission
+// is one student's answer to it. Splitting them is what allows "everyone sees
+// the task" and "only staff and the author see the answer" at the same time.
+// ===========================================================================
+
+model Assignment {
+  id       String  @id @default(cuid())
+  authorId String?
+
+  title       String
+  description String?
+  /// Free-text instructions or problem statement.
+  instructions String?
+
+  course  String?
+  year    String?
+  subject String?
+
+  /// AssignmentStatus — DRAFT | OPEN | CLOSED
+  status String @default("OPEN")
+
+  dueAt       DateTime?
+  points      Int       @default(100)
+  /// Whether late submissions are still accepted after dueAt.
+  allowLate   Boolean   @default(true)
+
+  /// Expected final answer, for the COE portal's auto-check.
+  ///
+  /// NEVER returned by the assignments API to a student — `listAssignments`
+  /// selects columns explicitly, and this one is only read server-side inside
+  /// `submitWork` to mark a submission correct. Sending it to the client would
+  /// hand every student the answer key.
+  answerKey String?
+
+  /// Denormalised counters for the class list.
+  submissionCount Int @default(0)
+  gradedCount     Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  author      User?        @relation("AssignmentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  submissions Submission[]
+
+  @@index([status, deletedAt, dueAt])
+  @@index([course, year, subject])
+  @@index([authorId, createdAt])
+  @@index([dueAt])
+}
+
+model Submission {
+  id           String @id @default(cuid())
+  assignmentId String
+  studentId    String
+
+  /// Typed answer, if any.
+  content String?
+
+  /// Uploaded file, stored the same way library materials are: bytes on disk,
+  /// only the opaque key here.
+  storageKey   String?
+  originalName String?
+  mimeType     String?
+  sizeBytes    Int     @default(0)
+
+  /// SubmissionStatus — DRAFT | SUBMITTED | RETURNED | RESUBMITTED
+  status String @default("SUBMITTED")
+  /// Set when submitted after the assignment's dueAt.
+  isLate Boolean @default(false)
+
+  score      Float?
+  feedback   String?
+  gradedById String?
+  gradedAt   DateTime?
+
+  submittedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation("SubmissionStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy   User?      @relation("SubmissionGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  // One submission row per student per assignment; resubmitting updates it
+  // rather than creating a duplicate.
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId, status])
+  @@index([studentId, submittedAt])
+  @@index([gradedById])
+  @@index([status, submittedAt])
+}
+
+
+// ---------------------------------------------------------------------------
+// Q&A HUB — "Tanong Mo, Sagot Ko"
+//
+// Replaces the browser-local question list, where a question existed only for
+// the person who asked it: nobody else could see it, and the answer count on
+// their screen was a count of one browser's data. These rows are shared, so a
+// question asked by one account is visible to every account, and the counters
+// are real.
+//
+// Vote and flag totals are denormalised onto the parent row. The Q&A list shows
+// counts for every answer at once, and reading them from a join on each render
+// is the query that makes a busy board slow.
+// ---------------------------------------------------------------------------
+
+model Question {
+  id          String  @id @default(cuid())
+  title       String
+  description String  @default("")
+
+  /// Classification, mirroring the portal's filters.
+  course    String  @default("CE")
+  yearLevel String  @default("")
+  subject   String  @default("")
+  lesson    String  @default("")
+  /// JSON-encoded string array — SQLite has no scalar lists.
+  tags      String  @default("[]")
+
+  /// QuestionStatus — Unanswered | Answered | Verified Answer | Solved
+  /// Kept as the portal's own display strings so both sides agree without a
+  /// translation table; the allowed set is enforced by Zod at every write.
+  status String @default("Unanswered")
+
+  /// Moderation state, separate from `status` above.
+  ///
+  /// `status` tracks whether the question has been ANSWERED; this tracks
+  /// whether it is allowed on the board at all. Two different questions about
+  /// the same row, so two columns — folding them together would make
+  /// "Unanswered" ambiguous between "nobody has replied" and "not published".
+  ///
+  /// ReviewStatus — PENDING | APPROVED | REJECTED
+  /// A question asked by staff is APPROVED on creation; a student's waits.
+  reviewStatus  String    @default("PENDING")
+  rejectionNote String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+
+  askerId String?
+  /// Snapshot of the asker's display name, so a deleted account does not blank
+  /// out the board's history.
+  askerName String @default("Anonymous Student")
+
+  /// The answer the asker or a moderator marked as correct.
+  bestAnswerId String? @unique
+
+  answerCount Int @default(0)
+  viewCount   Int @default(0)
+  flagCount   Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  asker   User?    @relation("QuestionAuthor", fields: [askerId], references: [id], onDelete: SetNull)
+  answers Answer[] @relation("AnswerQuestion")
+  flags   QaFlag[] @relation("QaFlagQuestion")
+
+  @@index([deletedAt, createdAt])
+  @@index([course, yearLevel, subject])
+  @@index([status, createdAt])
+  @@index([askerId])
+  @@index([subject, createdAt])
+  // The board's default query is "approved, newest first"; the moderator queue
+  // is "pending, newest first". Both run on this.
+  @@index([reviewStatus, createdAt])
+}
+
+model Answer {
+  id         String @id @default(cuid())
+  questionId String
+  text       String
+
+  answererId   String?
+  answererName String  @default("Anonymous Student")
+
+  /// Marked correct by faculty or an admin — the badge students trust.
+  verified     Boolean   @default(false)
+  verifiedById String?
+  verifiedAt   DateTime?
+
+  voteCount    Int @default(0)
+  commentCount Int @default(0)
+  flagCount    Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  question Question        @relation("AnswerQuestion", fields: [questionId], references: [id], onDelete: Cascade)
+  answerer User?           @relation("AnswerAuthor", fields: [answererId], references: [id], onDelete: SetNull)
+  votes    AnswerVote[]
+  comments AnswerComment[] @relation("AnswerCommentParent")
+  flags    QaFlag[]        @relation("QaFlagAnswer")
+
+  @@index([questionId, deletedAt])
+  @@index([questionId, voteCount])
+  @@index([answererId])
+  @@index([verified])
+}
+
+model AnswerVote {
+  id       String @id @default(cuid())
+  answerId String
+  userId   String
+
+  createdAt DateTime @default(now())
+
+  answer Answer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One vote per person per answer, enforced by the database rather than by
+  // the UI hiding a button.
+  @@unique([answerId, userId])
+  @@index([userId])
+}
+
+model AnswerComment {
+  id       String @id @default(cuid())
+  answerId String
+  text     String
+
+  commenterId   String?
+  commenterName String  @default("Anonymous Student")
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  answer    Answer @relation("AnswerCommentParent", fields: [answerId], references: [id], onDelete: Cascade)
+  commenter User?  @relation("AnswerCommentAuthor", fields: [commenterId], references: [id], onDelete: SetNull)
+
+  @@index([answerId, createdAt])
+  @@index([commenterId])
+}
+
+/// A report against a question or an answer. Exactly one of the two is set.
+model QaFlag {
+  id         String  @id @default(cuid())
+  questionId String?
+  answerId   String?
+  reporterId String
+
+  reason String @default("")
+
+  createdAt DateTime @default(now())
+
+  question Question? @relation("QaFlagQuestion", fields: [questionId], references: [id], onDelete: Cascade)
+  answer   Answer?   @relation("QaFlagAnswer", fields: [answerId], references: [id], onDelete: Cascade)
+  reporter User      @relation("QaFlagReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  // One report per person per item, so a single user cannot inflate flagCount.
+  @@unique([questionId, reporterId])
+  @@unique([answerId, reporterId])
+  @@index([reporterId])
+}
+
+
+// ---------------------------------------------------------------------------
+// COESC — College of Engineering Student Council
+// ---------------------------------------------------------------------------
+
+/// One seat on the student council.
+///
+/// Rows rather than hardcoded markup: the names change every academic year, and
+/// a council written into the HTML can only be corrected by editing and
+/// redeploying the site. An administrator edits these from the portal instead.
+///
+/// The seat itself is fixed — `position` is a stable key seeded once, so a
+/// photo uploaded for the Governor survives the next election and simply
+/// belongs to whoever holds the seat.
+model CouncilOfficer {
+  id       String @id @default(cuid())
+  /// Stable seat key: ADVISER, GOVERNOR, VICE_GOVERNOR, ... Never changes.
+  position String @unique
+  /// Human-facing seat name, e.g. "Vice Governor".
+  positionLabel String
+  /// Who currently holds it.
+  name     String
+  /// CE / EE / blank. Drives the accent colour on the card only.
+  course   String?
+
+  /// Uploaded portrait.
+  ///
+  /// `photoKey` is a storage key handled exactly like a library material: the
+  /// bytes live outside `public/`, and the image is served by an authenticated
+  /// route. Storing it in `public/` would make every officer's photo readable
+  /// by anyone who guessed the URL.
+  photoKey      String?
+  photoMimeType String?
+  photoSize     Int     @default(0)
+  photoUpdatedAt DateTime?
+
+  /// Display order in the org chart. Adviser first, then the elected seats.
+  sortOrder Int @default(0)
+
+  updatedById String?
+  updatedBy   User?   @relation("CouncilOfficerEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+/// A student asking to join a COESC committee.
+///
+/// This replaces the previous "interest form", which wrote to `localStorage` —
+/// meaning an application was visible only in the browser that submitted it and
+/// reached nobody. Every row here is in the shared database, so the council
+/// actually receives what students send.
+model CommitteeApplication {
+  id        String @id @default(cuid())
+
+  applicantId String
+  applicant   User   @relation("CommitteeApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
+
+  /// Which committee, from COMMITTEES in src/lib/coesc.ts.
+  committee String
+  /// Denormalised so the review table reads without joining, and so the record
+  /// keeps what the student said at the time even if their profile changes.
+  fullName  String
+  course    String
+  yearLevel String
+  contact   String?
+  /// Why they want in.
+  message   String
+
+  /// ApplicationStatus — PENDING | APPROVED | REJECTED
+  status String @default("PENDING")
+
+  reviewedById String?
+  reviewedBy   User?   @relation("CommitteeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  /// Optional note from the reviewer, shown back to the applicant.
+  reviewNote   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One live application per committee per student. A rejected one is kept
+  /// (so the history survives) but does not block a fresh attempt, which the
+  /// service layer enforces — a plain unique on [applicantId, committee] would
+  /// lock a student out of a committee for ever after one rejection.
+  @@index([status, createdAt])
+  @@index([applicantId, createdAt])
+  @@index([committee, status])
+}

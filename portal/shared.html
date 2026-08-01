@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Library - COE Learning</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">COE Learning</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="index.html#home-page"><span class="material-icons">home</span> Home</a></li>
+                <li><a href="index.html#task-page"><span class="material-icons">check_circle</span> My Tasks</a></li>
+                <li><a href="shared.html"><span class="material-icons">library_books</span> Shared Library</a></li>
+                <li><a href="index.html"><span class="material-icons">folder</span> Folders</a></li>
+                <li><a href="index.html"><span class="material-icons">settings</span> Settings</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <div class="main-content">
+        <section class="problems-library-card">
+            <div class="library-card-header">
+                <div>
+                    <h1>Problems Library</h1>
+                    <p>Browse the latest shared problems and sort by subject or lesson.</p>
+                </div>
+                <div class="shared-hero-media">
+                    <img src="assets/coe-engineering.jpg" alt="Araullo University College of Engineering">
+                </div>
+                <span class="library-count" id="library-count">0</span>
+            </div>
+            <div class="library-filter-row">
+                <div class="filter-field">
+                    <select id="subject-select">
+                        <option value="All">All Subjects</option>
+                        <option value="CE">CE</option>
+                        <option value="EE">EE</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <select id="lesson-select">
+                        <option value="All">All Lessons</option>
+                        <option value="Lesson 1">Lesson 1</option>
+                        <option value="Lesson 2">Lesson 2</option>
+                        <option value="Lesson 3">Lesson 3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="library-body" id="shared-body">
+                Fetching latest problems...
+            </div>
+        </section>
+    </div>
+
+    <script src="shared.js"></script>
+</body>
+
+</html>

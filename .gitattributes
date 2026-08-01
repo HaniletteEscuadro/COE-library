@@ -1,0 +1,34 @@
+# Line endings.
+#
+# This is written on Windows and deployed to Linux. Without a rule, git guesses
+# per file, and the guesses drift: the same file can be committed with CRLF from
+# one machine and LF from another, which turns every future diff into a
+# whole-file change and hides the real edit.
+#
+# `text=auto eol=lf` normalises everything to LF in the repository — what the
+# server actually runs — while leaving the working copy alone on Windows.
+* text=auto eol=lf
+
+# Binary. Never normalise these; a "line ending fix" inside a font or an image
+# corrupts it.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.pfb   binary
+*.bcmap binary
+*.mp4   binary
+*.webm  binary
+*.mp3   binary
+*.db    binary
+
+# Vendored bundles and the generated portal copy. Marking them as such keeps a
+# 1.2 MB minified worker out of every diff and code review.
+public/vendor/**  linguist-vendored
+portal/**         linguist-generated

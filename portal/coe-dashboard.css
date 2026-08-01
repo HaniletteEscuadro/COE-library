@@ -1,0 +1,390 @@
+/**
+ * COE Studio — shared dashboard polish.
+ *
+ * WHY A LAYER AND NOT 17 REWRITES
+ * -------------------------------
+ * The workspace has seventeen page panels and every one was styled on its own:
+ * `student-todo-section`, `members-panel`, `task-summary`, `qa-hub-section`,
+ * `organizations-section`, `admin-section`, and so on. There are 139 separate
+ * uses of a class containing "card". Nothing was shared, so every tab drifted —
+ * different corner radii, different border colours, different heading sizes,
+ * different padding — and the result reads as several websites bolted together.
+ *
+ * Rewriting seventeen bespoke layouts would be a large change with a large
+ * chance of breaking things that currently work. This file instead sets the
+ * handful of properties that make a set of pages look like one product, applied
+ * across all of them at once:
+ *
+ *   * one spacing rhythm and one page width,
+ *   * one corner radius and one border colour for every surface,
+ *   * one type scale for panel headings,
+ *   * one button shape, one field shape, one focus ring.
+ *
+ * WHAT IT DELIBERATELY DOES NOT TOUCH
+ * -----------------------------------
+ * `position`, `grid-template-*`, `flex-*`, `float`. Those are what each tab's
+ * layout is built from, and overriding them from a shared file is how a
+ * stylesheet meant to tidy things up silently collapses a page. Verified at
+ * zero occurrences.
+ *
+ * Four exceptions, each deliberate and each named here rather than buried:
+ *   * `max-width` + `margin-inline` on `.page-panel` — the shared page width;
+ *   * `width: 100%` on `table` — tables that did not fill their container;
+ *   * `width`/`height` on the scrollbar pseudo-elements;
+ *   * `display: none` on the duplicate Home blocks (see the last section).
+ *
+ * Everything else is surface and typography — safe to apply broadly, because
+ * it cannot move a box, only change how it looks.
+ *
+ * Loaded last, so it wins on specificity ties without needing `!important`
+ * except where noted.
+ */
+
+/* ==========================================================================
+   Tokens
+   ========================================================================== */
+
+:root {
+    --coe-radius-sm: 10px;
+    --coe-radius: 14px;
+    --coe-radius-lg: 18px;
+
+    --coe-gap-sm: 0.75rem;
+    --coe-gap: 1.15rem;
+    --coe-gap-lg: 1.75rem;
+
+    --coe-line: rgba(148, 163, 184, 0.28);
+    --coe-line-strong: rgba(148, 163, 184, 0.45);
+    --coe-accent: #4f46e5;
+    --coe-muted: #64748b;
+
+    /* One shadow, used sparingly. A page where everything is raised has no
+       hierarchy — the eye needs most things flat to notice the one that is not. */
+    --coe-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -18px rgba(15, 23, 42, 0.28);
+}
+
+body.dark-mode,
+[data-theme="dark"] {
+    --coe-line: rgba(148, 163, 184, 0.18);
+    --coe-line-strong: rgba(148, 163, 184, 0.3);
+    --coe-muted: #94a3b8;
+    --coe-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -18px rgba(0, 0, 0, 0.7);
+}
+
+/* ==========================================================================
+   Page rhythm
+   --------------------------------------------------------------------------
+   Every tab gets the same outer padding and the same maximum reading width, so
+   switching between them stops feeling like switching between websites. Only
+   padding and margin — nothing that decides the internal layout.
+   ========================================================================== */
+
+.main-content .page-panel {
+    padding: var(--coe-gap-lg) var(--coe-gap-lg) 3rem;
+    /* Long lines are hard to scan. The library and the admin table genuinely
+       need the room, so this is generous rather than a strict measure. */
+    max-width: 1600px;
+    margin-inline: auto;
+}
+
+@media (max-width: 1100px) {
+    .main-content .page-panel {
+        padding: var(--coe-gap) var(--coe-gap) 2.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .main-content .page-panel {
+        padding: 1rem 0.9rem 2.5rem;
+    }
+}
+
+/* ==========================================================================
+   Type
+   --------------------------------------------------------------------------
+   One scale across every panel. Headings were between 1.05rem and 2.4rem for
+   the same level of thing depending on which tab you were on.
+   ========================================================================== */
+
+.main-content .page-panel h1 {
+    font-size: clamp(1.5rem, 2.2vw, 1.95rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.main-content .page-panel h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+}
+
+.main-content .page-panel h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.main-content .page-panel h4 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+/* Supporting copy under a heading is quieter than the heading, always. */
+.main-content .page-panel h1 + p,
+.main-content .page-panel h2 + p,
+.main-content .page-panel h3 + p {
+    color: var(--coe-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* ==========================================================================
+   Surfaces
+   --------------------------------------------------------------------------
+   The single biggest inconsistency: radii ranged from 4px to 28px and borders
+   from hairline grey to 2px accent, often on adjacent boxes. One radius, one
+   border, one shadow.
+
+   Only the visual properties are set. Anything these boxes rely on for layout
+   is untouched.
+   ========================================================================== */
+
+.main-content .page-panel .card,
+.main-content .page-panel .panel-card,
+.main-content .page-panel .stat-card,
+.main-content .page-panel .info-card,
+.main-content .page-panel .summary-card,
+.main-content .page-panel .dashboard-card,
+.main-content .page-panel .org-tool-card,
+.main-content .page-panel .org-notice-card,
+.main-content .page-panel .org-info-grid > article,
+.main-content .page-panel .feature-suite-card {
+    border-radius: var(--coe-radius);
+    border: 1px solid var(--coe-line);
+    box-shadow: none;
+}
+
+/* One raised element per view: the hero. Everything else sits flat, which is
+   what lets the hero read as the top of the page. */
+.main-content .page-panel .page-header,
+.main-content .page-panel .coe-dashboard-hero,
+.main-content .page-panel .org-command-hero {
+    border-radius: var(--coe-radius-lg);
+    box-shadow: var(--coe-shadow);
+}
+
+/* ==========================================================================
+   Controls
+   --------------------------------------------------------------------------
+   Buttons across the tabs used six different radii and four different weights.
+   `:not()` guards keep this away from the components that already own a
+   coherent style of their own — the COESC tab, the announcement panels, the
+   sign-in page and the icon-only nav buttons.
+   ========================================================================== */
+
+.main-content .page-panel button:not(.nav-icon-btn):not(.coesc-mini-btn):not(.coesc-approve):not(.coesc-reject):not(.lg-reveal):not(.coe-toast-close):not([class*="tab"]),
+.main-content .page-panel .btn {
+    border-radius: var(--coe-radius-sm);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    /* A control a thumb has to hit. Several tabs had 28px buttons. */
+    min-height: 2.5rem;
+}
+
+.main-content .page-panel input[type="text"],
+.main-content .page-panel input[type="email"],
+.main-content .page-panel input[type="search"],
+.main-content .page-panel input[type="number"],
+.main-content .page-panel input[type="date"],
+.main-content .page-panel select,
+.main-content .page-panel textarea {
+    border-radius: var(--coe-radius-sm);
+    border: 1px solid var(--coe-line);
+    /* 16px stops iOS Safari zooming the page when a field takes focus. */
+    font-size: 1rem;
+}
+
+/* One focus ring everywhere. Several tabs removed the outline entirely, which
+   makes the page unusable from a keyboard. */
+.main-content .page-panel :focus-visible {
+    outline: 2px solid var(--coe-accent);
+    outline-offset: 2px;
+}
+
+.main-content .page-panel input:focus,
+.main-content .page-panel select:focus,
+.main-content .page-panel textarea:focus {
+    outline: none;
+    border-color: var(--coe-accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* ==========================================================================
+   Tables and lists
+   ========================================================================== */
+
+.main-content .page-panel table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.main-content .page-panel th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--coe-muted);
+    text-align: left;
+}
+
+.main-content .page-panel td,
+.main-content .page-panel th {
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--coe-line);
+}
+
+/* A wide table must scroll inside its own box rather than pushing the page
+   sideways — horizontal scroll on the whole page is the fastest way to make a
+   dashboard feel broken on a laptop. */
+.main-content .page-panel .table-wrap,
+.main-content .page-panel .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   Empty states
+   --------------------------------------------------------------------------
+   Every tab had its own, from bare grey text to a bordered box. One shape.
+   ========================================================================== */
+
+.main-content .page-panel .empty-state,
+.main-content .page-panel .empty-message,
+.main-content .page-panel .no-data,
+.main-content .page-panel .empty-accounts,
+.main-content .page-panel .empty-account-log {
+    padding: 1.5rem;
+    border: 1px dashed var(--coe-line-strong);
+    border-radius: var(--coe-radius);
+    color: var(--coe-muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+/* ==========================================================================
+   Scrollbars
+   --------------------------------------------------------------------------
+   The default Windows scrollbar inside a rounded card is the loudest thing on
+   the page. Thin and neutral, matching every panel.
+   ========================================================================== */
+
+.main-content .page-panel *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.main-content .page-panel *::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.main-content .page-panel *::-webkit-scrollbar-thumb {
+    background: var(--coe-line-strong);
+    border-radius: 999px;
+    /* The inset keeps the thumb clear of the card's rounded edge. */
+    border: 3px solid transparent;
+    background-clip: content-box;
+}
+
+.main-content .page-panel *::-webkit-scrollbar-thumb:hover {
+    background: var(--coe-muted);
+    background-clip: content-box;
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .main-content .page-panel *,
+    .main-content .page-panel *::before,
+    .main-content .page-panel *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* ==========================================================================
+   Home: stop saying the same thing six times
+   --------------------------------------------------------------------------
+   The Home page was 570 lines and linked to the Library eight separate times.
+   Announcements, Q&A and Tasks appeared five times each. The same five
+   destinations were repeated in six different visual styles:
+
+       hero-action-btn        library, tasks, announcements
+       command-action-card    library, qa-hub, announcements
+       home-system-card       library, qa-hub, student-voice, organizations, tasks
+       role-action-btn        qa-hub, student-voice
+       feature-suite-card     library, qa-hub, student-voice, organizations, settings
+       shortcut-btn           library-upload
+
+   That is not a styling problem and no amount of polish fixes it. A dashboard
+   is meant to answer "what needs me today"; this one mostly answered "here are
+   the tabs", which the sidebar already does, five times over.
+
+   So one set of quick actions stays — the command grid, which is the clearest
+   and best placed — and the repeats are removed. What is left on the page is
+   the part that actually carries information: the review queue, the schedule,
+   upload progress, the stats and the announcement preview.
+
+   Hidden rather than deleted from the markup, deliberately. `scripts.js` binds
+   a click handler to `.feature-suite-card`, and several of these blocks sit
+   inside containers that other code measures. Hiding costs a few unused nodes
+   and breaks nothing; deleting risks a runtime error on a page every student
+   opens first. The markup is still there to bring back if any of it is wanted.
+   ========================================================================== */
+
+/* A third and fourth copy of the same links. */
+.main-content .page-panel[data-page="home"] .home-systems-grid,
+.main-content .page-panel[data-page="home"] .feature-suite-section {
+    display: none;
+}
+
+/* A features showcase belongs on a landing page, not on the screen someone
+   opens every morning to see what is due. */
+.main-content .page-panel[data-page="home"] .role-workspace-actions {
+    display: none;
+}
+
+/* "Shared library · Student support · Live updates" — claims, not actions, and
+   the page below already demonstrates all three. */
+.main-content .page-panel[data-page="home"] .header-highlights {
+    display: none;
+}
+
+/* With the repeats gone, the one remaining action grid can breathe. */
+.main-content .page-panel[data-page="home"] .command-action-grid {
+    gap: var(--coe-gap-sm);
+    margin-block: var(--coe-gap);
+}
+
+/* The hero no longer competes with three other blocks for attention, so it can
+   be calmer: the welcome line is the greeting, not a headline. */
+.main-content .page-panel[data-page="home"] .hero-welcome {
+    font-size: 0.95rem;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-bottom: 0.15rem;
+}
+
+/* Consistent vertical rhythm between the sections that remain. Margin only —
+   the internal layout of each is untouched. */
+.main-content .page-panel[data-page="home"] > section,
+.main-content .page-panel[data-page="home"] > div > section {
+    margin-bottom: var(--coe-gap-lg);
+}

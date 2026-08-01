@@ -1,0 +1,432 @@
+/**
+ * Styles for the pieces coe-live.js adds to the page.
+ *
+ * Kept in its own file so the live/shared-data feature can be removed by
+ * dropping two script tags and this one link, without unpicking anything from
+ * the 800 KB main stylesheet.
+ *
+ * Colours are taken from CSS custom properties where the portal defines them,
+ * with literal fallbacks — the portal has both a light and a dark theme, and a
+ * hard-coded panel would be unreadable in one of them.
+ */
+
+.coe-approval-queue {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--warning-border, #e0b34d);
+  background: var(--warning-surface, rgba(255, 196, 61, 0.10));
+  color: var(--text-primary, inherit);
+}
+
+.coe-approval-queue[hidden] {
+  display: none;
+}
+
+.coe-approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coe-approval-head .material-icons {
+  font-size: 26px;
+  color: var(--warning-strong, #b8860b);
+  flex-shrink: 0;
+}
+
+.coe-approval-head strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.coe-approval-head small {
+  display: block;
+  margin-top: 2px;
+  opacity: 0.75;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.coe-approval-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.coe-approval-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.55));
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+
+.coe-approval-info {
+  min-width: 0;
+}
+
+.coe-approval-info strong {
+  display: block;
+  font-size: 0.94rem;
+  /* Long filenames must not push the buttons off the row. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coe-approval-info small {
+  display: block;
+  opacity: 0.7;
+  font-size: 0.78rem;
+}
+
+.coe-approval-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.coe-approval-actions button,
+.coe-approval-actions .coe-approval-peek {
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.15));
+  background: var(--surface, #fff);
+  color: inherit;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.83rem;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.6;
+}
+
+.coe-approval-actions button:hover:not(:disabled),
+.coe-approval-actions .coe-approval-peek:hover {
+  filter: brightness(0.96);
+}
+
+.coe-approval-actions button[data-review="APPROVED"] {
+  border-color: var(--success-border, #2e7d32);
+  color: var(--success-strong, #2e7d32);
+  font-weight: 600;
+}
+
+.coe-approval-actions button.is-reject {
+  border-color: var(--danger-border, #c62828);
+  color: var(--danger-strong, #c62828);
+}
+
+/* Both buttons are disabled the moment one is pressed, so a double-click
+   cannot submit two decisions for the same upload. */
+.coe-approval-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .coe-approval-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coe-approval-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* ==========================================================================
+   LESSON FOLDERS
+   --------------------------------------------------------------------------
+   A category (Reference Books, Handouts, ...) used to be the end of the tree:
+   clicking it dumped every file in the subject on screen at once. It now opens
+   into the lessons it holds, and the middle stays empty until one is chosen.
+
+   These rules only mark the new level as nested. The tree's own styling does
+   the rest, so a lesson row looks like every other row in the sidebar.
+   ========================================================================== */
+
+.tree-node.lesson-node {
+  /* Stepped in so the nesting reads at a glance rather than by counting. */
+  margin-left: 14px;
+  border-left: 1px solid var(--border-faint, rgba(148, 163, 184, 0.22));
+  padding-left: 6px;
+}
+
+.tree-node.lesson-node .tree-leaf .material-icons {
+  font-size: 17px;
+  opacity: 0.75;
+}
+
+.tree-node.lesson-node .tree-leaf .folder-name {
+  font-size: 0.84rem;
+}
+
+/* A category that opens is a folder, not a destination — the caret says so. */
+.subject-type-node.has-lessons > .tree-toggle .folder-count {
+  opacity: 0.7;
+  font-size: 0.72rem;
+}
+
+/* ==========================================================================
+   ADMIN SETTINGS
+   --------------------------------------------------------------------------
+   The account list, rendered from the server. The old panel showed a name, a
+   role word, and one button that flipped between ADMIN and STUDENT — so four
+   of the six real roles were simply unreachable. These rows carry a full role
+   dropdown, an account status control, and when each person last signed in.
+   ========================================================================== */
+
+.coe-admin-head,
+.coe-admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px minmax(0, 300px);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.coe-admin-head {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.10));
+}
+
+.coe-admin-row {
+  border-bottom: 1px solid var(--border-faint, rgba(0, 0, 0, 0.05));
+}
+
+.coe-admin-row:last-of-type {
+  border-bottom: 0;
+}
+
+.coe-admin-who {
+  min-width: 0;
+}
+
+.coe-admin-who strong {
+  display: block;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coe-admin-who small,
+.coe-admin-meta small {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.62;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coe-admin-meta {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.coe-admin-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.coe-admin-controls select {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.16));
+  background: var(--surface, #fff);
+  color: inherit;
+  max-width: 140px;
+}
+
+/* Disabled means "this is you" — the server refuses self-demotion, so the
+   control says so rather than letting someone find out by failing. */
+.coe-admin-controls select:disabled,
+.coe-admin-del:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.coe-admin-rolechip {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.05));
+}
+
+.coe-admin-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted, #5f6368);
+  cursor: pointer;
+  padding: 0;
+}
+
+.coe-admin-del:hover:not(:disabled) {
+  color: #d93025;
+  background: rgba(217, 48, 37, 0.10);
+}
+
+/* A disabled or banned account should be obvious in a long list. */
+.coe-admin-row.status-inactive {
+  opacity: 0.66;
+}
+
+.coe-admin-row.status-banned {
+  background: rgba(217, 48, 37, 0.05);
+  box-shadow: inset 3px 0 0 rgba(217, 48, 37, 0.55);
+}
+
+.coe-admin-note {
+  margin: 10px 2px 0;
+  font-size: 0.78rem;
+  opacity: 0.65;
+}
+
+/* --- Activity log -------------------------------------------------------- */
+
+.coe-admin-log {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border-faint, rgba(0, 0, 0, 0.05));
+  font-size: 0.82rem;
+}
+
+.coe-admin-log:last-child {
+  border-bottom: 0;
+}
+
+.coe-admin-log .material-icons {
+  font-size: 18px;
+}
+
+.coe-admin-log.is-ok .material-icons { color: #1e8e3e; }
+.coe-admin-log.is-fail .material-icons { color: #d93025; }
+
+.coe-admin-log strong {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.coe-admin-log small {
+  display: block;
+  opacity: 0.62;
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coe-admin-log time {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  .coe-admin-head {
+    display: none;
+  }
+
+  .coe-admin-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  .coe-admin-controls {
+    justify-content: flex-start;
+  }
+}
+
+body.dark-theme .coe-admin-controls select,
+:root[data-theme="dark"] .coe-admin-controls select {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: inherit;
+}
+
+/* ==========================================================================
+   Q&A — UNPUBLISHED QUESTIONS
+   A question the asker can see but nobody else can, because it is waiting for
+   a faculty member. Said plainly on the card: without it, a student asks
+   something and it looks like it simply did not save.
+   ========================================================================== */
+
+.qa-review-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 4px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 0.79rem;
+  line-height: 1.4;
+}
+
+.qa-review-note .material-icons {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.qa-review-note.is-pending {
+  background: rgba(224, 179, 77, 0.14);
+  color: #8a6100;
+}
+
+.qa-review-note.is-refused {
+  background: rgba(217, 48, 37, 0.12);
+  color: #b3261e;
+}
+
+/* Edged down the left so an unpublished card reads as different before the
+   note is even read. */
+.question-card.is-awaiting-review {
+  box-shadow: inset 3px 0 0 rgba(224, 179, 77, 0.8);
+}
+
+.question-card.is-refused {
+  box-shadow: inset 3px 0 0 rgba(217, 48, 37, 0.65);
+  opacity: 0.82;
+}
+
+body.dark-theme .qa-review-note.is-pending,
+:root[data-theme="dark"] .qa-review-note.is-pending {
+  background: rgba(224, 179, 77, 0.18);
+  color: #f0c661;
+}
+
+body.dark-theme .qa-review-note.is-refused,
+:root[data-theme="dark"] .qa-review-note.is-refused {
+  background: rgba(217, 48, 37, 0.20);
+  color: #f2938c;
+}

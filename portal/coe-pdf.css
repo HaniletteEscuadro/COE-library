@@ -1,0 +1,210 @@
+/**
+ * PDF page viewer.
+ *
+ * The stage holds one page at a time; the bar under it is the paging. Nothing
+ * here scrolls horizontally — a swipe is a page turn, so a stray horizontal
+ * scroll would fight it.
+ */
+
+.coe-pdf {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #24272c;
+}
+
+/* --- Stage --------------------------------------------------------------- */
+
+.coe-pdf-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 10px;
+  /* Horizontal panning is the page turn, so the browser must not claim it.
+     Vertical is left alone so the dialog behind can still be scrolled. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.coe-pdf-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+.coe-pdf-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #c9ccd1;
+  font-size: 0.86rem;
+  background: #24272c;
+}
+
+.coe-pdf-loading .material-icons {
+  font-size: 20px;
+  animation: coe-pdf-spin 1.4s linear infinite;
+}
+
+@keyframes coe-pdf-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coe-pdf-loading .material-icons {
+    animation: none;
+  }
+}
+
+/* --- Paging bar ---------------------------------------------------------- */
+
+.coe-pdf-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.32);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* A one-page document has nothing to page through. */
+.coe-pdf.is-single .coe-pdf-bar {
+  display: none;
+}
+
+.coe-pdf-bar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eaed;
+  cursor: pointer;
+  padding: 0;
+}
+
+.coe-pdf-bar button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.coe-pdf-bar button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.coe-pdf-bar .material-icons {
+  font-size: 22px;
+}
+
+.coe-pdf-count {
+  color: #e8eaed;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 64px;
+  text-align: center;
+}
+
+/* --- Failure ------------------------------------------------------------- */
+
+.coe-pdf-failed {
+  margin: auto;
+  padding: 40px 24px;
+  text-align: center;
+  color: #c9ccd1;
+}
+
+.coe-pdf-failed .material-icons {
+  font-size: 42px;
+  opacity: 0.5;
+}
+
+.coe-pdf-failed strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.coe-pdf-failed a {
+  display: inline-block;
+  margin-top: 10px;
+  color: #8ab4f8;
+  font-size: 0.86rem;
+}
+
+/* The reason underneath. Wraps and breaks: some of these are long, and a
+   message that runs off the edge is the same as no message. */
+.coe-pdf-failed .coe-pdf-reason {
+  display: block;
+  max-width: 34ch;
+  margin: 6px auto 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+}
+
+/* --- Fullscreen ---------------------------------------------------------- */
+
+/* The paging bar has to come with it, or fullscreen is a page you cannot
+   leave. Both fullscreen paths put the viewer at screen size. */
+#detail-preview:fullscreen .coe-pdf,
+#detail-preview:-webkit-full-screen .coe-pdf,
+#material-detail-modal.is-open .detail-preview.is-cssfull .coe-pdf {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* --- Phone --------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .coe-pdf-stage {
+    padding: 6px;
+  }
+
+  /* Bigger targets, and a hint that swiping is the other way to do this. */
+  .coe-pdf-bar {
+    gap: 18px;
+    padding: 10px;
+  }
+
+  .coe-pdf-bar button {
+    width: 46px;
+    height: 46px;
+  }
+
+  .coe-pdf-bar::after {
+    content: "swipe to turn";
+    position: absolute;
+    right: 12px;
+    font-size: 0.66rem;
+    color: rgba(232, 234, 237, 0.5);
+    pointer-events: none;
+  }
+
+  .coe-pdf-bar {
+    position: relative;
+  }
+}
+
+@media (max-width: 420px) {
+  .coe-pdf-bar::after {
+    display: none;
+  }
+}

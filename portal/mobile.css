@@ -1,0 +1,300 @@
+/* ===========================================================================
+   MOBILE LAYER
+   Loaded last. Everything is inside a max-width query, so nothing here can
+   affect desktop.
+
+   The three real problems on a phone were:
+     1. A fixed 280px sidebar, which is 75% of a 375px screen.
+     2. ~171 fixed pixel widths >= 400px forcing horizontal scroll.
+     3. Tap targets well under the 44px minimum.
+   =========================================================================== */
+
+@media (max-width: 900px) {
+  /* --- 1. Kill horizontal scroll ---------------------------------------
+     One overflowing child scrolls the whole page sideways, which is the
+     single most common way a desktop layout "breaks" on a phone. */
+  html,
+  body {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body:not(.auth-body) .main-content,
+  body:not(.auth-body) .page-panel,
+  body:not(.auth-body) section,
+  body:not(.auth-body) article {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Media must never exceed its container. */
+  img,
+  video,
+  canvas,
+  iframe,
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Long unbroken strings (URLs, filenames) are the other overflow source. */
+  body:not(.auth-body) p,
+  body:not(.auth-body) h1,
+  body:not(.auth-body) h2,
+  body:not(.auth-body) h3,
+  body:not(.auth-body) td,
+  body:not(.auth-body) li,
+  body:not(.auth-body) .file-name {
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+  /* --- 2. Sidebar becomes an off-canvas drawer -------------------------- */
+  body:not(.auth-body) .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 9000 !important;
+    width: min(84vw, 300px) !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    /* Off-screen until .is-open. translate is compositor-only, so it stays
+       smooth on low-end phones. */
+    transform: translateX(-102%) !important;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 8px 0 40px rgba(2, 6, 23, 0.4) !important;
+  }
+
+  body:not(.auth-body) .sidebar.is-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Scrim. Sits under the drawer, over everything else. */
+  body:not(.auth-body)::after {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 8500 !important;
+    content: "" !important;
+    background: rgba(2, 6, 23, 0.5) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 260ms ease !important;
+  }
+
+  body.nav-open::after {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* The drawer is overlaid, so the page takes the full width. */
+  body:not(.auth-body) .main-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 12px !important;
+    padding-top: 66px !important; /* clears the fixed bar below */
+  }
+
+  /* --- 3. Mobile top bar ------------------------------------------------ */
+  .m-bar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 8000 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    height: 56px !important;
+    padding: 0 12px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid #e4ecf4 !important;
+  }
+
+  .m-bar-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    flex: 0 0 auto !important;
+    border: 1px solid #e4ecf4 !important;
+    border-radius: 11px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    cursor: pointer !important;
+  }
+
+  .m-bar-title {
+    min-width: 0 !important;
+    color: #0f172a !important;
+    font-size: 0.95rem !important;
+    font-weight: 720 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* --- 4. Tap targets ---------------------------------------------------
+     Anything interactive gets at least 44px, the accepted minimum for a
+     fingertip. Icon-only controls get a square. */
+  body:not(.auth-body) button,
+  body:not(.auth-body) .btn,
+  body:not(.auth-body) a.button,
+  body:not(.auth-body) select,
+  body:not(.auth-body) input[type="submit"] {
+    min-height: 44px !important;
+  }
+
+  body:not(.auth-body) .icon-btn,
+  body:not(.auth-body) .icon-btn-small,
+  body:not(.auth-body) .view-toggle-btn,
+  body:not(.auth-body) .folder-bookmark-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  /* 16px prevents iOS Safari from zooming when a field is focused. */
+  body:not(.auth-body) input,
+  body:not(.auth-body) select,
+  body:not(.auth-body) textarea {
+    font-size: 16px !important;
+  }
+
+  /* --- 5. Collapse every multi-column grid ------------------------------ */
+  body:not(.auth-body) .library-wrapper,
+  body:not(.auth-body) .library-dashboard-lower,
+  body:not(.auth-body) .home-smart-today,
+  body:not(.auth-body) .home-coe-spotlight,
+  body:not(.auth-body) .coe-command-center,
+  body:not(.auth-body) .comm-product-workspace,
+  body:not(.auth-body) .calendar-dashboard-grid,
+  body:not(.auth-body) .qa-command-dashboard {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Auto-fit keeps two small tiles per row instead of one giant one. */
+  body:not(.auth-body) .overview-metrics-grid,
+  body:not(.auth-body) .library-dashboard-grid,
+  body:not(.auth-body) .library-summary-enhanced,
+  body:not(.auth-body) .smart-dashboard-grid,
+  body:not(.auth-body) .command-action-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* --- 6. Tables scroll inside their own box, not the page -------------- */
+  body:not(.auth-body) table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* --- 7. Modals go full-screen ----------------------------------------- */
+  body:not(.auth-body) .modal-content,
+  body:not(.auth-body) .adm-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    overflow-y: auto !important;
+  }
+
+  body:not(.auth-body) .modal {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  /* --- 8. Library specifics --------------------------------------------- */
+  body:not(.auth-body) .enhanced-library-section .library-tree-sidebar {
+    position: static !important;
+    max-height: none !important;
+  }
+
+  body:not(.auth-body) .enhanced-library-section .folder-tree {
+    max-height: 300px !important;
+  }
+
+  body:not(.auth-body) #library-panel .lib-toolbar {
+    position: static !important;
+  }
+}
+
+/* --- 9. Small phones ---------------------------------------------------- */
+@media (max-width: 480px) {
+  body:not(.auth-body) .main-content {
+    padding: 10px !important;
+    padding-top: 64px !important;
+  }
+
+  body:not(.auth-body) .overview-metrics-grid,
+  body:not(.auth-body) .library-dashboard-grid,
+  body:not(.auth-body) .library-summary-enhanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Full-width primary actions read better than a row of narrow buttons. */
+  body:not(.auth-body) .command-strip-actions button,
+  body:not(.auth-body) .role-action-btn,
+  body:not(.auth-body) .library-upload-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* --- 10. Landscape phones: the drawer must still fit -------------------- */
+@media (max-height: 460px) and (orientation: landscape) {
+  body:not(.auth-body) .sidebar {
+    height: 100dvh !important;
+    overflow-y: auto !important;
+  }
+
+  .m-bar {
+    height: 48px !important;
+  }
+
+  body:not(.auth-body) .main-content {
+    padding-top: 56px !important;
+  }
+}
+
+/* Respect the notch / home indicator on iPhones. */
+@supports (padding: max(0px)) {
+  @media (max-width: 900px) {
+    .m-bar {
+      padding-left: max(12px, env(safe-area-inset-left)) !important;
+      padding-right: max(12px, env(safe-area-inset-right)) !important;
+    }
+
+    body:not(.auth-body) .main-content {
+      padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+/* Safety: the scrim is only interactive while the drawer is genuinely open.
+   Without this, a stuck `nav-open` class leaves an invisible sheet over the
+   page and nothing on the dashboard can be clicked. */
+@media (max-width: 900px) {
+  body:not(.auth-body):not(.nav-open)::after {
+    pointer-events: none !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Above 900px the drawer does not exist, so neither should the scrim. */
+@media (min-width: 901px) {
+  body:not(.auth-body)::after {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  body:not(.auth-body) .sidebar {
+    transform: none !important;
+    position: static !important;
+  }
+}

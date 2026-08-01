@@ -1,0 +1,69 @@
+# Render deployment.
+#
+# Chosen because this app needs a PERSISTENT Node process, which serverless
+# hosts (Netlify, Vercel) cannot provide:
+#
+#   * Socket.IO holds an open WebSocket per client. Serverless functions are
+#     stateless and die between requests, so the live admin dashboard — the
+#     central requirement — cannot work there.
+#   * SQLite and uploaded files need a writable disk that survives restarts.
+#     Serverless filesystems are read-only and wiped on every deploy.
+#
+# The `disk` block below is what makes the database and uploads persist.
+# Without it, every deploy would silently wipe all accounts and materials.
+
+services:
+  - type: web
+    name: coe-studio
+    runtime: node
+    plan: starter # free tier has no persistent disk; starter is the minimum that does
+    region: singapore # closest to the Philippines
+    buildCommand: npm ci && npx prisma generate && npm run build
+    # migrate deploy applies pending migrations without prompting, then seeds
+    # the admin + folder tree only if they are missing (the seed is idempotent).
+    preDeployCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts
+    startCommand: npx tsx server.ts
+    # /api/health, not a page: it returns 200 only after the database answers a
+    # query, so a container whose disk failed to mount is reported unhealthy
+    # instead of being sent traffic it cannot serve. /auth/login renders fine in
+    # that state and would hide the fault.
+    healthCheckPath: /api/health
+
+    disk:
+      name: coe-data
+      mountPath: /var/data
+      sizeGB: 5
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Both live on the mounted disk so they survive deploys and restarts.
+      - key: DATABASE_URL
+        value: file:/var/data/coe.db
+      - key: STORAGE_DIR
+        value: /var/data/storage
+
+      # Render injects the public URL; NextAuth callbacks break without it.
+      - key: NEXTAUTH_URL
+        fromService:
+          type: web
+          name: coe-studio
+          envVarKey: RENDER_EXTERNAL_URL
+
+      # Generated once by Render and kept. Never reuse the development secret.
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+
+      # Set these in the Render dashboard, not here — this file is committed.
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_ADMIN_NAME
+        value: COE Administrator
+      - key: SEED_ADMIN_USERNAME
+        value: "@admin"
+
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "false"

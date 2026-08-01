@@ -1,0 +1,309 @@
+/**
+ * COE Studio — the organisation announcement panels.
+ *
+ * The welcome that used to share this file is gone: it is a toast now, drawn
+ * with the portal's existing `.coe-toast` styles, so there is nothing here for
+ * it.
+ *
+ * Scoped to `.ann-*` so nothing here can reach the rest of the workspace, which
+ * carries a much older stylesheet.
+ */
+
+/*
+ * Make `hidden` actually hide.
+ *
+ * `[hidden]` is only a user-agent rule, so any author rule that sets `display`
+ * on the same element silently beats it. The composer's status line sets
+ * `display` and uses the `hidden` attribute, so without this it would sit there
+ * empty on every panel. This bug has already cost this project two rounds of
+ * debugging (the COESC tab, then the login page's three stacked forms), so the
+ * guard goes in first, before any layout rule.
+ */
+.ann-panel [hidden] {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Announcement panels
+   ========================================================================== */
+
+.ann-panel {
+    --ann-accent: #4f46e5;
+    --ann-line: rgba(148, 163, 184, 0.3);
+    --ann-muted: #64748b;
+
+    display: grid;
+    gap: 0.85rem;
+}
+
+/* --- Composer ------------------------------------------------------------ */
+
+.ann-composer {
+    display: grid;
+    gap: 0.6rem;
+    padding: 1rem 1.1rem 1.1rem;
+    border: 1px solid var(--ann-line);
+    border-radius: 14px;
+    background: rgba(79, 70, 229, 0.04);
+}
+
+.ann-composer-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.ann-composer-head .material-icons {
+    font-size: 1.2rem;
+    color: var(--ann-accent);
+}
+
+.ann-composer-head strong {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.ann-composer-head small {
+    font-size: 0.74rem;
+    color: var(--ann-muted);
+}
+
+.ann-composer input,
+.ann-composer textarea,
+.ann-composer select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--ann-line);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.75);
+    color: inherit;
+    /* 16px: below this iOS Safari zooms the whole page on focus. */
+    font: 500 1rem/1.35 inherit;
+}
+
+.ann-composer textarea {
+    min-height: 4.5rem;
+    resize: vertical;
+}
+
+.ann-composer input:focus,
+.ann-composer textarea:focus,
+.ann-composer select:focus {
+    outline: none;
+    border-color: var(--ann-accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
+}
+
+.ann-composer-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ann-composer-row select {
+    flex: 1 1 7rem;
+    width: auto;
+    cursor: pointer;
+}
+
+.ann-composer-row button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+    /* 44px tall: the one control on this panel a thumb has to hit. */
+    min-height: 2.75rem;
+    padding: 0 1.15rem;
+    border: 0;
+    border-radius: 9px;
+    background: var(--ann-accent);
+    color: #fff;
+    font: 700 0.88rem/1 inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ann-composer-row button:hover:not(:disabled) {
+    background: #4338ca;
+}
+
+.ann-composer-row button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ann-composer-row button .material-icons {
+    font-size: 1rem;
+}
+
+.ann-note {
+    margin: 0;
+    padding: 0.45rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.79rem;
+}
+
+.ann-note.is-ok    { background: #d1fae5; color: #065f46; }
+.ann-note.is-error { background: #fee2e2; color: #991b1b; }
+.ann-note.is-busy  { background: #e0e7ff; color: #3730a3; }
+
+/* --- The list ------------------------------------------------------------ */
+
+.ann-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.ann-item {
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--ann-line);
+    border-left: 3px solid var(--ann-accent);
+    border-radius: 11px;
+    background: rgba(148, 163, 184, 0.06);
+}
+
+.ann-item.is-urgent {
+    border-left-color: #dc2626;
+    background: rgba(220, 38, 38, 0.06);
+}
+
+.ann-item-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+/* Who published it. The single most important label on the card: a student has
+   to be able to tell a PICE notice from a college-wide one at a glance. */
+.ann-from {
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(148, 163, 184, 0.22);
+    color: var(--ann-muted);
+}
+
+.ann-from.is-org {
+    background: rgba(79, 70, 229, 0.16);
+    color: var(--ann-accent);
+}
+
+.ann-item-top time {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--ann-muted);
+}
+
+.ann-pin {
+    font-size: 0.95rem;
+    color: #d97706;
+}
+
+.ann-item h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.ann-item p {
+    margin: 0 0 0.5rem;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    /* Long posts must not stretch a panel; the board page shows the full text. */
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ann-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.73rem;
+    color: var(--ann-muted);
+}
+
+.ann-course {
+    padding: 0.08rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.16);
+    color: #0284c7;
+    font-weight: 700;
+}
+
+.ann-empty {
+    margin: 0;
+    padding: 1.25rem;
+    border: 1px dashed var(--ann-line);
+    border-radius: 12px;
+    color: var(--ann-muted);
+    font-size: 0.86rem;
+    text-align: center;
+}
+
+/* ==========================================================================
+   Dark theme
+   ==========================================================================
+   The workspace has a dark mode; without these the composer's fields stay
+   near-white and the text on them becomes unreadable. */
+
+
+body.dark-mode .ann-composer input,
+body.dark-mode .ann-composer textarea,
+body.dark-mode .ann-composer select,
+[data-theme="dark"] .ann-composer input,
+[data-theme="dark"] .ann-composer textarea,
+[data-theme="dark"] .ann-composer select {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+body.dark-mode .ann-item,
+[data-theme="dark"] .ann-item {
+    background: rgba(15, 23, 42, 0.5);
+}
+
+body.dark-mode .ann-note.is-ok,
+[data-theme="dark"] .ann-note.is-ok    { background: #052e26; color: #6ee7b7; }
+body.dark-mode .ann-note.is-error,
+[data-theme="dark"] .ann-note.is-error { background: #3f1414; color: #fca5a5; }
+body.dark-mode .ann-note.is-busy,
+[data-theme="dark"] .ann-note.is-busy  { background: #1e1b4b; color: #a5b4fc; }
+
+/* ==========================================================================
+   Phones
+   ========================================================================== */
+
+@media (max-width: 640px) {
+
+    .ann-composer {
+        padding: 0.85rem 0.9rem 0.95rem;
+    }
+
+    /* The button goes full width under the two pickers rather than being
+       squeezed to a stub beside them. */
+    .ann-composer-row {
+        flex-direction: column;
+    }
+
+    .ann-composer-row select,
+    .ann-composer-row button {
+        width: 100%;
+        flex: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ann-composer-row button {
+        transition: none;
+    }
+}

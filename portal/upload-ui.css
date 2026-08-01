@@ -1,0 +1,553 @@
+/* ===========================================================================
+   UPLOAD MODAL — Google Drive style
+   Loaded after mobile.css. Scoped to #upload-file-modal.
+   =========================================================================== */
+
+body:not(.auth-body) #upload-file-modal {
+  --gd-ink: #0f172a;
+  --gd-muted: #64748b;
+  --gd-line: #e4ecf4;
+  --gd-brand: #0f766e;
+  --gd-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Hidden is the default and it must be unconditional.
+     Everything else in this block is !important, so leaving `display` at
+     normal priority meant a single competing rule could leave a
+     position:fixed inset:0 element on screen -- an invisible sheet over the
+     whole page that swallowed every click. `pointer-events` is belt and
+     braces: even if some other rule forces it visible, it cannot intercept. */
+  display: none !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 18px !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Open state. `data-open` is set by upload-ui.js and is the single source of
+   truth; the [style] selectors keep the legacy `display:block` path working. */
+body:not(.auth-body) #upload-file-modal[data-open="true"],
+body:not(.auth-body) #upload-file-modal[style*="display: block"],
+body:not(.auth-body) #upload-file-modal[style*="display:block"],
+body:not(.auth-body) #upload-file-modal[style*="display: flex"],
+body:not(.auth-body) #upload-file-modal[style*="display:flex"] {
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+/* An explicit close always wins, whatever else matched above. */
+body:not(.auth-body) #upload-file-modal[style*="display: none"],
+body:not(.auth-body) #upload-file-modal[style*="display:none"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-modal {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 30rem !important;
+  max-height: 92dvh !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+  padding: 24px !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.26) !important;
+  animation: gdIn 240ms var(--gd-ease) !important;
+}
+
+@keyframes gdIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+body:not(.auth-body) #upload-file-modal .close-btn {
+  position: absolute !important;
+  top: 14px !important;
+  right: 16px !important;
+  width: 34px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  color: #94a3b8 !important;
+  font-size: 1.4rem !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+body:not(.auth-body) #upload-file-modal .close-btn:hover {
+  background: #f1f5f9 !important;
+  color: var(--gd-ink) !important;
+}
+
+/* --- Header -------------------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 13px !important;
+  margin-bottom: 20px !important;
+  padding-right: 34px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-head-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  flex: 0 0 auto !important;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, #0f766e, #0891b2) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.26) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-head-icon .material-icons {
+  font-size: 23px !important;
+  color: #fff !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-head h3 {
+  margin: 0 0 3px !important;
+  color: var(--gd-ink) !important;
+  font-size: 1.16rem !important;
+  font-weight: 760 !important;
+  letter-spacing: -0.02em !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-head p {
+  margin: 0 !important;
+  color: var(--gd-muted) !important;
+  font-size: 0.83rem !important;
+  line-height: 1.5 !important;
+}
+
+/* --- Drop zone ----------------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 15px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-drop {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  padding: 30px 18px !important;
+  border: 2px dashed #cddcea !important;
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: border-color 190ms var(--gd-ease), background 190ms var(--gd-ease),
+    transform 190ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-drop:hover {
+  border-color: var(--gd-brand) !important;
+  background: #f0fdfa !important;
+}
+
+/* Applied by upload-ui.js while a file is over the zone. */
+body:not(.auth-body) #upload-file-modal .gd-drop.is-over {
+  border-color: var(--gd-brand) !important;
+  background: #ecfdf5 !important;
+  transform: scale(1.01) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-drop .material-icons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 52px !important;
+  height: 52px !important;
+  margin-bottom: 6px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #ecfdf5, #e0f2fe) !important;
+  color: var(--gd-brand) !important;
+  font-size: 25px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-drop strong {
+  color: var(--gd-ink) !important;
+  font-size: 0.945rem !important;
+  font-weight: 720 !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-drop small {
+  color: var(--gd-muted) !important;
+  font-size: 0.8rem !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-drop small b { color: var(--gd-brand) !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-hint {
+  margin-top: 5px !important;
+  color: #94a3b8 !important;
+  font-size: 0.72rem !important;
+  font-style: normal !important;
+}
+
+/* --- Selected file ------------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-file {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 13px 14px !important;
+  border: 1px solid var(--gd-line) !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  animation: gdIn 200ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-file[hidden] { display: none !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-file-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 auto !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  border: 1px solid var(--gd-line) !important;
+  color: var(--gd-brand) !important;
+  font-size: 19px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-file-copy { min-width: 0 !important; flex: 1 1 auto !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-file-copy strong {
+  display: block !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.85rem !important;
+  font-weight: 680 !important;
+  overflow-wrap: break-word !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-file-copy small {
+  color: var(--gd-muted) !important;
+  font-size: 0.75rem !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-file-clear {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 30px !important;
+  height: 30px !important;
+  flex: 0 0 auto !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-file-clear:hover { background: #fef2f2 !important; color: #dc2626 !important; }
+body:not(.auth-body) #upload-file-modal .gd-file-clear .material-icons { font-size: 17px !important; }
+
+/* --- Alternate pickers --------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-alt {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-alt-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  border: 1px solid var(--gd-line) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.82rem !important;
+  font-weight: 640 !important;
+  cursor: pointer !important;
+  transition: border-color 160ms var(--gd-ease), background 160ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-alt-btn:hover {
+  border-color: var(--gd-brand) !important;
+  background: #ecfdf5 !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-alt-btn .material-icons { font-size: 18px !important; }
+
+/* --- Fields -------------------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-fields {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin: 0 !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-field label {
+  color: var(--gd-ink) !important;
+  font-size: 0.79rem !important;
+  font-weight: 660 !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-field input,
+body:not(.auth-body) #upload-file-modal .gd-field select {
+  width: 100% !important;
+  height: 42px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--gd-line) !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.865rem !important;
+  outline: none !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-field input:focus,
+body:not(.auth-body) #upload-file-modal .gd-field select:focus {
+  border-color: var(--gd-brand) !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11) !important;
+}
+
+/* --- Progress ------------------------------------------------------------ */
+body:not(.auth-body) #upload-file-modal .gd-progress {
+  position: relative !important;
+  height: 24px !important;
+  border-radius: 999px !important;
+  background: #eef2f7 !important;
+  overflow: hidden !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-progress[hidden] { display: none !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-progress > span {
+  display: block !important;
+  width: 0%;
+  height: 100% !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #0f766e, #0891b2) !important;
+  transition: width 220ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-progress small {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.71rem !important;
+  font-weight: 750 !important;
+}
+
+/* --- Actions ------------------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 9px !important;
+  padding-top: 4px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-cancel {
+  padding: 11px 18px !important;
+  border: 1px solid #cddcea !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.855rem !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-cancel:hover { background: #f1f5f9 !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-submit {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 11px 22px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #0f766e, #0891b2) !important;
+  color: #fff !important;
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.26) !important;
+  transition: transform 160ms var(--gd-ease), filter 160ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-submit:hover { transform: translateY(-1px) !important; filter: brightness(1.06) !important; }
+body:not(.auth-body) #upload-file-modal .gd-submit:disabled { opacity: 0.6 !important; cursor: not-allowed !important; }
+body:not(.auth-body) #upload-file-modal .gd-submit .material-icons { font-size: 18px !important; }
+
+/* --- Mobile -------------------------------------------------------------- */
+@media (max-width: 560px) {
+  body:not(.auth-body) #upload-file-modal { padding: 0 !important; align-items: flex-end !important; }
+  body:not(.auth-body) #upload-file-modal .gd-modal {
+    max-width: 100% !important;
+    max-height: 94dvh !important;
+    border-radius: 18px 18px 0 0 !important;
+    padding: 20px !important;
+  }
+  body:not(.auth-body) #upload-file-modal .gd-actions { flex-direction: row-reverse !important; }
+  body:not(.auth-body) #upload-file-modal .gd-cancel,
+  body:not(.auth-body) #upload-file-modal .gd-submit { flex: 1 1 auto !important; justify-content: center !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.auth-body) #upload-file-modal * { animation: none !important; transition-duration: 0.01ms !important; }
+}
+
+/* --- Source tabs: file vs link ------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-tabs {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 3px !important;
+  padding: 3px !important;
+  border-radius: 11px !important;
+  background: #f1f5f9 !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-tabs button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: var(--gd-muted) !important;
+  font-size: 0.83rem !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+  transition: background 180ms var(--gd-ease), color 180ms var(--gd-ease),
+    box-shadow 180ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-tabs button.is-on {
+  background: #fff !important;
+  color: var(--gd-ink) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-tabs .material-icons { font-size: 17px !important; }
+
+/* --- Link pane ----------------------------------------------------------- */
+body:not(.auth-body) #upload-file-modal .gd-link-pane[hidden] { display: none !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-link-pane {
+  display: grid !important;
+  gap: 9px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  height: 48px !important;
+  padding: 0 14px !important;
+  border: 1px solid var(--gd-line) !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  transition: border-color 180ms var(--gd-ease), background 180ms var(--gd-ease),
+    box-shadow 180ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-row:focus-within {
+  border-color: var(--gd-brand) !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-row > .material-icons {
+  color: var(--gd-muted) !important;
+  font-size: 19px !important;
+  flex: 0 0 auto !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-row input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.875rem !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-hint {
+  margin: 0 !important;
+  color: #94a3b8 !important;
+  font-size: 0.745rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Recognised-provider card, filled in by upload-ui.js */
+body:not(.auth-body) #upload-file-modal .gd-link-preview[hidden] { display: none !important; }
+
+body:not(.auth-body) #upload-file-modal .gd-link-preview {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 12px 14px !important;
+  border: 1px solid var(--gd-line) !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  animation: gdIn 200ms var(--gd-ease) !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-preview .material-icons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 auto !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  border: 1px solid var(--gd-line) !important;
+  font-size: 19px !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-preview strong {
+  display: block !important;
+  color: var(--gd-ink) !important;
+  font-size: 0.85rem !important;
+  font-weight: 680 !important;
+}
+
+body:not(.auth-body) #upload-file-modal .gd-link-preview small {
+  color: var(--gd-muted) !important;
+  font-size: 0.75rem !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Per-provider tint, so the source is obvious at a glance. */
+body:not(.auth-body) #upload-file-modal .gd-link-preview.is-youtube .material-icons { color: #dc2626 !important; background: #fef2f2 !important; }
+body:not(.auth-body) #upload-file-modal .gd-link-preview.is-drive .material-icons   { color: #059669 !important; background: #ecfdf5 !important; }
+body:not(.auth-body) #upload-file-modal .gd-link-preview.is-other .material-icons   { color: #0891b2 !important; background: #ecfeff !important; }
+body:not(.auth-body) #upload-file-modal .gd-link-preview.is-bad .material-icons     { color: #dc2626 !important; background: #fef2f2 !important; }
+body:not(.auth-body) #upload-file-modal .gd-link-preview.is-bad strong { color: #b91c1c !important; }

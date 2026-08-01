@@ -1,0 +1,806 @@
+/**
+ * File-explorer view for the library.
+ *
+ * WHY THIS REPLACES THE CARDS
+ * ---------------------------
+ * Each material used to be a tile holding a category chip, a type, a date, a
+ * title, a description, a folder path, a tag row and eight buttons. Ten files
+ * meant ten of those, so finding one was reading rather than scanning — and on
+ * a narrow screen the buttons wrapped under the title and the tile lost its
+ * shape entirely.
+ *
+ * A folder is a list of files, so this draws one: fixed columns, one line per
+ * file, aligned so the eye can run straight down a single column. The card grid
+ * is still available behind the view toggle.
+ *
+ * Own file, so the whole view can be removed by dropping one <link> without
+ * touching the 800 KB main stylesheet.
+ *
+ * Colours come from the portal's custom properties with literal fallbacks —
+ * there is a light and a dark theme, and hard-coded values would be unreadable
+ * in one of them.
+ */
+
+/* Column track shared by the header and every row, so they cannot drift.
+   The name column takes the slack; the rest are sized to their content.
+   There is no actions track: the buttons overlay the row instead — see below. */
+.lib-explorer {
+  /* Lesson & file | Size | Modified.
+     Keep this count in step with the header spans in createMaterialCards —
+     one extra header wraps onto a second grid line and prints over the first.
+
+     Down from five. Lesson used to be a column of its own beside the name, and
+     Type repeated the category folder the student had just opened. The lesson
+     is now the row's heading, so both are gone: fewer columns, more room for
+     the one piece of text anybody reads. */
+  /* The name track has a floor: with a short or empty name the 1fr collapsed
+     to the width of the icon and the header label wrapped down the page. */
+  --lib-cols: minmax(180px, 1fr) 96px 156px;
+  width: 100%;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.10));
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface, #fff);
+}
+
+.lib-explorer-head,
+.lib-row {
+  display: grid;
+  grid-template-columns: var(--lib-cols);
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+}
+
+/* Anchor for the overlaid action buttons. */
+.lib-row {
+  position: relative;
+}
+
+.lib-explorer-head {
+  height: 38px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  /* The head is a fixed 38px. A label that wraps has nowhere to go and prints
+     over the row below it, so labels are held to one line and clipped. */
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.10));
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.025));
+  /* Stays put while a long folder scrolls. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.lib-row {
+  min-height: 52px;
+  border-bottom: 1px solid var(--border-faint, rgba(0, 0, 0, 0.05));
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.lib-row:last-child {
+  border-bottom: 0;
+}
+
+.lib-row:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.035));
+}
+
+/* Keyboard focus must be as obvious as hover — the row is tabbable. */
+.lib-row:focus-visible {
+  outline: 2px solid var(--accent, #1a73e8);
+  outline-offset: -2px;
+  background: var(--surface-hover, rgba(0, 0, 0, 0.035));
+}
+
+.lib-cell {
+  min-width: 0;
+  font-size: 0.86rem;
+  color: var(--text-secondary, inherit);
+  /* One line per cell: a wrapped cell breaks the row rhythm the list exists for. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Name ---------------------------------------------------------------- */
+
+.lib-name {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.lib-icon {
+  font-size: 21px;
+  flex-shrink: 0;
+  color: var(--text-muted, #5f6368);
+}
+
+/* The icon carries the file kind, so the row is scannable by shape as well as
+   by text. Tints only — a fully coloured row would fight the content. */
+.lib-row.file-tone-pdf .lib-icon { color: #d93025; }
+.lib-row.file-tone-video .lib-icon { color: #a142f4; }
+.lib-row.file-tone-reference .lib-icon { color: #1a73e8; }
+.lib-row.file-tone-link .lib-icon { color: #1e8e3e; }
+.lib-row.file-tone-lesson .lib-icon { color: #e37400; }
+
+.lib-name-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.lib-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.91rem;
+  font-weight: 500;
+  color: var(--text-primary, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-path {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Badges -------------------------------------------------------------- */
+
+.lib-badge {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.lib-badge.is-pending {
+  background: rgba(224, 179, 77, 0.18);
+  color: #8a6100;
+}
+
+.lib-badge.is-new {
+  background: rgba(26, 115, 232, 0.14);
+  color: #1257b8;
+}
+
+/* A queued upload is visibly not live yet. Only reachable from the moderator
+   queue, which renders these same rows. */
+.lib-row.is-pending-row {
+  background: rgba(224, 179, 77, 0.06);
+  box-shadow: inset 3px 0 0 rgba(224, 179, 77, 0.75);
+}
+
+.lib-row.is-done .lib-title {
+  opacity: 0.65;
+}
+
+.lib-muted {
+  opacity: 0.35;
+}
+
+/* Numbers line up when they are right-aligned and tabular. */
+.lib-col-size {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.lib-modified {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* --- Actions ------------------------------------------------------------- */
+
+/* Overlaid on the right of the row rather than given a grid track.
+ *
+ * Six buttons visible on every row at rest is what made the old card feel
+ * cluttered — but hiding them inside a narrow column and widening it on hover
+ * would shift every other column sideways as the pointer moved down the list.
+ * Taking them out of the flow entirely means the columns never move, which is
+ * how Drive and Gmail do it.
+ */
+.lib-col-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 0 12px 0 26px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  /* Fades in over whatever it covers instead of colliding with it. */
+  background: linear-gradient(
+    to right,
+    transparent 0,
+    var(--surface-hover, #f5f5f5) 26px
+  );
+}
+
+.lib-row:hover .lib-col-actions,
+.lib-row:focus-within .lib-col-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lib-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted, #5f6368);
+  cursor: pointer;
+  padding: 0;
+}
+
+.lib-act .material-icons {
+  font-size: 18px;
+}
+
+.lib-act:hover {
+  background: var(--surface-hover-strong, rgba(0, 0, 0, 0.08));
+  color: var(--text-primary, inherit);
+}
+
+.lib-act.is-on {
+  color: var(--accent, #1a73e8);
+}
+
+.lib-act.is-danger:hover {
+  color: #d93025;
+  background: rgba(217, 48, 37, 0.10);
+}
+
+/* --- Dark theme ---------------------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+  .lib-explorer {
+    --lib-fallback-surface: #1f1f1f;
+  }
+}
+
+body.dark-theme .lib-explorer,
+:root[data-theme="dark"] .lib-explorer {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.dark-theme .lib-explorer-head,
+:root[data-theme="dark"] .lib-explorer-head {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-theme .lib-row,
+:root[data-theme="dark"] .lib-row {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+body.dark-theme .lib-row:hover,
+:root[data-theme="dark"] .lib-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-theme .lib-col-actions,
+:root[data-theme="dark"] .lib-col-actions {
+  background: linear-gradient(to right, transparent 0, #2b2b2b 26px);
+}
+
+/* --- Narrow screens ------------------------------------------------------ */
+
+/* Columns are dropped rather than squeezed as the window narrows. The lesson
+   name is the last thing standing — it is what the list is read by.
+
+   Each `nth-child` below has to name the same column as the `.lib-*` class next
+   to it. A hidden grid item leaves the grid entirely and everything after it
+   shifts back a track, so the header and the rows must lose the same column at
+   the same width or the two fall out of step and the labels sit over the wrong
+   values. Header order: 1 Lesson & file, 2 Size, 3 Modified. */
+@media (max-width: 860px) {
+  .lib-explorer {
+    --lib-cols: minmax(0, 1fr) 96px;
+  }
+
+  .lib-explorer-head span:nth-child(3),
+  .lib-row .lib-modified {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .lib-explorer {
+    --lib-cols: minmax(0, 1fr);
+  }
+
+  .lib-explorer-head span:nth-child(2),
+  .lib-row .lib-col-size {
+    display: none;
+  }
+}
+
+/*
+ * Touch: `:hover` either never fires or sticks after a tap, so the reveal is
+ * useless there. The buttons sit in the row permanently instead, and the row
+ * grows to fit them rather than having them float over the filename.
+ */
+@media (hover: none) {
+  /*
+   * One column, two stacked rows: the filename, then the buttons under it.
+   *
+   * Set through `--lib-cols` rather than `grid-template-columns` directly:
+   * the specificity guard at the end of this file pins
+   * `grid-template-columns: var(--lib-cols) !important`, so a direct override
+   * here would lose and the row would keep all five columns on a phone.
+   */
+  .lib-explorer {
+    --lib-cols: minmax(0, 1fr);
+  }
+
+  .lib-row {
+    row-gap: 4px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  /* !important for the same reason — the guard pins these too. */
+  .lib-col-actions {
+    position: static !important;
+    opacity: 1;
+    pointer-events: auto;
+    justify-content: flex-start;
+    padding: 0;
+    background: none;
+  }
+
+  /* Dropped rather than stacked: four more lines per file would turn the list
+     back into the wall of tiles this replaced. The lesson stays — it is the
+     one thing a student needs before tapping. */
+  .lib-row .lib-type,
+  .lib-row .lib-modified,
+  .lib-row .lib-col-size,
+  .lib-explorer-head {
+    display: none;
+  }
+
+  .lib-row .lib-lesson {
+    font-size: 0.8rem;
+    opacity: 0.75;
+  }
+}
+
+/* ==========================================================================
+   UPLOAD DESTINATION
+   Where the file is going, stated at the top of the upload form. It was
+   previously only in a hidden input, so the answer to "which folder is this
+   going into?" was "whichever one you last clicked, hopefully".
+   ========================================================================== */
+
+.up-destination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-border, rgba(26, 115, 232, 0.28));
+  background: var(--accent-surface, rgba(26, 115, 232, 0.06));
+}
+
+.up-destination > .material-icons {
+  font-size: 24px;
+  color: var(--accent, #1a73e8);
+  flex-shrink: 0;
+}
+
+.up-destination-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.up-destination-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.up-destination-copy strong {
+  display: block;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  /* A deep folder path is long; wrap it rather than clipping the tail, which
+     is the part that says which shelf the file lands on. */
+  overflow-wrap: anywhere;
+}
+
+.up-destination-note {
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  opacity: 0.85;
+}
+
+.up-destination-note[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .up-destination {
+    flex-wrap: wrap;
+  }
+
+  .up-destination-note {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+body.dark-theme .up-destination,
+:root[data-theme="dark"] .up-destination {
+  background: rgba(138, 180, 248, 0.10);
+  border-color: rgba(138, 180, 248, 0.30);
+}
+
+body.dark-theme .up-destination-note,
+:root[data-theme="dark"] .up-destination-note {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+
+/* ==========================================================================
+   MATERIAL VIEWER
+   --------------------------------------------------------------------------
+   Deliberately small.
+
+   An earlier version of this block restructured the whole dialog — a two
+   column body, a sidebar wrapper, its own header layout, its own rules for
+   `.detail-info` and `.info-row`. `styles.css` is 846 KB and sets many of the
+   same properties with `body:not(.auth-body) ... !important`, so the two
+   fought and the result was worse than either: a title wrapping one letter per
+   line down the left edge of the screen.
+
+   So this no longer tries to redesign the dialog. It changes three things and
+   touches nothing else:
+
+     1. centring   — the modal is opened with `display:flex` now (it was
+                     `block`, which makes the stylesheet's `align-items`/
+                     `justify-content` inert, so it sat in the top-left corner);
+     2. size       — bigger, because it is a document reader;
+     3. fullscreen — a button, and the rules that make the preview fill the
+                     screen once the browser grants it.
+
+   Everything else is left to the existing stylesheet, which already lays this
+   dialog out correctly.
+   ========================================================================== */
+
+/* --- 1. Centring and backdrop -------------------------------------------- */
+
+#material-detail-modal.is-open {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10000;
+  background: rgba(15, 18, 24, 0.72);
+}
+
+/* --- 2. Size ------------------------------------------------------------- */
+
+/* Only the box. No display, no grid, no flex-direction — the stylesheet's own
+   layout for the contents keeps working inside a larger frame. */
+#material-detail-modal.is-open .material-detail-content {
+  width: min(1180px, calc(100vw - 48px)) !important;
+  max-width: none !important;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+/* The preview grows with the extra room; that is the point of the extra room. */
+#material-detail-modal.is-open .detail-preview {
+  min-height: min(58vh, 620px) !important;
+}
+
+#material-detail-modal.is-open .detail-preview iframe {
+  width: 100%;
+  min-height: min(58vh, 620px);
+  border: 0;
+}
+
+#material-detail-modal.is-open .detail-preview img,
+#material-detail-modal.is-open .detail-preview video {
+  max-width: 100%;
+  max-height: min(58vh, 620px);
+  object-fit: contain;
+}
+
+/* Stop the page behind from scrolling while the viewer is open. */
+body.coe-modal-open {
+  overflow: hidden;
+}
+
+/* --- Details list -------------------------------------------------------- */
+
+/*
+ * Tidying only — the two-column grid from `styles.css` is kept, because it is
+ * what the dialog was designed around and fighting it is what broke this
+ * before. All this does is give the pairs a consistent rhythm so the labels
+ * and values line up down both columns instead of drifting.
+ */
+#material-detail-modal.is-open .info-row {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.025));
+  min-width: 0;
+}
+
+#material-detail-modal.is-open .info-row label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  /* Labels are short; wrapping one turns a tidy pair into two ragged ones. */
+  white-space: nowrap;
+}
+
+#material-detail-modal.is-open .info-row span {
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  min-width: 0;
+  /* A subject code or a long filename must wrap inside its cell rather than
+     widening it and pushing the other column off. */
+  overflow-wrap: anywhere;
+}
+
+/* --- 3. Fullscreen ------------------------------------------------------- */
+
+/*
+ * The fullscreen control.
+ *
+ * Absolutely positioned against the dialog and taken out of the flow. An
+ * earlier version put it in the header's flex row, where it took a share of the
+ * width and left the title about twenty pixels — a heading that read one
+ * character per line down the side of the screen. Out of the flow it cannot
+ * take width from anything.
+ *
+ * Sits just under the close button in the top-right corner.
+ */
+#material-detail-modal.is-open .detail-fullscreen-btn {
+  position: absolute !important;
+  top: 58px;
+  right: 16px;
+  z-index: 4;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.16));
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Hidden until the dialog is open, or it floats over the page behind. */
+.detail-fullscreen-btn {
+  display: none;
+}
+
+#material-detail-modal.is-open .detail-fullscreen-btn:hover {
+  background: var(--surface-hover-strong, rgba(0, 0, 0, 0.07));
+}
+
+#material-detail-modal.is-open .detail-fullscreen-btn .material-icons {
+  font-size: 20px;
+}
+
+/*
+ * Native fullscreen. The browser puts the element on a black backdrop at screen
+ * size; these rules only make the contents fill it, since the default is to
+ * centre the element at its natural size.
+ */
+#detail-preview:fullscreen,
+#detail-preview:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  max-height: none !important;
+  padding: 0;
+  background: #0b0b0c !important;
+  border: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#detail-preview:fullscreen iframe,
+#detail-preview:-webkit-full-screen iframe {
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+}
+
+#detail-preview:fullscreen img,
+#detail-preview:fullscreen video,
+#detail-preview:-webkit-full-screen img,
+#detail-preview:-webkit-full-screen video {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/*
+ * Fallback for browsers that refuse or lack the Fullscreen API — iOS Safari has
+ * no element fullscreen at all. Covers the viewport instead of the screen,
+ * which is as close as CSS can get.
+ */
+#material-detail-modal.is-open .detail-preview.is-cssfull {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  width: 100vw;
+  height: 100vh;
+  max-height: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #0b0b0c !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#material-detail-modal.is-open .detail-preview.is-cssfull iframe {
+  width: 100vw;
+  height: 100vh;
+}
+
+#material-detail-modal.is-open .detail-preview.is-cssfull img,
+#material-detail-modal.is-open .detail-preview.is-cssfull video {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+@media (max-width: 860px) {
+  #material-detail-modal.is-open {
+    padding: 0;
+  }
+
+  #material-detail-modal.is-open .material-detail-content {
+    width: 100vw !important;
+    max-height: 100vh;
+    border-radius: 0 !important;
+  }
+}
+
+/* Screen-reader-only label for the actions column header. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+
+/* ==========================================================================
+   SPECIFICITY GUARD
+   --------------------------------------------------------------------------
+   `styles.css` is 846 KB and carries a long tail of rules written as
+   `body:not(.auth-body) .enhanced-library-section ... !important`. Several of
+   them target the library grid and its children generically, and they beat a
+   plain `.lib-explorer-head` selector on both specificity and `!important` —
+   which is what collapsed the header columns on top of each other and printed
+   "NAME" and "LESSON" in the same place.
+
+   Rather than hunt each one down, the handful of properties this view cannot
+   survive losing are restated here at matching specificity. Only layout is
+   pinned; colour, spacing and type are left overridable so the portal's themes
+   still apply.
+   ========================================================================== */
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-explorer {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-explorer-head,
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-row {
+  display: grid !important;
+  grid-template-columns: var(--lib-cols) !important;
+  grid-template-rows: auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 52px !important;
+  /* The card rules set a tall min-height and a fixed width; a row is neither. */
+  max-width: none !important;
+  float: none !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-explorer-head {
+  min-height: 0 !important;
+  height: 38px !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-row {
+  position: relative !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-cell {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-name {
+  display: flex !important;
+  align-items: center !important;
+  overflow: visible !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-name-text {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+body:not(.auth-body) .enhanced-library-section .library-cards-container .lib-col-actions {
+  position: absolute !important;
+  display: flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+/* The container itself is a one-column grid in list view; make sure the single
+   child is allowed to be as wide as it. */
+body:not(.auth-body) .enhanced-library-section .library-cards-container.list-view {
+  display: block !important;
+}

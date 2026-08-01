@@ -1,0 +1,833 @@
+/**
+ * COE Studio — sign-in page.
+ *
+ * WHY THIS FILE IS SELF-CONTAINED
+ * -------------------------------
+ * The old page loaded styles.css (846 KB), login-polish.css and coe-mobile.css
+ * to render one form. Almost none of it applied, and the parts that did fought
+ * each other — a paragraph on the dark hero came out dark-on-dark because a
+ * generic rule elsewhere set its colour. Nothing is inherited here, so what you
+ * read is what renders.
+ *
+ * THE DESIGN
+ * ----------
+ * "Simple, clean, professional" taken literally:
+ *
+ *   * Two panels. Brand on the left, form on the right, one column on a phone.
+ *     Nothing on screen that a person signing in does not need.
+ *   * No decoration that makes a claim. The previous page had four "security"
+ *     tiles — Secure, Encrypted, Role-based, Session — plus "Verified portal"
+ *     and "Fast local access" chips. They were ornaments, and "Encrypted /
+ *     Local access" was not true of the served portal. A login screen that
+ *     advertises its own safety is doing the opposite of reassuring.
+ *   * One accent, deep blue, used only for the primary action and focus rings.
+ *   * Type does the hierarchy: one large heading, one supporting line, labels
+ *     small and quiet.
+ *   * Focus is always visible. This is the one page in the app that must be
+ *     usable entirely from a keyboard.
+ */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/*
+ * Make `hidden` actually hide. Read this before adding any `display` rule below.
+ *
+ * `[hidden]` is only a user-agent rule (`display: none`), so ANY author rule
+ * that sets `display` on the same element silently beats it. This page switches
+ * between three forms with the `hidden` attribute, and `.lg-form { display: grid }`
+ * overrode every one of them — the sign-in, register and reset forms all
+ * rendered at once, stacked down the page, and the Google button appeared even
+ * on a server with no Google provider configured.
+ *
+ * `!important` here rather than discipline in each rule: the failure is silent,
+ * it looks like a JavaScript bug, and the next `display` rule someone adds
+ * would bring it straight back.
+ */
+[hidden] {
+    display: none !important;
+}
+
+:root {
+    --lg-accent: #1d4ed8;
+    --lg-accent-strong: #1e40af;
+    --lg-ink: #0f172a;
+    --lg-muted: #64748b;
+    --lg-line: #e2e8f0;
+    --lg-surface: #ffffff;
+    --lg-canvas: #f1f5f9;
+    --lg-field: #ffffff;
+    --lg-ok: #047857;
+    --lg-ok-bg: #ecfdf5;
+    --lg-bad: #b91c1c;
+    --lg-bad-bg: #fef2f2;
+    --lg-radius: 12px;
+}
+
+body.lg-dark {
+    --lg-accent: #3b82f6;
+    --lg-accent-strong: #60a5fa;
+    --lg-ink: #e2e8f0;
+    --lg-muted: #94a3b8;
+    --lg-line: #1e293b;
+    --lg-surface: #0f172a;
+    --lg-canvas: #020617;
+    --lg-field: #111c33;
+    --lg-ok: #34d399;
+    --lg-ok-bg: #052e26;
+    --lg-bad: #fca5a5;
+    --lg-bad-bg: #3f1414;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--lg-ink);
+    background: var(--lg-canvas);
+    -webkit-font-smoothing: antialiased;
+
+    /* Revealed by the script once the "already signed in" check has run, so the
+       form never flashes on screen a moment before redirecting away. */
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+body.is-ready {
+    opacity: 1;
+}
+
+/* Nothing on this page may scroll sideways. A single overflowing element turns
+   the whole login into a page that drifts left and right under the thumb. */
+html,
+body {
+    overflow-x: hidden;
+}
+
+/* The grey flash Android paints over a tapped control reads as a rendering
+   fault next to these rounded fields; the focus ring already shows the target. */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Layout
+   -------------------------------------------------------------------------- */
+
+.lg {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* --------------------------------------------------------------------------
+   Brand panel
+   -------------------------------------------------------------------------- */
+
+.lg-brand {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 3rem;
+    background: linear-gradient(160deg, #0b1220 0%, #16255c 55%, #1d4ed8 140%);
+    color: #fff;
+}
+
+/* One soft light source. Decorative only. */
+.lg-brand::after {
+    content: "";
+    position: absolute;
+    top: -25%;
+    right: -20%;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(96, 165, 250, 0.22), transparent 62%);
+    pointer-events: none;
+}
+
+.lg-brand-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 30rem;
+    width: 100%;
+}
+
+.lg-lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.lg-crest {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+}
+
+.lg-lockup strong {
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 700;
+}
+
+.lg-lockup span {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.lg-title {
+    margin-top: 3.25rem;
+}
+
+.lg-title > span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.lg-title h1 {
+    margin: 0.35rem 0 1rem;
+    font-size: clamp(2.4rem, 4.5vw, 3.6rem);
+    line-height: 1.02;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.lg-title p {
+    margin: 0;
+    max-width: 34ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    /* Set explicitly. The old page inherited a dark colour here from a
+       stylesheet meant for the workspace and rendered nearly invisible. */
+    color: rgba(255, 255, 255, 0.78);
+}
+
+/* Credits.
+   These sit under the form, not on the dark brand panel, so they use the page
+   palette rather than white-on-navy — moving them without changing these
+   colours would have rendered them invisible on the light canvas. */
+
+.lg-credits {
+    margin: 1.5rem 0 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--lg-line);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.lg-credits div {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.lg-credits dt {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--lg-muted);
+}
+
+.lg-credits dd {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--lg-ink);
+    /* Long names must wrap rather than widen the card on a narrow phone. */
+    overflow-wrap: anywhere;
+}
+
+.lg-credits dd span {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--lg-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Form panel
+   -------------------------------------------------------------------------- */
+
+.lg-panel {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    background: var(--lg-canvas);
+}
+
+.lg-theme {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--lg-line);
+    background: var(--lg-surface);
+    color: var(--lg-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.lg-theme:hover {
+    color: var(--lg-accent);
+    border-color: var(--lg-accent);
+}
+
+.lg-theme .material-icons {
+    font-size: 1.15rem;
+}
+
+.lg-card {
+    width: 100%;
+    max-width: 25rem;
+}
+
+.lg-head h2 {
+    margin: 0;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.lg-head p {
+    margin: 0.4rem 0 1.75rem;
+    color: var(--lg-muted);
+    font-size: 0.93rem;
+    line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------------
+   Messages
+   -------------------------------------------------------------------------- */
+
+.lg-message {
+    margin: 0 0 1.25rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: var(--lg-radius);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border: 1px solid transparent;
+}
+
+.lg-message.is-error {
+    background: var(--lg-bad-bg);
+    border-color: color-mix(in srgb, var(--lg-bad) 30%, transparent);
+    color: var(--lg-bad);
+}
+
+.lg-message.is-ok {
+    background: var(--lg-ok-bg);
+    border-color: color-mix(in srgb, var(--lg-ok) 30%, transparent);
+    color: var(--lg-ok);
+}
+
+/* --------------------------------------------------------------------------
+   Fields
+   -------------------------------------------------------------------------- */
+
+.lg-form {
+    display: grid;
+    gap: 1.05rem;
+}
+
+.lg-field {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.lg-field > span,
+.lg-field-row {
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--lg-ink);
+}
+
+.lg-field-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lg-field-row a,
+.lg-foot a {
+    color: var(--lg-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.lg-field-row a {
+    font-size: 0.8rem;
+}
+
+.lg-field-row a:hover,
+.lg-foot a:hover {
+    text-decoration: underline;
+}
+
+.lg-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--lg-line);
+    border-radius: var(--lg-radius);
+    background: var(--lg-field);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lg-input:focus-within {
+    border-color: var(--lg-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
+}
+
+.lg-input > .material-icons {
+    position: absolute;
+    left: 0.8rem;
+    font-size: 1.15rem;
+    color: var(--lg-muted);
+    pointer-events: none;
+}
+
+.lg-input input,
+.lg-input select {
+    width: 100%;
+    padding: 0.8rem 0.9rem 0.8rem 2.6rem;
+    border: 0;
+    border-radius: var(--lg-radius);
+    background: transparent;
+    color: var(--lg-ink);
+    /* 16px: anything smaller makes iOS Safari zoom the page on focus. */
+    font: 500 1rem/1.2 inherit;
+}
+
+.lg-input select {
+    appearance: none;
+    cursor: pointer;
+}
+
+.lg-input input:focus,
+.lg-input select:focus {
+    outline: none;
+}
+
+.lg-input input::placeholder {
+    color: var(--lg-muted);
+    font-weight: 400;
+}
+
+.lg-input input:disabled,
+.lg-input select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Chrome's autofill repaints the field white, which is unreadable in dark mode. */
+.lg-input input:-webkit-autofill,
+.lg-input input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--lg-ink);
+    -webkit-box-shadow: 0 0 0 100px var(--lg-field) inset;
+}
+
+.lg-reveal {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: 0.15rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lg-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.lg-reveal:hover {
+    color: var(--lg-accent);
+}
+
+.lg-reveal .material-icons {
+    font-size: 1.15rem;
+}
+
+/* --------------------------------------------------------------------------
+   Checkbox, rules, hints
+   -------------------------------------------------------------------------- */
+
+.lg-check {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.86rem;
+    color: var(--lg-muted);
+    cursor: pointer;
+}
+
+.lg-check input {
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: var(--lg-accent);
+    cursor: pointer;
+}
+
+.lg-rules {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.3rem 0.75rem;
+    margin: -0.35rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lg-rules li {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    color: var(--lg-muted);
+    transition: color 0.15s ease;
+}
+
+.lg-rules li .material-icons {
+    font-size: 0.95rem;
+}
+
+.lg-rules li.is-met {
+    color: var(--lg-ok);
+}
+
+.lg-hint,
+.lg-dev-link {
+    margin: -0.25rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--lg-muted);
+}
+
+.lg-dev-link {
+    padding: 0.7rem 0.85rem;
+    border: 1px dashed var(--lg-line);
+    border-radius: var(--lg-radius);
+}
+
+.lg-dev-link a {
+    color: var(--lg-accent);
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.lg-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    margin-top: 0.25rem;
+    border: 0;
+    border-radius: var(--lg-radius);
+    background: var(--lg-accent);
+    color: #fff;
+    font: 700 0.95rem/1 inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.lg-submit:hover:not(:disabled) {
+    background: var(--lg-accent-strong);
+}
+
+.lg-submit:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.lg-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.lg-submit .material-icons {
+    font-size: 1.05rem;
+}
+
+.lg-submit.is-busy .material-icons {
+    /* The arrow becomes a spinner while a request is in flight. */
+    animation: lg-spin 0.9s linear infinite;
+}
+
+@keyframes lg-spin {
+    to { transform: rotate(360deg); }
+}
+
+.lg-alt {
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 0.35rem;
+}
+
+.lg-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--lg-muted);
+}
+
+.lg-divider::before,
+.lg-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--lg-line);
+}
+
+.lg-google {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid var(--lg-line);
+    border-radius: var(--lg-radius);
+    background: var(--lg-surface);
+    color: var(--lg-ink);
+    font: 600 0.9rem/1 inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.lg-google:hover:not(:disabled) {
+    border-color: var(--lg-accent);
+}
+
+.lg-google-mark {
+    display: grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+.lg-foot {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--lg-line);
+    font-size: 0.87rem;
+    color: var(--lg-muted);
+    text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Focus visibility
+   --------------------------------------------------------------------------
+   This is the one page that has to be completely usable from a keyboard, so
+   the ring is deliberately loud and never removed. */
+
+:focus-visible {
+    outline: 2px solid var(--lg-accent);
+    outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Offline (opened as a file:// page)
+   -------------------------------------------------------------------------- */
+
+body.is-offline .lg-form {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Phones and tablets
+   --------------------------------------------------------------------------
+   The one rule that matters here: the email field must be on screen when the
+   page opens. Everything else gives way to that.
+
+   The earlier version stacked the full brand panel — crest, heading, paragraph
+   and a two-column credits list — above the form, roughly 420px of it. On a
+   phone that put the sign-in fields below the fold, so the first thing anyone
+   had to do was scroll. The brand is now a short header, and the credits sit
+   under the form instead. */
+
+@media (max-width: 900px) {
+    .lg {
+        grid-template-columns: 1fr;
+        /* `auto` first: the header takes only what it needs and the form column
+           gets the rest, instead of each claiming half the screen. */
+        grid-template-rows: auto 1fr;
+    }
+
+    .lg-brand {
+        padding: 1.5rem 1.5rem 1.4rem;
+        /* Notched phones: keep the lockup clear of the status bar. */
+        padding-top: max(1.5rem, env(safe-area-inset-top));
+        align-items: flex-start;
+    }
+
+    .lg-brand-inner {
+        max-width: none;
+    }
+
+    .lg-title {
+        margin-top: 1.15rem;
+    }
+
+    .lg-title > span {
+        font-size: 0.72rem;
+    }
+
+    .lg-title h1 {
+        font-size: 1.9rem;
+    }
+
+    .lg-title p {
+        margin-top: 0.5rem;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        max-width: 46ch;
+    }
+
+    .lg-panel {
+        padding: 1.75rem 1.25rem 2rem;
+        padding-bottom: max(2rem, env(safe-area-inset-bottom));
+        align-items: flex-start;
+    }
+
+    .lg-card {
+        max-width: 28rem;
+    }
+
+    .lg-head h2 {
+        font-size: 1.45rem;
+    }
+
+    .lg-head p {
+        margin-bottom: 1.35rem;
+    }
+
+    .lg-credits {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Small phones. The marketing line goes: at this width it costs a third of the
+   visible page and says nothing the person signing in needs. */
+@media (max-width: 560px) {
+    .lg-brand {
+        padding: 1.15rem 1.15rem 1.25rem;
+        padding-top: max(1.15rem, env(safe-area-inset-top));
+    }
+
+    .lg-title {
+        margin-top: 0.9rem;
+    }
+
+    .lg-title h1 {
+        font-size: 1.6rem;
+    }
+
+    .lg-title p {
+        display: none;
+    }
+
+    .lg-crest {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.9rem;
+    }
+
+    .lg-panel {
+        padding: 1.5rem 1.15rem 1.75rem;
+        padding-bottom: max(1.75rem, env(safe-area-inset-bottom));
+    }
+
+    .lg-head h2 {
+        font-size: 1.35rem;
+    }
+
+    /* One column: two columns of 0.76rem text is a squint on a 360px screen. */
+    .lg-rules {
+        grid-template-columns: 1fr;
+    }
+
+    .lg-credits {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+    }
+
+    .lg-theme {
+        top: 0.85rem;
+        right: 0.85rem;
+    }
+}
+
+/* Landscape on a phone: almost no vertical room, so the header shrinks to the
+   lockup alone rather than pushing the form off the screen entirely. */
+@media (max-height: 520px) and (max-width: 900px) {
+    .lg-title,
+    .lg-credits {
+        display: none;
+    }
+
+    .lg-brand {
+        padding: 0.85rem 1.15rem;
+    }
+
+    .lg-panel {
+        padding-top: 1.25rem;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    body,
+    .lg-submit,
+    .lg-input,
+    .lg-google,
+    .lg-theme {
+        transition: none;
+    }
+
+    .lg-submit.is-busy .material-icons {
+        animation: none;
+    }
+}
