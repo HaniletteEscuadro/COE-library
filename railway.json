@@ -27,6 +27,27 @@
     "buildCommand": "npm install --no-audit --no-fund && npx prisma generate && npm run build"
   },
   "deploy": {
+    "//startCommand": [
+      "Stated here for the same reason the build command is: a Start Command",
+      "typed into the Railway dashboard overrides package.json, and one was.",
+      "",
+      "The symptom was a working sign-in page that could not sign anyone in:",
+      "",
+      "    Invalid `prisma.loginEvent.count()` invocation:",
+      "    The table `main.LoginEvent` does not exist in the current database.",
+      "",
+      "`prisma migrate deploy` is part of `npm start` precisely so that every",
+      "boot brings the database up to the schema the code expects. A start",
+      "command of just `tsx server.ts` skips it, so the volume held an empty",
+      "SQLite file and every query failed against a database with no tables.",
+      "",
+      "Migrations run at start rather than at build on purpose: the build",
+      "container has no volume mounted, so a migration there would be applied",
+      "to a disk that is thrown away — which is exactly what happened on the",
+      "first deploy, complete with a reassuring 'All migrations have been",
+      "successfully applied'."
+    ],
+    "startCommand": "npm start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
