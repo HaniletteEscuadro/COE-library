@@ -1,0 +1,143 @@
+/**
+ * READABLE TEXT ON THE WHITE PANELS
+ *
+ * THE BUG THIS FIXES
+ * ------------------
+ * This portal was built dark. `body` is a near-black gradient with
+ * `color: var(--coe-text-dark)` = #f8fafc, and that is correct and consistent
+ * for the sidebar, the home panel and the chat.
+ *
+ * Later, every other page was turned into a white card:
+ *
+ *     body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden) {
+ *         background: rgba(255, 255, 255, 0.9) !important;
+ *     }
+ *
+ * That rule sets a background and **no colour**. So every piece of text inside
+ * those panels that does not carry an explicit colour of its own keeps
+ * inheriting #f8fafc from `body` — near-white text on a near-white card. It is
+ * not invisible, quite: it is faint, grey-on-white, readable if you lean in.
+ * Which is exactly the report: "malabo".
+ *
+ * THE FIX
+ * -------
+ * One inherited colour on the panel. Because `color` inherits:
+ *
+ *   * text with no colour of its own  -> dark, readable                 (fixed)
+ *   * text with an explicit colour    -> keeps it                    (untouched)
+ *
+ * So the page heroes, which set `color: #ffffff !important` on themselves and
+ * `color: inherit !important` on their children, are unaffected — their
+ * children inherit white from the hero, not dark from the panel. Coloured
+ * buttons, badges, the PDF viewer bar and the material preview all set their
+ * own colour and are likewise untouched.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO
+ * ----------------------------------
+ * It does not force `color: inherit` onto every descendant. That would also
+ * fix the ~250 places that set an explicit near-white colour inside a panel —
+ * but there are ~180 elements that paint a dark background and set no colour
+ * of their own, and blanket inheritance would turn those dark-on-dark. Trading
+ * one unreadable state for another is not a fix.
+ *
+ * The panels below are listed individually rather than as one blanket rule, so
+ * that a page which is genuinely meant to stay dark can simply be left out.
+ */
+
+/* ---------------------------------------------------------------------------
+   The white page panels
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden) {
+  /* #0f172a is the value the admin panel already uses for its white cards, so
+     the two now agree instead of one being readable and the other not. */
+  color: #0f172a !important;
+}
+
+/*
+ * Secondary text.
+ *
+ * These carry an explicit near-white colour from the dark era and therefore
+ * survive the inherited fix above. Scoped inside the white panels only, so the
+ * sidebar, the home panel and the chat keep theirs.
+ *
+ * #475569 rather than #64748b: on white that is 7.5:1 against 4.8:1, and this
+ * is the size of text people are squinting at.
+ */
+body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden)
+  :is(.empty-state, .empty-tasks, .empty-concerns, .empty-library, .empty-home-section,
+      .file-details, .detail-metadata, .file-preview-text, .section-subtitle,
+      .card-label, .stat-label, .insight-detail, .muted, .hint, .form-hint) {
+  color: #475569 !important;
+}
+
+/*
+ * Headings and labels inside the white panels.
+ *
+ * Same story — several are pinned near-white by the old dark styling, and a
+ * heading that cannot be read is worse than body text that cannot be read,
+ * because it is what you navigate by.
+ */
+body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden)
+  :is(h1, h2, h3, h4, h5, h6):not([class*="hero"] *):not([class*="hero"]) {
+  color: #0f172a !important;
+}
+
+/*
+ * Form fields.
+ *
+ * An input with near-white text on a white field is the worst case of this
+ * bug: you type and nothing appears to happen. The placeholder gets a lighter
+ * value so it is still distinguishable from a real value.
+ */
+body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden)
+  :is(input, select, textarea) {
+  color: #0f172a !important;
+}
+
+body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden)
+  :is(input, textarea)::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Table text, which the library and the admin logs both use.
+ */
+body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden)
+  :is(td, th, dt, dd) {
+  color: inherit !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme
+   ---------------------------------------------------------------------------
+   When the user picks the dark theme the panels are no longer white, so every
+   rule above has to stand down — otherwise this file swaps one unreadable
+   combination for the other.
+   --------------------------------------------------------------------------- */
+
+body.dark-theme:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden),
+:root[data-theme="dark"] body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden) {
+  color: var(--text-primary, #e8eef6) !important;
+}
+
+body.dark-theme:not(.auth-body) .page-panel :is(h1, h2, h3, h4, h5, h6),
+body.dark-theme:not(.auth-body) .page-panel :is(input, select, textarea),
+body.dark-theme:not(.auth-body) .page-panel :is(td, th, dt, dd),
+:root[data-theme="dark"] body:not(.auth-body) .page-panel :is(h1, h2, h3, h4, h5, h6),
+:root[data-theme="dark"] body:not(.auth-body) .page-panel :is(input, select, textarea),
+:root[data-theme="dark"] body:not(.auth-body) .page-panel :is(td, th, dt, dd) {
+  color: var(--text-primary, #e8eef6) !important;
+}
+
+body.dark-theme:not(.auth-body) .page-panel
+  :is(.empty-state, .empty-tasks, .empty-concerns, .empty-library, .empty-home-section,
+      .file-details, .detail-metadata, .file-preview-text, .section-subtitle,
+      .card-label, .stat-label, .insight-detail, .muted, .hint, .form-hint),
+:root[data-theme="dark"] body:not(.auth-body) .page-panel
+  :is(.empty-state, .empty-tasks, .empty-concerns, .empty-library, .empty-home-section,
+      .file-details, .detail-metadata, .file-preview-text, .section-subtitle,
+      .card-label, .stat-label, .insight-detail, .muted, .hint, .form-hint) {
+  color: var(--text-secondary, #a9b6c9) !important;
+}
