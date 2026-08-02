@@ -380,10 +380,16 @@
         });
     }
 
-    /** True when this account's uploads wait for approval. */
+    /**
+     * True when this account's uploads wait for approval.
+     *
+     * Must match AUTO_APPROVE_ROLES on the server. ACAD_COMMITTEE is in it:
+     * publishing study material is the reason the role exists, so their
+     * uploads go straight onto the shelf where every account can see them.
+     */
     function isModerated() {
         const role = String((currentUser && currentUser.role) || '').toUpperCase();
-        return ['ADMIN', 'FACULTY', 'LIBRARIAN', 'REGISTRAR'].indexOf(role) === -1;
+        return ['ADMIN', 'FACULTY', 'LIBRARIAN', 'REGISTRAR', 'ACAD_COMMITTEE'].indexOf(role) === -1;
     }
 
     /** True when this account may approve or reject other people's uploads. */
@@ -400,7 +406,8 @@
      * mismatch here is a confusing button, not a hole.
      */
     function canUpload() {
-        return String((currentUser && currentUser.role) || '').toUpperCase() === 'ADMIN';
+        const role = String((currentUser && currentUser.role) || '').toUpperCase();
+        return role === 'ADMIN' || role === 'ACAD_COMMITTEE';
     }
 
     /**

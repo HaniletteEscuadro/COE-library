@@ -19,15 +19,16 @@ const qaCurrentUser = JSON.parse(localStorage.getItem('studentWorkplaceCurrentUs
  * Who may post the official reply, and approve a question onto the board.
  *
  * Faculty as well as admins — a lecturer answering questions about their own
- * subject is the point of the board. Must match QA_ANSWERER_ROLES on the
- * server, which is what actually enforces it; this only decides what the page
- * offers, so a mismatch here is a button that answers 403, not a way in.
+ * subject is the point of the board — and the Academic Committee, whose job is
+ * vetting answers. Must match QA_ANSWERER_ROLES on the server, which is what
+ * actually enforces it; this only decides what the page offers, so a mismatch
+ * here is a button that answers 403, not a way in.
  *
  * Still named `qaIsAdmin` because it is read in a dozen places below and the
  * meaning — "may give the official reply" — has not changed.
  */
 const qaIsAdmin = Boolean(qaCurrentUser) &&
-    ['ADMIN', 'FACULTY'].indexOf(String(qaCurrentUser.role || '').toUpperCase()) > -1;
+    ['ADMIN', 'FACULTY', 'ACAD_COMMITTEE'].indexOf(String(qaCurrentUser.role || '').toUpperCase()) > -1;
 
 document.addEventListener('DOMContentLoaded', function () {
     initializeQAHub();

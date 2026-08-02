@@ -52,6 +52,22 @@ export const USER_ROLES = [
    * admin dashboard, and no account management.
    */
   "ORG_OFFICER_COESC",
+  /**
+   * Academic Committee.
+   *
+   * The people who vet answers and publish study material, without being
+   * administrators. Three rights, and deliberately only three:
+   *
+   *   * verify a Q&A answer, and publish a student's held one;
+   *   * upload to the Engineering Library;
+   *   * have those uploads go live immediately rather than into the approval
+   *     queue — which is what makes them visible to every account.
+   *
+   * They are NOT in ADMIN_ROLES: no admin dashboard, no account management, no
+   * role changes, and no access to Student Voice identities. A committee that
+   * checks academic work has no business reading who filed a complaint.
+   */
+  "ACAD_COMMITTEE",
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
@@ -304,25 +320,33 @@ export const AUTO_APPROVE_ROLES: readonly UserRole[] = [
   "FACULTY",
   "LIBRARIAN",
   "REGISTRAR",
+  // The committee's whole purpose is publishing study material, so an upload
+  // that sat in a queue waiting for an administrator would defeat it. This is
+  // the line that makes their uploads visible to every account immediately.
+  "ACAD_COMMITTEE",
 ];
 
 /**
  * Roles permitted to upload at all.
  *
- * Administrators only, by decision: the library is published *to* the college
- * rather than contributed to by it. Reading is deliberately unrestricted — see
- * `listMaterials`, where every signed-in account queries the same rows with no
- * role filter — so this narrows who can add, never who can see.
+ * Administrators and the Academic Committee. The library is published *to* the
+ * college rather than contributed to by it, so this stays a short list — but
+ * the committee exists precisely to publish study material, and a committee
+ * that has to ask an administrator to press upload is not one.
  *
- * A side effect worth knowing: every remaining uploader is also in
- * AUTO_APPROVE_ROLES, so nothing lands in PENDING any more and the approval
- * queue stays empty. It is left in place for rows queued before this change,
- * and it is the one thing to revisit if FACULTY is added back below.
+ * Reading is deliberately unrestricted — see `listMaterials`, where every
+ * signed-in account queries the same rows with no role filter — so this
+ * narrows who can add, never who can see.
+ *
+ * A side effect worth knowing: every uploader here is also in
+ * AUTO_APPROVE_ROLES, so nothing lands in PENDING and the approval queue stays
+ * empty. That is intentional for both, and it is the thing to revisit if a
+ * role is ever added here without being added there.
  *
  * To let faculty upload again, add "FACULTY" here — nothing else needs to
  * change, because the approval path still exists.
  */
-export const UPLOADER_ROLES: readonly UserRole[] = ["ADMIN"];
+export const UPLOADER_ROLES: readonly UserRole[] = ["ADMIN", "ACAD_COMMITTEE"];
 
 // ---------------------------------------------------------------------------
 // Display helpers

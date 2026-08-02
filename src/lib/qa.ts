@@ -34,19 +34,35 @@ export const QUESTION_STATUSES = [
 
 export type QuestionStatus = (typeof QUESTION_STATUSES)[number];
 
-/** Faculty and above may verify an answer or mark a question solved. */
-const QA_MODERATOR_ROLES = ["ADMIN", "FACULTY", "REGISTRAR", "LIBRARIAN"] as const;
+/**
+ * Who may verify an answer, mark a question solved, and publish a student's
+ * held answer.
+ *
+ * The Academic Committee is here because vetting answers is the job the role
+ * was created for — it is the only Q&A right they have, and it is the whole
+ * point of them.
+ */
+const QA_MODERATOR_ROLES = [
+  "ADMIN",
+  "FACULTY",
+  "REGISTRAR",
+  "LIBRARIAN",
+  "ACAD_COMMITTEE",
+] as const;
 
 export function canVerifyAnswers(role: string | null | undefined) {
   return hasRole(role, QA_MODERATOR_ROLES);
 }
 
 /**
- * Who may post an answer without waiting for review.
+ * Who may post an answer without waiting for review, and who may approve a
+ * question onto the board.
  *
- * Staff. Their reply is the official one and goes straight onto the board.
+ * Staff, and the Academic Committee. Somebody trusted to judge whether another
+ * person's answer is correct is trusted to write one — holding their own reply
+ * in a queue only they can clear would be a queue they approve themselves.
  */
-const QA_ANSWERER_ROLES = ["ADMIN", "FACULTY"] as const;
+const QA_ANSWERER_ROLES = ["ADMIN", "FACULTY", "ACAD_COMMITTEE"] as const;
 
 /**
  * Who may post an answer at all.
@@ -60,7 +76,27 @@ const QA_ANSWERER_ROLES = ["ADMIN", "FACULTY"] as const;
  * the rest of the college until an administrator publishes it. So a student can
  * help, and nobody reads a wrong answer in the meantime.
  */
-const QA_ANY_ANSWERER_ROLES = ["ADMIN", "FACULTY", "REGISTRAR", "LIBRARIAN", "STUDENT"] as const;
+const QA_ANY_ANSWERER_ROLES = [
+  "ADMIN",
+  "FACULTY",
+  "REGISTRAR",
+  "LIBRARIAN",
+  "STUDENT",
+  "ACAD_COMMITTEE",
+  /*
+   * The three officer roles.
+   *
+   * Without these an org officer could not answer a question at all — not even
+   * the held, needs-review kind an ordinary student can post. Their account is
+   * ORG_OFFICER_*, not STUDENT, so the "STUDENT" entry above never covered
+   * them, and the board silently refused the people most likely to know the
+   * answer. The enum calls an officer "a student with one extra publishing
+   * right"; this is the line that makes the student half true.
+   */
+  "ORG_OFFICER_PICE",
+  "ORG_OFFICER_IIEE",
+  "ORG_OFFICER_COESC",
+] as const;
 
 export function canAnswerQuestions(role: string | null | undefined) {
   return hasRole(role, QA_ANY_ANSWERER_ROLES);

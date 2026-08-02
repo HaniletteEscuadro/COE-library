@@ -51,6 +51,10 @@
         // Sees who raised a Student Voice concern, and moderates the board.
         // Nothing else — not the admin dashboard, not library uploads.
         { value: 'ORG_OFFICER_COESC', label: 'COESC Officer' },
+        // Verifies Q&A answers and uploads library materials, which go live
+        // immediately. Not an administrator: no dashboard, no accounts, and no
+        // access to Student Voice identities.
+        { value: 'ACAD_COMMITTEE', label: 'Acad Committee' },
         { value: 'ADMIN', label: 'Admin' },
         { value: 'USER', label: 'Unassigned' }
     ];

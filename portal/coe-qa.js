@@ -390,11 +390,18 @@
     // Question approval queue
     // -----------------------------------------------------------------------
 
-    /** True when this account may approve a question or post the official reply. */
+    /**
+     * True when this account may approve a question, publish a held answer, or
+     * post the official reply.
+     *
+     * Must match QA_ANSWERER_ROLES / QA_MODERATOR_ROLES on the server.
+     * ACAD_COMMITTEE is in both — vetting answers is the job that role was
+     * created for.
+     */
     function canReview() {
         const user = global.CoeLive && global.CoeLive.user;
         const role = String((user && user.role) || '').toUpperCase();
-        return role === 'ADMIN' || role === 'FACULTY';
+        return role === 'ADMIN' || role === 'FACULTY' || role === 'ACAD_COMMITTEE';
     }
 
     /**
