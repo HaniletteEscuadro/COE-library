@@ -23753,20 +23753,25 @@ document.addEventListener('DOMContentLoaded', function () {
             .sort(function (left, right) {
                 return new Date(left.dueDate) - new Date(right.dueDate);
             })[0];
-        const flowScore = (tasks.length * 3) + (uploadedFiles.length * 2) + completedTodos;
+        // Class-wide: problems and uploads, both from the server. `completedTodos`
+        // used to be added here, which let one person's private task list move a
+        // figure printed under "Across the class".
+        const flowScore = (tasks.length * 3) + (uploadedFiles.length * 2);
         const recentActivity = activityLog.slice(0, 4);
 
         /*
-         * Two tiers, not nine equal boxes.
+         * Two tiers, and — more importantly — two different SCOPES.
          *
-         * The panel used to be a grid of nine identical cards — Flow Score
-         * beside Active Days beside Course Mix, every one the same size and
-         * the same weight. Nine numbers shouted at once say nothing about
-         * which of them matters, so the page was read as decoration.
+         * The panel used to be a grid of nine identical cards, and it mixed
+         * numbers that mean completely different things. `tasks` and
+         * `uploadedFiles` come from the server, so they are the whole class.
+         * `homeTodos` and `activityLog` are this browser's localStorage, so
+         * they are one person. The page is titled "Class Contribution" and
+         * says "across the whole class" — while more than half of what it
+         * showed was only ever yours.
          *
-         * `headline` is the four figures somebody actually opens this page
-         * for. `secondary` is the rest, drawn smaller underneath. Nothing was
-         * removed; it is only ranked.
+         * `headline` is class-wide, `secondary` is your own, and each group
+         * now says which it is. Nothing was removed; it is ranked and labelled.
          */
         const headline = [
             {
@@ -23791,34 +23796,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 tone: 'is-violet'
             },
             {
-                title: 'Active days',
-                value: String(activeDays),
-                detail: activeDays ? 'Days with saved activity' : 'Nothing recorded yet',
-                icon: 'local_fire_department',
+                title: 'Flow score',
+                value: String(flowScore),
+                /*
+                 * Class-wide now. It used to add `completedTodos`, which is
+                 * this browser's own task list — so a composite headline
+                 * figure on a class page moved when you ticked off a personal
+                 * reminder. The detail line shows the arithmetic, because a
+                 * score whose formula is invisible cannot be questioned.
+                 */
+                detail: `${tasks.length}x3 + ${uploadedFiles.length}x2`,
+                icon: 'trending_up',
                 tone: 'is-amber'
             }
         ];
 
+        // Everything below reads this browser's own localStorage, so it is
+        // this account's activity and nobody else's. Labelled as such by the
+        // heading rendered above it.
         const secondary = [
             {
-                title: 'Flow score',
-                value: String(flowScore),
-                // The old copy never said how it was built, so the number was
-                // unfalsifiable. Now it shows its own arithmetic.
-                detail: `${tasks.length}x3 + ${uploadedFiles.length}x2 + ${completedTodos}`
+                title: 'Your active days',
+                value: String(activeDays),
+                detail: activeDays ? 'Days you saved something' : 'Nothing recorded yet'
             },
             {
-                title: 'Focus queue',
+                title: 'Your focus queue',
                 value: String(pendingTodos),
                 detail: `${completedTodos} closed out`
             },
             {
-                title: 'Completion rate',
+                title: 'Your completion rate',
                 value: `${completionRate}%`,
                 detail: homeTodos.length ? `${completedTodos} of ${homeTodos.length} tasks` : 'No tasks yet'
             },
             {
-                title: 'Next deadline',
+                title: 'Your next deadline',
                 value: nextTodo ? formatDate(nextTodo.dueDate) : 'Clear',
                 detail: nextTodo ? nextTodo.text : 'Nothing due'
             }
@@ -23897,8 +23910,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const emptyMix = '<p class="contrib-empty">No contributions recorded yet.</p>';
 
         contributorsGrid.innerHTML = `
-            <section class="contrib-stats" aria-label="Headline figures">
-                ${headlineMarkup}
+            <section class="contrib-group" aria-labelledby="contrib-class-heading">
+                <h2 class="contrib-group-title" id="contrib-class-heading">
+                    <span class="material-icons">groups</span>Across the class
+                </h2>
+                <div class="contrib-stats">${headlineMarkup}</div>
             </section>
 
             <div class="contrib-columns">
@@ -23928,8 +23944,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 </section>
             </div>
 
-            <section class="contrib-minis" aria-label="Secondary figures">
-                ${secondaryMarkup}
+            <section class="contrib-group" aria-labelledby="contrib-you-heading">
+                <h2 class="contrib-group-title" id="contrib-you-heading">
+                    <span class="material-icons">person</span>Your own activity
+                    <small>Saved on this device only</small>
+                </h2>
+                <div class="contrib-minis">${secondaryMarkup}</div>
             </section>
         `;
     }

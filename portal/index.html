@@ -784,9 +784,16 @@
                 <header class="contrib-pagehead">
                     <span class="contrib-eyebrow">Workspace insights</span>
                     <h1>Class Contribution</h1>
-                    <p>Study output and activity across the whole class. No account details are shown anywhere on this page.</p>
+                    <p>What the class has produced, and what you have. No account details are shown anywhere on this page.</p>
                 </header>
-                <div class="contributors-grid" id="contributors-grid"></div>
+                <!-- The `contributors-grid` CLASS is deliberately gone; only
+                     the id remains, because scripts.js finds this element by
+                     id. That class carries a legacy rule in styles.css —
+                     `display: grid; grid-template-columns: repeat(3, 1fr)` —
+                     which turned the three sections drawn inside it into three
+                     narrow columns, so every label rendered one letter per
+                     line. The layout is `.contrib-body` below. -->
+                <div class="contrib-body" id="contributors-grid"></div>
             </div>
         </section>
 

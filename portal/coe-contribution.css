@@ -33,6 +33,28 @@
   min-width: 0;
 }
 
+/*
+ * The container scripts.js writes into.
+ *
+ * Its three sections stack; each one lays out its own children. Stated here
+ * rather than left to inherit, because the element also carries the id
+ * `contributors-grid`, and the matching legacy CLASS in styles.css is
+ * `display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))`. With that
+ * applied the three sections became three columns of roughly 90px, and every
+ * label inside them wrapped to one character per line.
+ *
+ * The class is off the markup now. This rule is the belt to that braces: if
+ * anyone re-adds it, the layout still holds.
+ */
+.contrib-body,
+#contributors-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 18px;
+  margin: 0;
+  min-width: 0;
+}
+
 /* ---------------------------------------------------------------------------
    Page heading
    --------------------------------------------------------------------------- */
@@ -72,6 +94,44 @@
 /* ---------------------------------------------------------------------------
    Headline figures
    --------------------------------------------------------------------------- */
+
+/* Each labelled scope — its heading plus the tiles under it. */
+.contrib-group {
+  min-width: 0;
+}
+
+/*
+ * The two scope headings.
+ *
+ * "Across the class" and "Your own activity" read from completely different
+ * places — the server, and this browser's localStorage — and the page used to
+ * present both as one set of class figures. The heading is the whole fix: the
+ * numbers were never wrong, only unlabelled.
+ */
+.contrib-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #64748b);
+}
+
+.contrib-group-title .material-icons {
+  font-size: 17px;
+}
+
+.contrib-group-title small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.85;
+}
 
 .contrib-stats {
   display: grid;
