@@ -35,9 +35,14 @@
     <link rel="stylesheet" href="coe-pdf.css?v=live-2026-08a">
     <link rel="stylesheet" href="coe-calendar.css?v=calendar-2026-08a">
     <link rel="stylesheet" href="coe-voice.css?v=voice-2026-08a">
+    <link rel="stylesheet" href="coe-security.css?v=sec-2026-08a">
     <!-- Last: the mobile rules for the live features have to outrank the
          !important layout guards those features use on desktop. -->
     <link rel="stylesheet" href="coe-mobile.css?v=embed-links-2026-08a">
+    <!-- After coe-mobile.css: the tablet range sits above the phone
+         breakpoint, so its rules must not be overwritten by the phone layer's
+         !important guards. -->
+    <link rel="stylesheet" href="coe-tablet.css?v=tablet-2026-08a">
     <link rel="stylesheet" href="coe-coesc.css?v=coesc-2026-08a">
     <link rel="stylesheet" href="coe-announce.css?v=announce-2026-08a">
     <link rel="stylesheet" href="coe-dashboard.css?v=dash-2026-08a">
@@ -3034,32 +3039,97 @@
                         </div>
                     </div>
 
-                    <div class="admin-card admin-panel-card admin-security-card">
-                        <div class="admin-card-header">
-                            <div class="admin-card-title-group">
-                                <h3><span class="material-icons">shield_lock</span> Module Security Logs</h3>
-                                <p>Track module previews, downloads, and protected-view attempts.</p>
+                    <!-- Module Security Logs.
+                         Rebuilt around its own class names (`seclog-*`) so the
+                         panel is styled by coe-security.css rather than by
+                         borrowing the Student Voice tab classes, which is what
+                         it did before — and which meant a change to the voice
+                         tabs silently restyled the security screen. -->
+                    <div class="admin-card admin-panel-card seclog-card">
+                        <header class="seclog-head">
+                            <div class="seclog-title">
+                                <span class="seclog-title-icon" aria-hidden="true">
+                                    <span class="material-icons">shield_lock</span>
+                                </span>
+                                <div>
+                                    <h3>Module Security</h3>
+                                    <p>Who opened, downloaded, or tried to capture a protected module.</p>
+                                </div>
                             </div>
-                            <button type="button" class="icon-btn-small" id="admin-security-refresh-btn" title="Refresh security logs">
-                                <span class="material-icons">refresh</span>
-                            </button>
-                        </div>
-                        <div class="security-admin-summary" aria-label="Module security summary">
-                            <span><strong id="security-log-total">0</strong><small>Total Logs</small></span>
-                            <span><strong id="security-log-screenshots">0</strong><small>Screenshot Attempts</small></span>
-                            <span><strong id="security-log-downloads">0</strong><small>Downloads / Links</small></span>
-                        </div>
-                        <div class="security-admin-toolbar">
-                            <div class="voice-admin-tabs security-admin-tabs" aria-label="Security log filters">
-                                <button type="button" class="voice-admin-tab active" data-security-log-filter="all">All</button>
-                                <button type="button" class="voice-admin-tab" data-security-log-filter="SCREENSHOT_ATTEMPT">Screenshot</button>
-                                <button type="button" class="voice-admin-tab" data-security-log-filter="DOWNLOAD">Download</button>
-                                <button type="button" class="voice-admin-tab" data-security-log-filter="OPEN">Open</button>
+                            <div class="seclog-head-actions">
+                                <span class="seclog-live" id="seclog-updated" aria-live="polite">—</span>
+                                <button type="button" class="seclog-icon-btn" id="admin-security-refresh-btn" title="Refresh">
+                                    <span class="material-icons">refresh</span>
+                                </button>
                             </div>
-                            <button type="button" class="setting-btn outline security-clear-btn" id="admin-security-clear-btn">Clear Logs</button>
+                        </header>
+
+                        <!-- The four figures. `is-alert` is added by scripts.js
+                             when the count is non-zero, so a screenshot attempt
+                             is visible without reading the number. -->
+                        <div class="seclog-stats" aria-label="Security summary">
+                            <article class="seclog-stat">
+                                <span class="material-icons">receipt_long</span>
+                                <div>
+                                    <strong id="security-log-total">0</strong>
+                                    <small>Events recorded</small>
+                                </div>
+                            </article>
+                            <article class="seclog-stat is-danger" id="seclog-stat-screenshots">
+                                <span class="material-icons">screenshot_monitor</span>
+                                <div>
+                                    <strong id="security-log-screenshots">0</strong>
+                                    <small>Capture attempts</small>
+                                </div>
+                            </article>
+                            <article class="seclog-stat is-warn">
+                                <span class="material-icons">download_for_offline</span>
+                                <div>
+                                    <strong id="security-log-downloads">0</strong>
+                                    <small>Downloads &amp; links</small>
+                                </div>
+                            </article>
+                            <article class="seclog-stat is-info">
+                                <span class="material-icons">group</span>
+                                <div>
+                                    <strong id="security-log-people">0</strong>
+                                    <small>People involved</small>
+                                </div>
+                            </article>
                         </div>
-                        <div id="admin-security-log-list" class="admin-security-log-list">
-                            <p class="empty-concerns">No module security logs yet.</p>
+
+                        <div class="seclog-toolbar">
+                            <div class="seclog-filters" role="group" aria-label="Filter security events">
+                                <button type="button" class="seclog-filter is-on" data-security-log-filter="all">
+                                    All <span class="seclog-count" data-seclog-count="all">0</span>
+                                </button>
+                                <button type="button" class="seclog-filter" data-security-log-filter="SCREENSHOT_ATTEMPT">
+                                    Capture <span class="seclog-count" data-seclog-count="SCREENSHOT_ATTEMPT">0</span>
+                                </button>
+                                <button type="button" class="seclog-filter" data-security-log-filter="DOWNLOAD">
+                                    Download <span class="seclog-count" data-seclog-count="DOWNLOAD">0</span>
+                                </button>
+                                <button type="button" class="seclog-filter" data-security-log-filter="OPEN">
+                                    Open <span class="seclog-count" data-seclog-count="OPEN">0</span>
+                                </button>
+                                <button type="button" class="seclog-filter" data-security-log-filter="OPEN_LINK">
+                                    Link <span class="seclog-count" data-seclog-count="OPEN_LINK">0</span>
+                                </button>
+                            </div>
+                            <div class="seclog-toolbar-right">
+                                <label class="seclog-search">
+                                    <span class="material-icons" aria-hidden="true">search</span>
+                                    <input type="search" id="seclog-search" placeholder="Search person, module or subject…"
+                                           aria-label="Search security events">
+                                </label>
+                                <button type="button" class="seclog-clear" id="admin-security-clear-btn">
+                                    <span class="material-icons">delete_sweep</span>Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="admin-security-log-list" class="seclog-list">
+                            <p class="seclog-empty">No security events recorded yet.</p>
                         </div>
                     </div>
                 </div>

@@ -1,0 +1,529 @@
+/**
+ * Module Security Logs.
+ *
+ * The panel used to borrow Student Voice's classes — `.voice-admin-tab`,
+ * `.empty-concerns` — so a change to the feedback screen restyled the security
+ * screen, and the two could not be told apart at a glance. It has its own
+ * `seclog-*` names now, and this file.
+ *
+ * WHAT IT IS FOR
+ * --------------
+ * Somebody scanning this is asking one question: did anything happen that
+ * should not have? So the layout answers that first — a capture attempt is red
+ * and has its own tile, and each row reads as a sentence ("Ana Cruz tried to
+ * capture Statics Reviewer") instead of three pipe-separated fields.
+ *
+ * Colours come from the portal's custom properties with literal fallbacks;
+ * there is a light and a dark theme and a hard-coded panel is unreadable in one.
+ */
+
+.seclog-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Header
+   --------------------------------------------------------------------------- */
+
+.seclog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.seclog-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  min-width: 0;
+}
+
+.seclog-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: rgba(29, 78, 216, 0.12);
+  color: #1d4ed8;
+}
+
+.seclog-title h3 {
+  margin: 0 0 3px;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.seclog-title p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #64748b);
+}
+
+.seclog-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+}
+
+.seclog-live {
+  font-size: 0.76rem;
+  color: var(--text-secondary, #64748b);
+  white-space: nowrap;
+}
+
+.seclog-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.28));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.seclog-icon-btn:hover,
+.seclog-icon-btn:active {
+  background: var(--surface-hover, rgba(148, 163, 184, 0.12));
+}
+
+/* ---------------------------------------------------------------------------
+   The four figures
+   --------------------------------------------------------------------------- */
+
+.seclog-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.seclog-stat {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 15px;
+  border-radius: 13px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+  min-width: 0;
+}
+
+.seclog-stat .material-icons {
+  font-size: 23px;
+  flex: 0 0 auto;
+  color: var(--text-secondary, #64748b);
+}
+
+.seclog-stat strong {
+  display: block;
+  font-size: 1.55rem;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+.seclog-stat small {
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  color: var(--text-secondary, #64748b);
+  /* The label wraps rather than pushing the tile wider — this is the exact
+     spot where a four-across grid on a tablet used to overlap. */
+  overflow-wrap: anywhere;
+}
+
+.seclog-stat.is-danger { border-color: rgba(185, 28, 28, 0.3); background: rgba(185, 28, 28, 0.07); }
+.seclog-stat.is-danger .material-icons,
+.seclog-stat.is-danger strong { color: #b91c1c; }
+
+.seclog-stat.is-warn { border-color: rgba(180, 83, 9, 0.28); background: rgba(180, 83, 9, 0.06); }
+.seclog-stat.is-warn .material-icons { color: #b45309; }
+
+.seclog-stat.is-info .material-icons { color: #1d4ed8; }
+
+/* Nothing has happened, so the red tile stops shouting about a zero. */
+.seclog-stat.is-danger.is-quiet {
+  border-color: var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+}
+
+.seclog-stat.is-danger.is-quiet .material-icons,
+.seclog-stat.is-danger.is-quiet strong {
+  color: inherit;
+}
+
+.seclog-stat.is-danger.is-quiet .material-icons {
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   Toolbar
+   --------------------------------------------------------------------------- */
+
+.seclog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.18));
+}
+
+.seclog-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.seclog-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.26));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.seclog-filter.is-on {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.seclog-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.2));
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.seclog-filter.is-on .seclog-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.seclog-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.seclog-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.28));
+  border-radius: 10px;
+  background: var(--surface-input, rgba(255, 255, 255, 0.05));
+}
+
+.seclog-search .material-icons {
+  font-size: 18px;
+  color: var(--text-secondary, #64748b);
+  flex: 0 0 auto;
+}
+
+.seclog-search input {
+  width: 220px;
+  max-width: 100%;
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary, inherit);
+  font-family: inherit;
+  /* 16px: below that iOS zooms the page in on focus and does not zoom back. */
+  font-size: 16px;
+  outline: none;
+}
+
+.seclog-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: #b91c1c;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seclog-clear:hover,
+.seclog-clear:active {
+  background: rgba(185, 28, 28, 0.09);
+}
+
+.seclog-clear .material-icons {
+  font-size: 17px;
+}
+
+/* ---------------------------------------------------------------------------
+   The list
+   --------------------------------------------------------------------------- */
+
+.seclog-list {
+  display: grid;
+  gap: 8px;
+  /* Bounded and scrolling, rather than growing the admin page to the length of
+     the whole log. */
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.seclog-row {
+  display: grid;
+  /* icon | sentence | tag | time */
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.18));
+  background: var(--surface-card, rgba(255, 255, 255, 0.03));
+  min-width: 0;
+}
+
+.seclog-row.is-danger {
+  border-color: rgba(185, 28, 28, 0.3);
+  background: rgba(185, 28, 28, 0.05);
+}
+
+.seclog-row.is-warn {
+  border-color: rgba(180, 83, 9, 0.26);
+}
+
+.seclog-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.14));
+  color: var(--text-secondary, #64748b);
+}
+
+.seclog-row.is-danger .seclog-mark { background: rgba(185, 28, 28, 0.13); color: #b91c1c; }
+.seclog-row.is-warn .seclog-mark { background: rgba(180, 83, 9, 0.13); color: #b45309; }
+.seclog-row.is-info .seclog-mark { background: rgba(29, 78, 216, 0.12); color: #1d4ed8; }
+
+.seclog-mark .material-icons {
+  font-size: 20px;
+}
+
+.seclog-body {
+  min-width: 0;
+}
+
+.seclog-line {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.seclog-line strong {
+  font-weight: 800;
+}
+
+.seclog-line em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.seclog-sub {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #64748b);
+  overflow-wrap: anywhere;
+}
+
+.seclog-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.16));
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.seclog-row.is-danger .seclog-tag { background: rgba(185, 28, 28, 0.14); color: #b91c1c; }
+.seclog-row.is-warn .seclog-tag { background: rgba(180, 83, 9, 0.14); color: #b45309; }
+
+.seclog-when {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.seclog-rel {
+  display: block;
+  font-size: 0.79rem;
+  font-weight: 700;
+}
+
+.seclog-abs {
+  display: block;
+  font-size: 0.71rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.seclog-empty {
+  margin: 0;
+  padding: 34px 20px;
+  border-radius: 12px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.07));
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.seclog-more {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme
+   --------------------------------------------------------------------------- */
+
+body.dark-theme .seclog-title-icon,
+:root[data-theme="dark"] .seclog-title-icon {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+body.dark-theme .seclog-line em,
+:root[data-theme="dark"] .seclog-line em {
+  color: #e8eef6;
+}
+
+body.dark-theme :is(.seclog-filter.is-on),
+:root[data-theme="dark"] :is(.seclog-filter.is-on) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+body.dark-theme :is(.seclog-stat.is-danger .material-icons, .seclog-stat.is-danger strong,
+                    .seclog-row.is-danger .seclog-mark, .seclog-clear),
+:root[data-theme="dark"] :is(.seclog-stat.is-danger .material-icons, .seclog-stat.is-danger strong,
+                    .seclog-row.is-danger .seclog-mark, .seclog-clear) {
+  color: #fca5a5;
+}
+
+body.dark-theme .seclog-stat.is-info .material-icons,
+:root[data-theme="dark"] .seclog-stat.is-info .material-icons {
+  color: #93c5fd;
+}
+
+/* ---------------------------------------------------------------------------
+   Tablet and phone
+   ---------------------------------------------------------------------------
+   The four-across figure row and the four-column log row are exactly the two
+   shapes that crushed on a narrow screen. Both step down.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 1200px) {
+  .seclog-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .seclog-toolbar {
+    align-items: stretch;
+  }
+
+  .seclog-toolbar-right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .seclog-search input {
+    width: 100%;
+  }
+
+  /*
+   * The row becomes two rows.
+   *
+   * icon + sentence on the first, tag + time on the second — rather than four
+   * columns fighting over 340px, which is what drew the timestamp on top of
+   * the module name.
+   */
+  .seclog-row {
+    grid-template-columns: 38px minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  .seclog-tag {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .seclog-when {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .seclog-rel,
+  .seclog-abs {
+    display: inline;
+  }
+
+  .seclog-abs::before {
+    content: " · ";
+  }
+
+  .seclog-filter,
+  .seclog-clear,
+  .seclog-icon-btn {
+    /* 44px is the smallest comfortable tap target. */
+    min-height: 44px;
+  }
+
+  .seclog-icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .seclog-list {
+    max-height: none;
+  }
+}

@@ -504,6 +504,48 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pageKey === 'calendar') renderCalendarDashboard();
         if (pageKey === 'admin') refreshAdminDashboard();
         setActiveNav(pageKey);
+        revealPage(pageKey);
+    }
+
+    /**
+     * Put the newly opened page at the top of the screen.
+     *
+     * Switching tabs only swapped which panel carried `.hidden`; the scroll
+     * position was left exactly where it was. On a laptop that is a small
+     * annoyance. On a phone it is the difference between the feature working
+     * and not: the pages are long, so tapping "Announcements" while halfway
+     * down the Library dropped you into the middle of the announcements — past
+     * the heading, sometimes past the last card into empty space — and the
+     * screen looked broken or blank until you thought to scroll up.
+     *
+     * `scrollTo` on the window covers the normal layout. `.main-content` is
+     * checked as well because it becomes the scrolling element in some of the
+     * panel layouts, and scrolling the window there does nothing at all.
+     *
+     * `behavior: 'auto'` rather than 'smooth' on purpose: a page change should
+     * be instant. Animating it means the user watches the old page slide away,
+     * which reads as lag on a cheap phone.
+     */
+    function revealPage(pageKey) {
+        const panel = document.querySelector(`.page-panel[data-page="${pageKey}"]:not(.hidden)`);
+
+        try {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        } catch (error) {
+            window.scrollTo(0, 0);
+        }
+
+        document.querySelectorAll('.main-content, .page-panel').forEach(node => {
+            if (node.scrollTop) node.scrollTop = 0;
+        });
+
+        // Move the reading position to the new page, so a screen reader
+        // announces it and the keyboard's next Tab lands inside it rather than
+        // back at the top of the navigation.
+        if (panel) {
+            panel.setAttribute('tabindex', '-1');
+            panel.focus({ preventScroll: true });
+        }
     }
 
     document.querySelectorAll('[data-org-tab]').forEach(tab => {
@@ -706,57 +748,175 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.logProtectedMaterialEvent = logProtectedMaterialEvent;
 
+    /** Icon and wording per event type, so a row reads as a sentence. */
+    const SECURITY_ACTIONS = {
+        SCREENSHOT_ATTEMPT: { icon: 'screenshot_monitor', label: 'Capture attempt', tone: 'danger', verb: 'tried to capture' },
+        DOWNLOAD_BLOCKED: { icon: 'block', label: 'Download blocked', tone: 'danger', verb: 'was blocked downloading' },
+        DOWNLOAD: { icon: 'download', label: 'Download', tone: 'warn', verb: 'downloaded' },
+        OPEN_LINK: { icon: 'open_in_new', label: 'Opened link', tone: 'info', verb: 'opened the link for' },
+        OPEN: { icon: 'visibility', label: 'Opened', tone: 'info', verb: 'opened' },
+        ACCESS: { icon: 'visibility', label: 'Viewed', tone: 'info', verb: 'viewed' },
+        RIGHT_CLICK_BLOCKED: { icon: 'do_not_touch', label: 'Right-click blocked', tone: 'warn', verb: 'right-clicked' },
+        PRINT_BLOCKED: { icon: 'print_disabled', label: 'Print blocked', tone: 'danger', verb: 'tried to print' }
+    };
+
+    function describeSecurityAction(action) {
+        return SECURITY_ACTIONS[action] ||
+            { icon: 'shield', label: String(action || 'Event').replaceAll('_', ' '), tone: 'info', verb: 'acted on' };
+    }
+
+    /** "3 minutes ago" — the column an operator actually scans. */
+    function securityTimeAgo(iso) {
+        const then = new Date(iso || 0).getTime();
+        if (!Number.isFinite(then) || then <= 0) return '';
+
+        const seconds = Math.floor((Date.now() - then) / 1000);
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+        return new Date(then).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    let securityLogSearch = '';
+
     function renderModuleSecurityLogs(filter = currentSecurityLogFilter) {
         currentSecurityLogFilter = filter || 'all';
         const logs = getModuleSecurityLogs();
-        const totalEl = document.getElementById('security-log-total');
-        const screenshotEl = document.getElementById('security-log-screenshots');
-        const downloadEl = document.getElementById('security-log-downloads');
 
-        if (totalEl) totalEl.textContent = String(logs.length);
-        if (screenshotEl) screenshotEl.textContent = String(logs.filter(log => log.action === 'SCREENSHOT_ATTEMPT').length);
-        if (downloadEl) downloadEl.textContent = String(logs.filter(log => log.action === 'DOWNLOAD' || log.action === 'OPEN_LINK').length);
+        const setText = (id, value) => {
+            const node = document.getElementById(id);
+            if (node) node.textContent = String(value);
+        };
+
+        const captures = logs.filter(log => log.action === 'SCREENSHOT_ATTEMPT').length;
+        const transfers = logs.filter(log => log.action === 'DOWNLOAD' || log.action === 'OPEN_LINK').length;
+        // Distinct people, which is the figure that says whether one account is
+        // responsible for everything or the whole college is.
+        const people = new Set(logs.map(log => log.username || log.name).filter(Boolean)).size;
+
+        setText('security-log-total', logs.length);
+        setText('security-log-screenshots', captures);
+        setText('security-log-downloads', transfers);
+        setText('security-log-people', people);
+
+        // A capture attempt is the one event worth colouring. With none, the
+        // tile stays quiet rather than showing a red 0.
+        document.getElementById('seclog-stat-screenshots')?.classList.toggle('is-quiet', captures === 0);
+
+        // Per-filter counts on the buttons, so an empty tab is visible before
+        // it is pressed.
+        document.querySelectorAll('[data-seclog-count]').forEach(node => {
+            const key = node.getAttribute('data-seclog-count');
+            node.textContent = String(key === 'all' ? logs.length : logs.filter(log => log.action === key).length);
+        });
 
         document.querySelectorAll('[data-security-log-filter]').forEach(button => {
-            button.classList.toggle('active', button.getAttribute('data-security-log-filter') === currentSecurityLogFilter);
+            button.classList.toggle('is-on', button.getAttribute('data-security-log-filter') === currentSecurityLogFilter);
         });
+
+        const stamp = document.getElementById('seclog-updated');
+        if (stamp) stamp.textContent = logs.length ? `Updated ${securityTimeAgo(new Date().toISOString())}` : 'No activity';
 
         if (!adminSecurityLogList) return;
 
-        const filtered = logs.filter(log => currentSecurityLogFilter === 'all' || log.action === currentSecurityLogFilter);
+        const needle = securityLogSearch.trim().toLowerCase();
+        const filtered = logs.filter(log => {
+            if (currentSecurityLogFilter !== 'all' && log.action !== currentSecurityLogFilter) return false;
+            if (!needle) return true;
+            return [log.name, log.username, log.role, log.materialTitle, log.materialSubject, log.materialCourse, log.detail]
+                .filter(Boolean).join(' ').toLowerCase().includes(needle);
+        });
+
         adminSecurityLogList.replaceChildren();
 
         if (!filtered.length) {
             const empty = document.createElement('p');
-            empty.className = 'empty-concerns';
-            empty.textContent = currentSecurityLogFilter === 'all'
-                ? 'No module security logs yet.'
-                : `No ${currentSecurityLogFilter.toLowerCase().replaceAll('_', ' ')} logs yet.`;
+            empty.className = 'seclog-empty';
+            empty.textContent = needle
+                ? `Nothing matches "${securityLogSearch.trim()}".`
+                : currentSecurityLogFilter === 'all'
+                    ? 'No security events recorded yet.'
+                    : `No ${describeSecurityAction(currentSecurityLogFilter).label.toLowerCase()} events yet.`;
             adminSecurityLogList.appendChild(empty);
             return;
         }
 
-        filtered.slice(0, 80).forEach(log => {
+        filtered.slice(0, 120).forEach(log => {
+            const meta = describeSecurityAction(log.action);
+
             const row = document.createElement('article');
-            row.className = 'security-log-item';
+            row.className = `seclog-row is-${meta.tone}`;
 
-            const badge = document.createElement('span');
-            badge.className = `security-log-badge action-${String(log.action || '').toLowerCase()}`;
-            badge.textContent = String(log.action || 'LOG').replaceAll('_', ' ');
+            // --- the icon -------------------------------------------------
+            const mark = document.createElement('span');
+            mark.className = 'seclog-mark';
+            const icon = document.createElement('span');
+            icon.className = 'material-icons';
+            icon.textContent = meta.icon;
+            mark.appendChild(icon);
 
-            const detail = document.createElement('div');
-            const title = document.createElement('strong');
-            const meta = document.createElement('small');
-            const time = document.createElement('em');
-            title.textContent = log.materialTitle || 'Untitled material';
-            meta.textContent = `${log.name || log.username || 'Unknown'} | ${log.role || 'User'} | ${[log.materialCourse, log.materialSubject].filter(Boolean).join(' - ') || 'No course data'}`;
-            time.textContent = `${new Date(log.createdAt || Date.now()).toLocaleString()}${log.detail ? ` | ${log.detail}` : ''}`;
-            detail.append(title, meta, time);
+            // --- the sentence ---------------------------------------------
+            const body = document.createElement('div');
+            body.className = 'seclog-body';
 
-            row.append(badge, detail);
+            const line = document.createElement('p');
+            line.className = 'seclog-line';
+            const who = document.createElement('strong');
+            who.textContent = log.name || log.username || 'Unknown account';
+            const what = document.createElement('span');
+            what.textContent = ` ${meta.verb} `;
+            const which = document.createElement('em');
+            which.textContent = log.materialTitle || 'an untitled module';
+            line.append(who, what, which);
+
+            const sub = document.createElement('p');
+            sub.className = 'seclog-sub';
+            const parts = [
+                log.role || 'User',
+                [log.materialCourse, log.materialSubject].filter(Boolean).join(' · '),
+                log.detail
+            ].filter(Boolean);
+            sub.textContent = parts.join('  ·  ');
+
+            body.append(line, sub);
+
+            // --- when -----------------------------------------------------
+            const when = document.createElement('div');
+            when.className = 'seclog-when';
+            const rel = document.createElement('span');
+            rel.className = 'seclog-rel';
+            rel.textContent = securityTimeAgo(log.createdAt);
+            const abs = document.createElement('time');
+            abs.className = 'seclog-abs';
+            const at = new Date(log.createdAt || Date.now());
+            abs.dateTime = at.toISOString();
+            abs.textContent = at.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            when.append(rel, abs);
+
+            const tag = document.createElement('span');
+            tag.className = 'seclog-tag';
+            tag.textContent = meta.label;
+
+            row.append(mark, body, tag, when);
             adminSecurityLogList.appendChild(row);
         });
+
+        if (filtered.length > 120) {
+            const more = document.createElement('p');
+            more.className = 'seclog-more';
+            more.textContent = `Showing the newest 120 of ${filtered.length} events.`;
+            adminSecurityLogList.appendChild(more);
+        }
     }
+
+    document.getElementById('seclog-search')?.addEventListener('input', function () {
+        securityLogSearch = this.value || '';
+        renderModuleSecurityLogs();
+    });
 
     document.querySelectorAll('[data-security-log-filter]').forEach(button => {
         button.addEventListener('click', function () {
