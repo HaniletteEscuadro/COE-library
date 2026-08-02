@@ -1307,11 +1307,41 @@ document.addEventListener('DOMContentLoaded', function () {
         if (action === 'pin') updateAnnouncementState(id, { pinned: !isAnnouncementPinned(item) });
         if (action === 'related') showPage(actionButton.dataset.page || 'library');
         if (action === 'delete' && isAdmin) {
-            if (!confirm('Delete this announcement?')) return;
-            announcements = announcements.filter(announcement => announcement.id !== id);
-            saveAnnouncements();
+            if (!confirm('Delete this announcement for everyone?')) return;
+
             saveNotifications(loadNotifications().filter(notification => notification.id !== `announcement-${id}`));
-            renderAnnouncements();
+
+            /*
+             * The server first, when there is one.
+             *
+             * Splicing the local array was all this used to do, and the board
+             * is server-backed — so the next sync (a socket event, a page
+             * change) refetched the notice and put it straight back. The card
+             * disappeared for about a second and returned, for everyone
+             * including the administrator who deleted it.
+             *
+             * The list is not touched here on the server path: the delete
+             * broadcasts `announcement:deleted`, coe-board.js refetches, and
+             * the bridge replaces the array. One direction in, one out.
+             */
+            if (window.CoeBoard?.ready) {
+                window.CoeBoard.deleteAnnouncement(id)
+                    .then(function () {
+                        window.showLibraryToast?.('Deleted', 'Removed from the board for everyone.', 'success');
+                    })
+                    .catch(function (error) {
+                        window.showLibraryToast?.(
+                            error && error.status === 403 ? 'Not allowed' : 'Could not delete',
+                            (error && error.message) || 'Try again.',
+                            'error'
+                        );
+                    });
+            } else {
+                // No server: the portal is running off the filesystem.
+                announcements = announcements.filter(announcement => announcement.id !== id);
+                saveAnnouncements();
+                renderAnnouncements();
+            }
         }
         if (action === 'share') {
             const shareText = `${item.title}: ${item.summary}`;
@@ -2860,6 +2890,39 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem(LOCAL_STORAGE_CALENDAR_AGENDAS, JSON.stringify(agendas));
     }
 
+    /**
+     * The signed-in student's own calendar entries.
+     *
+     * Read-only here, and never written: `coe-calendar.js` owns this key and
+     * keeps it in step with `/api/calendar`. It is a render cache, the same way
+     * `coeLearningFiles` is for the library — writing to it from this side
+     * would be overwritten by the next sync without ever reaching the server.
+     */
+    function loadPersonalCalendar() {
+        if (window.CoeCalendar) return window.CoeCalendar.entries || [];
+
+        try {
+            const saved = JSON.parse(localStorage.getItem('coeMyCalendar') || '[]');
+            return Array.isArray(saved) ? saved : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    /**
+     * Today as "YYYY-MM-DD" in the *viewer's* timezone.
+     *
+     * `toISOString()` converts to UTC first, so in Manila (UTC+8) it returns
+     * yesterday's date until 8am — which would file a morning entry on the
+     * wrong day and hide it from the Today list that same morning.
+     */
+    function localDayKey(date) {
+        const value = date ? new Date(date) : new Date();
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+        return `${value.getFullYear()}-${month}-${day}`;
+    }
+
     function renderHomeUploadProgress() {
         if (!homeUploadProgressList || !homeProgressPanel) return;
         const uploads = isAdmin
@@ -3003,10 +3066,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const agendaForm = document.getElementById('calendar-agenda-form');
         if (!heroDay || !heroDate || !todayList || !upcomingList || !monthGrid) return;
 
+        const mineList = document.getElementById('calendar-mine-list');
+        const mineDateInput = document.getElementById('calendar-mine-date');
+
         const now = new Date();
         now.setHours(0, 0, 0, 0);
         const scheduleItems = loadScheduleItems();
         const agendaItems = loadCalendarAgendas();
+        const personalItems = loadPersonalCalendar();
 
         function parseCalendarDate(value, fallback = new Date()) {
             if (!value) return new Date(fallback);
@@ -3015,10 +3082,28 @@ document.addEventListener('DOMContentLoaded', function () {
             return Number.isNaN(date.getTime()) ? new Date(fallback) : date;
         }
 
+        /*
+         * The day an event falls on, in the viewer's own timezone.
+         *
+         * This used to be `setHours(0,0,0,0)` followed by `toISOString()`, and
+         * those two lines contradict each other: the first moves to local
+         * midnight, the second converts that instant to UTC. In Manila (UTC+8)
+         * local midnight on the 5th *is* 16:00 UTC on the 4th, so every date on
+         * this screen was rendered one day early — the "Today" list matched
+         * yesterday's key, and the 14-day strip put each day's items in the
+         * square to its left.
+         *
+         * It went unnoticed while the only inputs were an admin agenda typed
+         * into the same broken function on both sides, so the two errors
+         * cancelled. They stop cancelling as soon as anything else supplies a
+         * real date, which the personal calendar and the announcement board
+         * both do.
+         *
+         * localDayKey() reads the local calendar fields directly, so there is
+         * no conversion to get wrong.
+         */
         function eventDateKey(date) {
-            const normalized = new Date(date);
-            normalized.setHours(0, 0, 0, 0);
-            return normalized.toISOString().slice(0, 10);
+            return localDayKey(date);
         }
 
         function formatCalendarDate(date) {
@@ -3027,6 +3112,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (agendaDateInput && !agendaDateInput.value) {
             agendaDateInput.value = eventDateKey(now);
+        }
+        if (mineDateInput && !mineDateInput.value) {
+            mineDateInput.value = eventDateKey(now);
         }
         if (agendaForm) {
             agendaForm.classList.toggle('hidden', !isAdmin);
@@ -3057,14 +3145,44 @@ document.addEventListener('DOMContentLoaded', function () {
             title: item.title || 'Announcement',
             detail: [item.course, item.summary].filter(Boolean).join(' | '),
             date: parseCalendarDate(item.eventDate || item.postedAt),
-            page: item.relatedPage || 'announcements'
+            page: item.relatedPage || 'announcements',
+            kind: 'announcement'
         }));
 
-        const events = [...agendaEvents, ...scheduleEvents, ...announcementEvents]
+        /*
+         * The student's own entries.
+         *
+         * `parseCalendarDate` is given the stored "YYYY-MM-DD" and builds a
+         * local-midnight Date from it, so an entry made for the 5th compares
+         * equal to the 5th's key however far east the phone is.
+         */
+        const personalEvents = personalItems.map(item => ({
+            type: 'My Plan',
+            icon: item.done ? 'task_alt' : 'push_pin',
+            title: item.title || 'My plan',
+            detail: item.detail || '',
+            date: parseCalendarDate(item.date),
+            page: 'calendar',
+            id: item.id,
+            done: Boolean(item.done),
+            kind: 'personal'
+        }));
+
+        const events = [...agendaEvents, ...scheduleEvents, ...announcementEvents, ...personalEvents]
             .sort((left, right) => left.date - right.date);
 
         const todayKey = eventDateKey(now);
-        const todayEvents = agendaEvents.filter(item => eventDateKey(item.date) === todayKey);
+        /*
+         * Everything that lands on this date, not just the admin's agenda.
+         *
+         * The list used to be agenda-only, so an announcement dated today and a
+         * student's own reminder for today both existed on the screen — one in
+         * the timeline below, one in a card beside it — while the box actually
+         * headed "today" said there was nothing on. This is the box people
+         * read; it now holds the college's notices and the student's own plans
+         * alongside the agenda.
+         */
+        const todayEvents = events.filter(item => eventDateKey(item.date) === todayKey);
         const upcomingEvents = events
             .filter(item => item.date >= now)
             .slice(0, 8);
@@ -3077,24 +3195,66 @@ document.addEventListener('DOMContentLoaded', function () {
         if (announcementEl) announcementEl.textContent = announcementEvents.length;
 
         function renderEvent(event) {
+            /*
+             * Two different delete controls, and they are not interchangeable.
+             *
+             * The agenda one is admin-only and removes the item for the whole
+             * college. The personal one is the owner's own and reaches nobody
+             * else — so it is offered to every account, because on a personal
+             * entry every account *is* the owner. Marking them with different
+             * attributes keeps the two click handlers from ever crossing.
+             */
+            const controls = event.kind === 'personal'
+                ? `<span class="calendar-mine-actions">
+                        <button type="button" class="calendar-mine-toggle" data-plan-id="${escapeHtml(event.id || '')}"
+                                data-plan-done="${event.done ? '1' : '0'}"
+                                title="${event.done ? 'Mark as not done' : 'Mark as done'}"
+                                aria-label="${event.done ? 'Mark as not done' : 'Mark as done'}">
+                            <span class="material-icons">${event.done ? 'check_circle' : 'radio_button_unchecked'}</span>
+                        </button>
+                        <button type="button" class="calendar-mine-delete" data-plan-id="${escapeHtml(event.id || '')}"
+                                title="Remove from my calendar" aria-label="Remove from my calendar">
+                            <span class="material-icons">close</span>
+                        </button>
+                   </span>`
+                : (event.type === 'Agenda' && isAdmin
+                    ? `<span class="calendar-agenda-delete" data-agenda-id="${escapeHtml(event.id || '')}" title="Delete agenda">delete</span>`
+                    : '');
+
             return `
-                <button type="button" class="calendar-event-item" data-page="${escapeHtml(event.page)}">
-                    <span class="material-icons">${escapeHtml(event.icon)}</span>
-                    <span>
-                        <strong>${escapeHtml(event.title)}</strong>
-                        <small>${escapeHtml(event.type)} | ${escapeHtml(formatCalendarDate(event.date))}${event.detail ? ` | ${escapeHtml(event.detail)}` : ''}</small>
-                    </span>
-                    ${event.type === 'Agenda' && isAdmin ? `<span class="calendar-agenda-delete" data-agenda-id="${escapeHtml(event.id || '')}" title="Delete agenda">delete</span>` : ''}
-                </button>
+                <div class="calendar-event-row${event.done ? ' is-done' : ''}">
+                    <button type="button" class="calendar-event-item" data-page="${escapeHtml(event.page)}">
+                        <span class="material-icons">${escapeHtml(event.icon)}</span>
+                        <span>
+                            <strong>${escapeHtml(event.title)}</strong>
+                            <small>${escapeHtml(event.type)} | ${escapeHtml(formatCalendarDate(event.date))}${event.detail ? ` | ${escapeHtml(event.detail)}` : ''}</small>
+                        </span>
+                    </button>
+                    ${controls}
+                </div>
             `;
         }
 
         todayList.innerHTML = todayEvents.length
             ? todayEvents.map(renderEvent).join('')
-            : `<p class="empty-home-section">${isAdmin ? 'No agenda today. Add a plan and target above.' : 'No admin calendar agenda today.'}</p>`;
+            : `<p class="empty-home-section">Nothing on for today${isAdmin ? '. Add an agenda above.' : '. Add your own plan in "My Plan".'}</p>`;
         upcomingList.innerHTML = upcomingEvents.length
             ? upcomingEvents.map(renderEvent).join('')
             : '<p class="empty-home-section">No upcoming events yet.</p>';
+
+        // --- My Plan ---------------------------------------------------------
+        //
+        // Sorted with the soonest first and finished ones sunk to the bottom,
+        // so what is still to do is what is at the top of the card.
+        if (mineList) {
+            const minePending = personalEvents.filter(item => !item.done);
+            const mineDone = personalEvents.filter(item => item.done);
+            const mineOrdered = [...minePending, ...mineDone];
+
+            mineList.innerHTML = mineOrdered.length
+                ? mineOrdered.map(renderEvent).join('')
+                : '<p class="empty-home-section">Nothing planned yet. Add a reminder above — only you can see it.</p>';
+        }
 
         monthGrid.innerHTML = Array.from({ length: 14 }, (_, index) => {
             const date = new Date(now);
@@ -3151,6 +3311,120 @@ document.addEventListener('DOMContentLoaded', function () {
         const agendas = loadCalendarAgendas().filter(item => item.id !== agendaId);
         saveCalendarAgendas(agendas);
         renderCalendarDashboard();
+    });
+
+    /* =====================================================================
+       MY PLAN — the student's own calendar
+       ---------------------------------------------------------------------
+       Everything here goes through window.CoeCalendar, which owns the
+       `/api/calendar` calls and the localStorage mirror this file reads.
+       Writing the mirror directly from here would look like it worked and be
+       overwritten by the next sync, without ever reaching the server.
+       ===================================================================== */
+
+    /** coe-calendar.js needs to redraw after a save; the function is in here. */
+    window.renderCalendarDashboard = renderCalendarDashboard;
+
+    document.getElementById('calendar-mine-form')?.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const dateInput = document.getElementById('calendar-mine-date');
+        const titleInput = document.getElementById('calendar-mine-title');
+        const detailInput = document.getElementById('calendar-mine-detail');
+        const submitBtn = event.currentTarget.querySelector('button[type="submit"]');
+
+        const date = String(dateInput?.value || '').trim() || localDayKey();
+        const title = String(titleInput?.value || '').trim();
+        const detail = String(detailInput?.value || '').trim();
+
+        if (title.length < 2) {
+            window.showLibraryToast?.('Needs a name', 'Give this plan a short title.', 'error');
+            return;
+        }
+
+        if (!window.CoeCalendar) {
+            window.showLibraryToast?.('Not ready', 'The calendar is still loading. Try again in a moment.', 'error');
+            return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+
+        window.CoeCalendar.add({ date, title, detail })
+            .then(function () {
+                // The date is deliberately left as it is: adding three things
+                // to the same day is the common case, and clearing it would
+                // mean re-picking the date every time.
+                if (titleInput) titleInput.value = '';
+                if (detailInput) detailInput.value = '';
+                window.showLibraryToast?.('Added to your calendar', title, 'success');
+            })
+            .catch(function (error) {
+                window.showLibraryToast?.('Could not save', (error && error.message) || 'Try again.', 'error');
+            })
+            .then(function () {
+                if (submitBtn) submitBtn.disabled = false;
+            });
+    });
+
+    document.getElementById('calendar-mine-clear')?.addEventListener('click', function () {
+        const scopeSelect = document.getElementById('calendar-mine-clear-scope');
+        const scope = String(scopeSelect?.value || 'past');
+
+        const wording = scope === 'all'
+            ? 'Remove every entry from your calendar?'
+            : scope === 'done'
+                ? 'Remove the entries you have already ticked off?'
+                : 'Remove entries from days that have already passed?';
+
+        if (!confirm(`${wording}\n\nThis only affects your own calendar.`)) return;
+        if (!window.CoeCalendar) return;
+
+        window.CoeCalendar.clear(scope)
+            .then(function (result) {
+                const count = (result && result.cleared) || 0;
+                window.showLibraryToast?.(
+                    count ? 'Calendar cleared' : 'Nothing to clear',
+                    count ? `${count} ${count === 1 ? 'entry' : 'entries'} removed.` : 'No entries matched.',
+                    count ? 'success' : 'info'
+                );
+            })
+            .catch(function (error) {
+                window.showLibraryToast?.('Could not clear', (error && error.message) || 'Try again.', 'error');
+            });
+    });
+
+    /*
+     * Delegated on the document, not on one list.
+     *
+     * A personal entry is drawn in three places — Today, the Upcoming timeline
+     * and the My Plan card — and binding per list would leave the same button
+     * working in one of them and dead in the others.
+     */
+    document.addEventListener('click', function (event) {
+        const removeBtn = event.target.closest('.calendar-mine-delete');
+        const toggleBtn = event.target.closest('.calendar-mine-toggle');
+        if (!removeBtn && !toggleBtn) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!window.CoeCalendar) return;
+
+        if (removeBtn) {
+            const id = removeBtn.getAttribute('data-plan-id');
+            if (!id) return;
+            window.CoeCalendar.remove(id).catch(function (error) {
+                window.showLibraryToast?.('Could not remove', (error && error.message) || 'Try again.', 'error');
+            });
+            return;
+        }
+
+        const id = toggleBtn.getAttribute('data-plan-id');
+        if (!id) return;
+        const done = toggleBtn.getAttribute('data-plan-done') === '1';
+        window.CoeCalendar.setDone(id, !done).catch(function (error) {
+            window.showLibraryToast?.('Could not update', (error && error.message) || 'Try again.', 'error');
+        });
     });
 
     function syncDashboardNotifications() {
@@ -3581,6 +3855,64 @@ document.addEventListener('DOMContentLoaded', function () {
         announcementsCompact = !announcementsCompact;
         this.classList.toggle('active', announcementsCompact);
         renderAnnouncements();
+    });
+
+    /* =====================================================================
+       CLEARING OLD NOTICES
+       ---------------------------------------------------------------------
+       Nothing on the board expires by itself — `expiresAt` exists on the
+       model but the portal's composer never sets it — so a semester's
+       notices pile up and the useful ones sink. This is the broom, and it is
+       an administrator's alone: it removes notices for the whole college.
+       ===================================================================== */
+
+    const announcementSweep = document.getElementById('announcement-sweep');
+    if (announcementSweep) announcementSweep.hidden = !isAdmin;
+
+    document.getElementById('announcement-sweep-btn')?.addEventListener('click', function () {
+        if (!isAdmin) return;
+
+        const ageSelect = document.getElementById('announcement-sweep-age');
+        const days = Number(ageSelect?.value || 30);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+
+        if (!window.CoeBoard?.ready) {
+            window.showLibraryToast?.('Not connected', 'The shared board is not loaded yet.', 'error');
+            return;
+        }
+
+        const confirmed = confirm(
+            `Remove every notice posted more than ${days} days ago?\n\n` +
+            'Pinned notices are kept. This clears the board for everyone and cannot be undone from here.'
+        );
+
+        if (!confirmed) return;
+
+        const button = this;
+        const label = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="material-icons">hourglass_top</span>Clearing…';
+
+        window.CoeBoard.clearAnnouncementsBefore(cutoff.toISOString())
+            .then(function (result) {
+                const cleared = result.cleared || 0;
+                window.showLibraryToast?.(
+                    cleared ? 'Board cleared' : 'Nothing to clear',
+                    cleared
+                        ? `${cleared} old ${cleared === 1 ? 'notice' : 'notices'} removed` +
+                          (result.failed ? `, ${result.failed} could not be.` : '.')
+                        : `No unpinned notices older than ${days} days.`,
+                    cleared ? 'success' : 'info'
+                );
+            })
+            .catch(function (error) {
+                window.showLibraryToast?.('Could not clear', (error && error.message) || 'Try again.', 'error');
+            })
+            .then(function () {
+                button.disabled = false;
+                button.innerHTML = label;
+            });
     });
     announcementAdminForm?.classList.toggle('hidden', !canPublishAnnouncements);
     if (announcementAdminForm && canPublishAnnouncements) {
@@ -23462,6 +23794,11 @@ document.addEventListener('DOMContentLoaded', function () {
             announcements = (list || []).map(normalizeAnnouncement);
             saveAnnouncements();
             renderAnnouncements();
+            // The calendar draws announcements too, and it is not rebuilt by
+            // renderAnnouncements(). Without this a notice posted while the
+            // calendar was open only appeared on it after a page change — so
+            // the screen most likely to be watched was the last to update.
+            renderCalendarDashboard();
         },
 
         /** Replace in place — `tasks` is a const array other code holds a reference to. */

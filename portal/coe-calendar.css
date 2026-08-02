@@ -1,0 +1,302 @@
+/**
+ * Styles for the personal half of the calendar screen.
+ *
+ * Kept out of the 826 KB base stylesheet for the same reason coe-live.css is:
+ * the feature can be removed by dropping one script tag and this one link.
+ *
+ * The event *rows* are shared, not personal — an admin agenda and an
+ * announcement are drawn through the same wrapper — so those rules live here
+ * too rather than being split across two files by who happens to own the item.
+ *
+ * Colours come from the portal's custom properties with literal fallbacks. The
+ * portal has a light and a dark theme, and a hard-coded panel is unreadable in
+ * one of them.
+ */
+
+/* ---------------------------------------------------------------------------
+   The row wrapper
+   ---------------------------------------------------------------------------
+   Each event used to be a bare <button>. It now sits in a row beside its own
+   controls, because a delete control *inside* a button is a button inside a
+   button — invalid markup that browsers resolve by dropping one of them, and
+   the one they drop is not consistent.
+   --------------------------------------------------------------------------- */
+
+.calendar-event-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.calendar-event-row > .calendar-event-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Ticked off. Faded rather than hidden — the day should still show what was
+   done, which is half the reason to tick anything off. */
+.calendar-event-row.is-done > .calendar-event-item {
+  opacity: 0.58;
+}
+
+.calendar-event-row.is-done strong {
+  text-decoration: line-through;
+}
+
+/* ---------------------------------------------------------------------------
+   Per-entry controls
+   --------------------------------------------------------------------------- */
+
+.calendar-mine-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.calendar-mine-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 40px square. These sit beside each other on a phone, and a 28px target
+     between two others is a mis-tap waiting to happen. */
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.28));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.calendar-mine-actions button .material-icons {
+  font-size: 19px;
+}
+
+.calendar-mine-toggle:hover,
+.calendar-mine-toggle:active {
+  color: #15803d;
+  border-color: rgba(21, 128, 61, 0.45);
+}
+
+.calendar-mine-delete:hover,
+.calendar-mine-delete:active {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   The My Plan card
+   --------------------------------------------------------------------------- */
+
+.calendar-mine-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 78, 216, 0.35);
+  background: rgba(29, 78, 216, 0.10);
+  color: #1d4ed8;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.calendar-mine-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.calendar-mine-tools select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.32));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary, inherit);
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+
+.calendar-mine-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: #b91c1c;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calendar-mine-clear:hover,
+.calendar-mine-clear:active {
+  background: rgba(185, 28, 28, 0.09);
+}
+
+.calendar-mine-clear .material-icons {
+  font-size: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   The admin sweep on the announcements toolbar
+   --------------------------------------------------------------------------- */
+
+.announcement-sweep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.announcement-sweep[hidden] {
+  display: none;
+}
+
+.announcement-sweep select {
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.32));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary, inherit);
+  font-family: inherit;
+  font-size: 0.84rem;
+}
+
+.announcement-sweep button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(185, 28, 28, 0.4);
+  border-radius: 10px;
+  background: transparent;
+  color: #b91c1c;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.announcement-sweep button:hover:not(:disabled),
+.announcement-sweep button:active:not(:disabled) {
+  background: rgba(185, 28, 28, 0.09);
+}
+
+.announcement-sweep button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.announcement-sweep button .material-icons {
+  font-size: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme
+   --------------------------------------------------------------------------- */
+
+body.dark-theme .calendar-mine-badge,
+:root[data-theme="dark"] .calendar-mine-badge {
+  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(96, 165, 250, 0.14);
+  color: #93c5fd;
+}
+
+body.dark-theme .calendar-mine-clear,
+body.dark-theme .announcement-sweep button,
+:root[data-theme="dark"] .calendar-mine-clear,
+:root[data-theme="dark"] .announcement-sweep button {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+body.dark-theme .calendar-mine-clear:hover,
+body.dark-theme .announcement-sweep button:hover:not(:disabled),
+:root[data-theme="dark"] .calendar-mine-clear:hover,
+:root[data-theme="dark"] .announcement-sweep button:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.14);
+}
+
+body.dark-theme .calendar-mine-actions button,
+:root[data-theme="dark"] .calendar-mine-actions button {
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #cbd5f5;
+}
+
+body.dark-theme .calendar-mine-delete:hover,
+:root[data-theme="dark"] .calendar-mine-delete:hover {
+  color: #fca5a5;
+}
+
+body.dark-theme .calendar-mine-toggle:hover,
+:root[data-theme="dark"] .calendar-mine-toggle:hover {
+  color: #86efac;
+}
+
+/* ---------------------------------------------------------------------------
+   Phones
+   ---------------------------------------------------------------------------
+   The panel heading is a two-up row on a laptop. At 375px the clear tools have
+   to drop under the title or the heading is eight characters wide.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .calendar-mine-card .calendar-panel-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .calendar-mine-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .calendar-mine-tools select,
+  .calendar-mine-clear {
+    /* 44px: the accepted minimum for a fingertip, and Clear is destructive. */
+    min-height: 44px;
+  }
+
+  /* Side by side, not stacked: two 40px buttons in a column make the row 88px
+     tall, and a list of ten of them is a page of buttons. */
+  .calendar-mine-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .calendar-mine-actions button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .announcement-sweep {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  /* 16px, or iOS Safari zooms the page in when the select takes focus and
+     leaves it zoomed. */
+  .announcement-sweep select,
+  .calendar-mine-tools select {
+    font-size: 16px;
+  }
+}
