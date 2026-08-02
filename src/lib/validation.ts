@@ -353,6 +353,19 @@ export const announcementCreateSchema = z.object({
   pinned: z.boolean().optional().default(false),
   /** ISO date; blank clears any existing expiry. */
   expiresAt: z.string().trim().max(40).optional().or(z.literal("")).nullable(),
+  /**
+   * The day the notice is about, "YYYY-MM-DD".
+   *
+   * Separate from `expiresAt`. The portal's date picker used to have nowhere
+   * to send its value, so a notice dated the 17th came back dated today.
+   */
+  eventDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date.")
+    .optional()
+    .or(z.literal(""))
+    .nullable(),
 });
 
 export const announcementUpdateSchema = z
@@ -365,6 +378,13 @@ export const announcementUpdateSchema = z
     year: z.string().trim().max(40).optional(),
     pinned: z.boolean().optional(),
     expiresAt: z.string().trim().max(40).optional().or(z.literal("")).nullable(),
+    eventDate: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date.")
+      .optional()
+      .or(z.literal(""))
+      .nullable(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: "No changes were supplied.",

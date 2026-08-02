@@ -55,9 +55,17 @@
             tag: CATEGORY_TO_TAG[row.category] || 'General',
             course: row.course || 'CE/EE',
             postedAt: String(posted).slice(0, 10),
-            // The portal keeps an event date separate from the posted date; the
-            // backend has only an expiry, so the posted date stands in.
-            eventDate: String(row.expiresAt || posted).slice(0, 10),
+            /*
+             * The real event date, now that the column exists.
+             *
+             * `row.expiresAt` is deliberately not consulted any more: it used
+             * to stand in here, so a notice with an expiry showed the expiry
+             * as its event date, and one without showed the day it was posted.
+             * The fallback to `posted` is kept only for rows written before
+             * the column existed — those genuinely have no event date, and the
+             * posted day is the closest honest answer.
+             */
+            eventDate: String(row.eventDate || posted).slice(0, 10),
             summary: row.body ? String(row.body).split('\n')[0].slice(0, 240) : '',
             details: row.body || '',
             relatedPage: 'announcements',
@@ -100,7 +108,24 @@
             course: announcement.course === 'CE/EE' ? '' : (announcement.course || ''),
             year: '',
             pinned: Boolean(announcement.pinned),
-            expiresAt: null
+            expiresAt: null,
+            /*
+             * The date the notice is about.
+             *
+             * This used to be dropped here. The composer's date picker was
+             * read into `announcement.eventDate` and then never sent — the
+             * request carried `expiresAt: null` and nothing else — so the
+             * server had no idea a date had been chosen, and reading the
+             * notice back fell through to the published date. Pick the 17th,
+             * publish, and the card said today.
+             *
+             * It is NOT sent as `expiresAt`, which is the shape it would have
+             * fitted. `expiresAt` is when a notice stops being shown, so
+             * filing "Midterms on the 17th" there would hide the announcement
+             * the moment the midterms arrived, and a date already past would
+             * hide it instantly.
+             */
+            eventDate: announcement.eventDate || null
         });
     }
 

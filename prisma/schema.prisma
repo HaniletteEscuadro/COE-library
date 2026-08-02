@@ -1219,6 +1219,20 @@ model Announcement {
   /// After this moment it stops appearing in the active feed.
   expiresAt   DateTime?
 
+  /// The day the notice is ABOUT — the exam, the deadline, the event — as
+  /// "YYYY-MM-DD".
+  ///
+  /// Deliberately not `expiresAt`, which is what the portal's picked date used
+  /// to be squeezed into. They mean opposite things: `expiresAt` is when the
+  /// notice stops being shown, so filing "Midterms on the 17th" as an expiry
+  /// would hide the announcement the moment the midterms arrived — and a date
+  /// already past would hide it instantly.
+  ///
+  /// A string, not a DateTime, for the same reason CalendarEntry.date is one:
+  /// "the exam is on the 17th" is a day, not an instant, and storing it as an
+  /// instant shifts it across timezones.
+  eventDate String?
+
   /// Denormalised so the list does not need a count query per row.
   readCount Int @default(0)
 

@@ -158,6 +158,8 @@ export type RealtimeAnnouncement = {
   authorName: string | null;
   publishedAt: string;
   expiresAt: string | null;
+  /** The day the notice is about, "YYYY-MM-DD" — not when it expires. */
+  eventDate: string | null;
 };
 
 /** An assignment as broadcast to the class. */

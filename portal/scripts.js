@@ -1297,8 +1297,8 @@ document.addEventListener('DOMContentLoaded', function () {
             title: item.title || 'Untitled Announcement',
             tag: item.tag || 'General',
             course: courseMap[item.course] || item.course || 'CE/EE',
-            postedAt: item.postedAt || new Date().toISOString().slice(0, 10),
-            eventDate: item.eventDate || new Date().toISOString().slice(0, 10),
+            postedAt: item.postedAt || localDayKey(),
+            eventDate: item.eventDate || localDayKey(),
             summary: item.summary || '',
             details: item.details || '',
             relatedPage: item.relatedPage || 'announcements',
@@ -2273,7 +2273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 role: item.createdBy === 'Admin' ? 'Admin' : 'Faculty',
                 status: 'online',
                 body: `${item.title}: ${item.summary || item.details || 'New announcement posted.'}`,
-                time: `${item.postedAt || new Date().toISOString().slice(0, 10)}T08:00:00`,
+                time: `${item.postedAt || localDayKey()}T08:00:00`,
                 pinned: Boolean(item.pinned || item.tag === 'Emergency'),
                 reactions: [{ icon: getAnnouncementIcon(item.tag || 'General'), count: item.tag === 'Emergency' ? 12 : 4 }],
                 announcement: true
@@ -4087,7 +4087,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     if (announcementEventDateInput) {
-        announcementEventDateInput.value = new Date().toISOString().slice(0, 10);
+        announcementEventDateInput.value = localDayKey();
     }
     announcementAdminForm?.addEventListener('submit', function (event) {
         event.preventDefault();
@@ -4101,8 +4101,8 @@ document.addEventListener('DOMContentLoaded', function () {
             title: announcementTitleInput?.value.trim(),
             tag: announcementTagInput?.value || 'General',
             course: lockedOrgCourse || announcementCourseInput?.value || 'CE/EE',
-            postedAt: new Date().toISOString().slice(0, 10),
-            eventDate: announcementEventDateInput?.value || new Date().toISOString().slice(0, 10),
+            postedAt: localDayKey(),
+            eventDate: announcementEventDateInput?.value || localDayKey(),
             summary: announcementSummaryInput?.value.trim(),
             details: announcementDetailsInput?.value.trim(),
             relatedPage: announcementRelatedPageInput?.value || 'announcements',
@@ -4129,7 +4129,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 announcementCourseInput.disabled = true;
             }
             if (announcementEventDateInput) {
-                announcementEventDateInput.value = new Date().toISOString().slice(0, 10);
+                announcementEventDateInput.value = localDayKey();
             }
             return;
         }
@@ -4142,7 +4142,7 @@ document.addEventListener('DOMContentLoaded', function () {
             announcementCourseInput.disabled = true;
         }
         if (announcementEventDateInput) {
-            announcementEventDateInput.value = new Date().toISOString().slice(0, 10);
+            announcementEventDateInput.value = localDayKey();
         }
         renderAnnouncements();
     });
@@ -21831,7 +21831,7 @@ document.addEventListener('DOMContentLoaded', function () {
             subject: fields.subject,
             lesson: fields.lesson || 'General',
             materialCategory: fields.materialCategory || getDefaultMaterialCategory(displayType),
-            version: fields.version || new Date().toISOString().slice(0, 10),
+            version: fields.version || localDayKey(),
             tags: Array.isArray(fields.tags) ? fields.tags.slice() : [],
             title: fields.title,
             description: fields.description,
@@ -21848,7 +21848,7 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function prepareComposerMetadata(source) {
         if (libraryUploadVersionInput && !libraryUploadVersionInput.value.trim()) {
-            libraryUploadVersionInput.value = new Date().toISOString().slice(0, 10);
+            libraryUploadVersionInput.value = localDayKey();
         }
 
         if (libraryLinkPickerModal && source) {

@@ -136,6 +136,7 @@ function toRealtime(row: {
   authorId: string | null;
   publishedAt: Date;
   expiresAt: Date | null;
+  eventDate: string | null;
   author?: { name: string | null; username: string | null } | null;
 }) {
   return {
@@ -148,6 +149,7 @@ function toRealtime(row: {
     year: row.year,
     org: row.org,
     pinned: row.pinned,
+    eventDate: row.eventDate,
     authorId: row.authorId,
     authorName: row.author?.name ?? row.author?.username ?? null,
     publishedAt: row.publishedAt.toISOString(),
@@ -280,6 +282,8 @@ export async function createAnnouncement(
     org?: string | null;
     pinned?: boolean;
     expiresAt?: string | null;
+    /** The day the notice is about, "YYYY-MM-DD". Not an expiry. */
+    eventDate?: string | null;
   },
   actor: ActorContext & { role?: string | null },
 ) {
@@ -325,6 +329,7 @@ export async function createAnnouncement(
       org,
       pinned: input.pinned ?? false,
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      eventDate: input.eventDate || null,
     },
     include: { author: { select: AUTHOR_SELECT.select } },
   });
@@ -357,6 +362,8 @@ export async function updateAnnouncement(
     year?: string;
     pinned?: boolean;
     expiresAt?: string | null;
+    /** The day the notice is about, "YYYY-MM-DD". Not an expiry. */
+    eventDate?: string | null;
   },
   actor: ActorContext & { role?: string | null },
 ) {
@@ -384,6 +391,7 @@ export async function updateAnnouncement(
   if (changes.course !== undefined) data.course = changes.course || null;
   if (changes.year !== undefined) data.year = changes.year || null;
   if (changes.pinned !== undefined) data.pinned = changes.pinned;
+  if (changes.eventDate !== undefined) data.eventDate = changes.eventDate || null;
   if (changes.expiresAt !== undefined) {
     data.expiresAt = changes.expiresAt ? new Date(changes.expiresAt) : null;
   }
