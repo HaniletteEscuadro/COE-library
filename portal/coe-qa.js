@@ -58,6 +58,25 @@
      * `getCurrentUserKey()` to decide whether to show "delete my question", and
      * an id is stable where a display name is not.
      */
+    /**
+     * The attachment, as a URL the browser can point at.
+     *
+     * The server never sends the storage key — it is the on-disk location, and
+     * a client holding one could ask for any file in the store. It sends the
+     * name and the type, and the bytes come from an authenticated route that
+     * resolves the key itself after checking this account may see the parent.
+     */
+    function toPortalAttachment(type, id, record) {
+        if (!record.attachmentName) return null;
+
+        return {
+            name: record.attachmentName,
+            type: record.attachmentMime || '',
+            size: Number(record.attachmentSize || 0),
+            url: '/api/qa/attachment/' + type + '/' + encodeURIComponent(id)
+        };
+    }
+
     function toPortalQuestion(question) {
         return {
             id: question.id,
@@ -76,6 +95,7 @@
             createdAt: question.createdAt,
             bestAnswerId: question.bestAnswerId || null,
             flags: [],
+            attachment: toPortalAttachment('question', question.id, question),
             answerCount: Number(question.answerCount || 0),
             views: Number(question.viewCount || 0)
         };
@@ -104,6 +124,12 @@
             answerer: answer.answererId || '',
             answererName: answer.answererName || 'Anonymous Student',
             verified: Boolean(answer.verified),
+            // PENDING | APPROVED | REJECTED. Whether anyone but the author and
+            // the reviewers may read it — separate from `verified`, which says
+            // whether it is the right answer.
+            reviewStatus: answer.reviewStatus || 'APPROVED',
+            rejectionNote: answer.rejectionNote || '',
+            attachment: toPortalAttachment('answer', answer.id, answer),
             createdAt: answer.createdAt,
             votes,
             flags: [],
@@ -254,23 +280,84 @@
     // Writes — these replace the portal's localStorage versions
     // -----------------------------------------------------------------------
 
-    function askQuestion(title, description, course, yearLevel, subject, lesson, tags) {
-        return global.CoeApi.post('/api/qa/questions', {
-            title: title,
-            description: description || '',
-            course: course || 'CE',
-            yearLevel: yearLevel || '',
-            subject: subject || '',
-            lesson: lesson || '',
-            tags: Array.isArray(tags) ? tags : []
+    /**
+     * The File to send, if there is one.
+     *
+     * tanong-mo-sagot-ko.js hands over `{name, type, file}` when a server is
+     * present and `{name, type, data}` (a base64 data URL) when it is not. Only
+     * the first can be posted; the second belongs to the standalone path and
+     * never reaches here.
+     */
+    function attachedFile(attachment) {
+        return attachment && attachment.file instanceof global.File ? attachment.file : null;
+    }
+
+    function askQuestion(title, description, course, yearLevel, subject, lesson, tags, attachment) {
+        const file = attachedFile(attachment);
+
+        /*
+         * Multipart when there is a file, JSON otherwise.
+         *
+         * The file used to be dropped here in silence: this function took seven
+         * parameters, tanong-mo-sagot-ko.js called it with eight, and the
+         * eighth — the attachment it had just spent a FileReader pass
+         * producing — landed in nothing. The picker worked, the preview worked,
+         * the question posted, and the file simply did not exist afterwards.
+         */
+        if (!file) {
+            return global.CoeApi.post('/api/qa/questions', {
+                title: title,
+                description: description || '',
+                course: course || 'CE',
+                yearLevel: yearLevel || '',
+                subject: subject || '',
+                lesson: lesson || '',
+                tags: Array.isArray(tags) ? tags : []
+            });
+        }
+
+        const form = new global.FormData();
+        form.set('title', title);
+        form.set('description', description || '');
+        form.set('course', course || 'CE');
+        form.set('yearLevel', yearLevel || '');
+        form.set('subject', subject || '');
+        form.set('lesson', lesson || '');
+        form.set('tags', (Array.isArray(tags) ? tags : []).join(','));
+        form.set('attachment', file, file.name);
+
+        return global.CoeApi.postForm('/api/qa/questions', form);
+    }
+
+    function answerQuestion(questionId, text, attachment) {
+        const path = '/api/qa/questions/' + encodeURIComponent(questionId);
+        const file = attachedFile(attachment);
+
+        if (!file) {
+            return global.CoeApi.post(path, { action: 'answer', text: text });
+        }
+
+        const form = new global.FormData();
+        form.set('action', 'answer');
+        form.set('text', text);
+        form.set('attachment', file, file.name);
+
+        return global.CoeApi.postForm(path, form);
+    }
+
+    /** Publish or refuse one student's answer. Administrators only. */
+    function reviewAnswer(questionId, answerId, decision, note) {
+        return global.CoeApi.post('/api/qa/questions/' + encodeURIComponent(questionId), {
+            action: 'review-answer',
+            answerId: answerId,
+            decision: decision,
+            note: note || undefined
         });
     }
 
-    function answerQuestion(questionId, text) {
-        return global.CoeApi.post('/api/qa/questions/' + encodeURIComponent(questionId), {
-            action: 'answer',
-            text: text
-        });
+    function listPendingAnswers() {
+        return global.CoeApi.get('/api/qa/answers/pending')
+            .then(result => (result && result.answers) || []);
     }
 
     function voteAnswer(questionId, answerId) {
@@ -432,6 +519,113 @@
         });
     }
 
+    let answerQueueBound = false;
+
+    /**
+     * Answers waiting to be published, above the board.
+     *
+     * A sibling of the question queue rather than part of it: they are two
+     * different decisions ("may this be asked?" and "is this answer good
+     * enough to show?"), they can be non-empty independently, and mixing them
+     * into one list would mean a reviewer clearing questions has to read past
+     * answers to find them.
+     */
+    function renderAnswerQueue() {
+        const host = global.document.getElementById('coe-qa-answer-queue');
+        if (!host) return Promise.resolve();
+
+        if (!canReview()) {
+            host.hidden = true;
+            return Promise.resolve();
+        }
+
+        return listPendingAnswers().then(function (pending) {
+            if (!pending.length) {
+                host.hidden = true;
+                host.innerHTML = '';
+                return;
+            }
+
+            host.hidden = false;
+            host.innerHTML =
+                '<header class="coe-approval-head">' +
+                    '<span class="material-icons">rate_review</span>' +
+                    '<div>' +
+                        '<strong>' + pending.length + ' answer' + (pending.length === 1 ? '' : 's') +
+                            ' waiting for review</strong>' +
+                        '<small>Written by students. Nobody else can see them until you publish.</small>' +
+                    '</div>' +
+                '</header>' +
+                '<ul class="coe-approval-list">' +
+                pending.map(function (answer) {
+                    const where = [answer.questionCourse, answer.questionSubject].filter(Boolean).join(' / ');
+                    return '' +
+                        '<li class="coe-approval-item" data-answer-id="' + escapeHtml(answer.id) + '"' +
+                            ' data-question-id="' + escapeHtml(answer.questionId) + '">' +
+                            '<div class="coe-approval-info">' +
+                                '<strong>' + escapeHtml(answer.questionTitle) + '</strong>' +
+                                '<small>' + escapeHtml(answer.answererName) +
+                                    (where ? ' &middot; ' + escapeHtml(where) : '') + '</small>' +
+                                '<p class="coe-approval-excerpt">' +
+                                    escapeHtml(answer.text.length > 220 ? answer.text.slice(0, 220) + '…' : answer.text) +
+                                '</p>' +
+                                (answer.attachmentName
+                                    ? '<a class="coe-approval-peek" target="_blank" rel="noopener" href="/api/qa/attachment/answer/' +
+                                          encodeURIComponent(answer.id) + '">' +
+                                          '<span class="material-icons">attachment</span>' +
+                                          escapeHtml(answer.attachmentName) + '</a>'
+                                    : '') +
+                            '</div>' +
+                            '<div class="coe-approval-actions">' +
+                                '<button type="button" data-answer-review="APPROVED">Publish</button>' +
+                                '<button type="button" data-answer-review="REJECTED" class="is-reject">Refuse</button>' +
+                            '</div>' +
+                        '</li>';
+                }).join('') +
+                '</ul>';
+
+            if (answerQueueBound) return;
+            answerQueueBound = true;
+
+            host.addEventListener('click', function (event) {
+                const button = event.target.closest('button[data-answer-review]');
+                if (!button) return;
+
+                const item = button.closest('.coe-approval-item');
+                const answerId = item && item.dataset.answerId;
+                const questionId = item && item.dataset.questionId;
+                if (!answerId || !questionId) return;
+
+                const decision = button.dataset.answerReview;
+                let note;
+
+                if (decision === 'REJECTED') {
+                    note = global.prompt('Why is this answer not being published? The student will see this.') || '';
+                    if (!note.trim()) return;
+                }
+
+                item.querySelectorAll('button').forEach(b => { b.disabled = true; });
+
+                reviewAnswer(questionId, answerId, decision, note)
+                    .then(function (result) {
+                        global.showLibraryToast?.(
+                            decision === 'APPROVED' ? 'Published' : 'Not published',
+                            (result && result.message) || '',
+                            decision === 'APPROVED' ? 'success' : 'info'
+                        );
+                        renderAnswerQueue();
+                        syncQuestion(questionId);
+                    })
+                    .catch(function (error) {
+                        item.querySelectorAll('button').forEach(b => { b.disabled = false; });
+                        global.showLibraryToast?.('Could not review that', error.message || 'Try again.', 'error');
+                    });
+            });
+        }).catch(function (error) {
+            console.warn('[coe-qa] answer queue unavailable', error.message || error);
+        });
+    }
+
     // -----------------------------------------------------------------------
     // Overrides
     // -----------------------------------------------------------------------
@@ -473,8 +667,10 @@
             global.qaManager.openQuestionDetail = global.openQuestionDetail;
         }
 
-        global.saveQuestion = function (title, description, course, yearLevel, subject, lesson, tags) {
-            askQuestion(title, description, course, yearLevel, subject, lesson, tags)
+        // Eight parameters, matching the caller. The eighth is the attachment,
+        // and it used to be missing from this signature entirely.
+        global.saveQuestion = function (title, description, course, yearLevel, subject, lesson, tags, attachment) {
+            askQuestion(title, description, course, yearLevel, subject, lesson, tags, attachment)
                 .then(function (result) {
                     global.document.getElementById('ask-question-form')?.reset();
                     global.resetUploadLabel?.('question-file-name');
@@ -502,19 +698,55 @@
             return '';
         };
 
-        global.saveAnswer = function (text) {
+        global.saveAnswer = function (text, attachment) {
             const questionId = openQuestion();
             if (!questionId) return;
 
-            answerQuestion(questionId, text)
-                .then(function () {
+            answerQuestion(questionId, text, attachment)
+                .then(function (result) {
                     global.document.getElementById('add-answer-form')?.reset();
                     global.resetUploadLabel?.('answer-file-name');
-                    notify('Answer posted.');
+
+                    // Say which of the two happened. A student whose answer is
+                    // held needs to know it was received, not assume it failed.
+                    notify(
+                        result && result.reviewStatus === 'PENDING'
+                            ? 'Sent for review. It appears under the question once an administrator approves it.'
+                            : 'Answer posted.'
+                    );
+
                     return syncQuestion(questionId);
                 })
                 .catch(function (error) {
                     notify(error.message || 'Could not post the answer.', 'warning');
+                });
+        };
+
+        /**
+         * Publish or refuse a held answer, from the button on its card.
+         *
+         * Global because the card markup calls it with an inline `onclick`,
+         * which is how every other action on that card is wired.
+         */
+        global.reviewAnswerDecision = function (answerId, decision) {
+            const questionId = openQuestion();
+            if (!questionId) return;
+
+            let note;
+
+            if (decision === 'REJECTED') {
+                note = global.prompt('Why is this answer not being published? The student will see this.') || '';
+                if (!note.trim()) return;
+            }
+
+            reviewAnswer(questionId, answerId, decision, note)
+                .then(function (result) {
+                    notify((result && result.message) || 'Answer reviewed.');
+                    renderAnswerQueue();
+                    return syncQuestion(questionId);
+                })
+                .catch(function (error) {
+                    notify(error.message || 'Could not review that answer.', 'warning');
                 });
         };
 
@@ -581,6 +813,21 @@
 
             if (type === 'QA_PENDING') {
                 renderQuestionQueue();
+                return;
+            }
+
+            if (type === 'QA_ANSWER_PENDING') {
+                renderAnswerQueue();
+                return;
+            }
+
+            if (type === 'QA_ANSWER_APPROVED' || type === 'QA_ANSWER_REJECTED') {
+                global.showLibraryToast?.(
+                    notification.title || 'Answer reviewed',
+                    notification.body || '',
+                    type === 'QA_ANSWER_APPROVED' ? 'success' : 'error'
+                );
+                syncQuestions().catch(function () { /* already logged */ });
                 return;
             }
 
@@ -670,6 +917,7 @@
                         // After `ready`, so a failure here cannot stop the
                         // board itself from working.
                         renderQuestionQueue();
+                        renderAnswerQueue();
                         return true;
                     });
             })
@@ -693,6 +941,9 @@
         listPendingQuestions,
         reviewQuestion,
         renderQuestionQueue,
+        reviewAnswer,
+        listPendingAnswers,
+        renderAnswerQueue,
         toPortalQuestion,
         toPortalAnswer,
         get ready() { return ready; }

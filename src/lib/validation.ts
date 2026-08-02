@@ -381,6 +381,78 @@ export const announcementQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 });
+
+// ---------------------------------------------------------------------------
+// Student Voice
+// ---------------------------------------------------------------------------
+
+export const CONCERN_CATEGORY_VALUES = [
+  "Academic Concern",
+  "Library Materials",
+  "Facilities",
+  "Student Support",
+  "General Suggestion",
+] as const;
+
+export const concernCreateSchema = z.object({
+  category: z.enum(CONCERN_CATEGORY_VALUES, { message: "Choose a category." }),
+  title: z.string().trim().min(4, "Give your concern a clear subject.").max(160, "That subject is too long."),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Tell us a little more so it can be acted on.")
+    .max(4000, "That is longer than the form accepts."),
+  /*
+   * The consent tick.
+   *
+   * `z.literal(true)` rather than `z.boolean()`: a plain boolean would accept
+   * `false` as a valid value and push the decision down to whoever remembered
+   * to check it. Here the request simply is not valid without it.
+   */
+  consent: z.literal(true, {
+    message: "Tick the box to confirm you understand who can see your name.",
+  }),
+  /**
+   * Where a private reply is sent. Whether it is required depends on the
+   * category, which `createConcern` decides — the shape is checked here, the
+   * rule about when it is needed lives with the rule about what "private
+   * category" means.
+   */
+  contactEmail: z
+    .string()
+    .trim()
+    .max(160)
+    .email("Enter a valid email address.")
+    .optional()
+    .or(z.literal("")),
+});
+
+export const concernReviewSchema = z
+  .object({
+    status: z.enum(["PENDING", "APPROVED", "ADDRESSED"]).optional(),
+    response: z.string().trim().max(2000, "That response is too long.").optional(),
+  })
+  .refine((data) => data.status !== undefined || data.response !== undefined, {
+    message: "No changes were supplied.",
+  });
+
+// ---------------------------------------------------------------------------
+// Personal calendar
+// ---------------------------------------------------------------------------
+
+export const calendarEntryCreateSchema = z.object({
+  /*
+   * "YYYY-MM-DD" — the value an `<input type="date">` produces, unchanged.
+   *
+   * The shape is checked here; whether the date is real ("2026-02-30" is not)
+   * is checked by `isDayKey` in src/lib/calendar.ts, which owns the column's
+   * format and is where the round-trip test belongs.
+   */
+  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date."),
+  title: z.string().trim().min(2, "Give this plan a name.").max(160, "That title is too long."),
+  detail: z.string().trim().max(1000, "That note is too long.").optional().default(""),
+});
+
 // ---------------------------------------------------------------------------
 // Assignments and submissions
 // ---------------------------------------------------------------------------

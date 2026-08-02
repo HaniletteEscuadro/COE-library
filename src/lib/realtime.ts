@@ -203,6 +203,17 @@ export type RealtimeQuestion = {
   bestAnswerId: string | null;
   answerCount: number;
   viewCount: number;
+  /**
+   * The attached photo or file.
+   *
+   * A name and a type, never the storage key: the key is the on-disk location
+   * and a client that held one could ask for any file in the store. The bytes
+   * come from `/api/qa/attachment/...`, which resolves the key server-side
+   * after checking that this account may see the question.
+   */
+  attachmentName: string | null;
+  attachmentMime: string | null;
+  attachmentSize: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -215,8 +226,13 @@ export type RealtimeAnswer = {
   answererId: string | null;
   answererName: string;
   verified: boolean;
+  /** PENDING | APPROVED | REJECTED — whether anyone but the author may read it. */
+  reviewStatus: string;
   voteCount: number;
   commentCount: number;
+  attachmentName: string | null;
+  attachmentMime: string | null;
+  attachmentSize: number;
   createdAt: string;
 };
 
@@ -376,6 +392,29 @@ export type RealtimeEvents = {
     applicantId: string;
   };
 
+  // --- Student Voice ---
+  //
+  // The asymmetry here is the feature, not an oversight.
+  //
+  // `concern:created` names the student who raised it, so it is admin-room
+  // only — it is what puts a new submission in every administrator's queue
+  // without a refresh.
+  //
+  // `concern:updated` and `concern:deleted` carry an id and a status and
+  // nothing else, deliberately, so they can go to every signed-in account.
+  // Clients treat them as a signal to refetch, and the refetch applies the
+  // public/administrator split again on the server. No payload means no leak.
+  "concern:created": {
+    id: string;
+    category: string;
+    title: string;
+    status: string;
+    authorName: string;
+    createdAt: string;
+  };
+  "concern:updated": { id: string; status: string };
+  "concern:deleted": { id: string };
+
   // --- Per-user ---
   "notification:new": RealtimeNotification;
 };
@@ -393,6 +432,9 @@ export const ADMIN_ONLY_EVENTS = [
   "user:deleted",
   "log:new",
   "stats:updated",
+  // Names the student who raised the concern. This one line is what keeps the
+  // Student Voice board anonymous while its queue is not.
+  "concern:created",
 ] as const satisfies readonly RealtimeEventName[];
 
 /**
@@ -426,6 +468,10 @@ export const LIBRARY_EVENTS = [
   // The council roster is public information inside the college, exactly like
   // the library. Its applications are not, and are in STAFF_EVENTS instead.
   "coesc:officer-updated",
+  // Safe here only because their payloads are an id and a status. If either
+  // ever needs to carry the concern's author, it moves to ADMIN_ONLY_EVENTS.
+  "concern:updated",
+  "concern:deleted",
 ] as const satisfies readonly RealtimeEventName[];
 
 /**

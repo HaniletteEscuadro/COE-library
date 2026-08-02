@@ -49,8 +49,11 @@ function initializeQAHub() {
     document.querySelectorAll('[data-qa-open-ask]').forEach(button => {
         button.addEventListener('click', openAskQuestionModal);
     });
-    if (myAnswersTabBtn && !qaIsAdmin) {
-        myAnswersTabBtn.hidden = true;
+    // Shown to everyone now — students have answers of their own to track, and
+    // the tab is where they find out whether one was published.
+    if (myAnswersTabBtn) {
+        myAnswersTabBtn.hidden = false;
+        myAnswersTabBtn.textContent = qaIsAdmin ? 'Admin Answers' : 'My Answers';
     }
     updateAnswerComposerAccess();
 
@@ -166,6 +169,32 @@ function handleAskQuestion(event) {
     const fileToUpload = fileInput?.files?.[0] || cameraInput?.files?.[0];
 
     if (fileToUpload) {
+        /*
+         * Two ways to carry a file, and which one is right depends on whether
+         * there is a server.
+         *
+         * Served: hand over the File itself. coe-qa.js posts it as multipart to
+         * `/api/qa/questions`, which validates the magic bytes and writes it to
+         * the same storage the library uses. Base64-ing it first would inflate
+         * it by a third for nothing, and the 2 MB ceiling below exists only
+         * because base64 in localStorage had one.
+         *
+         * Standalone (index.html opened off the disk): there is nowhere to put
+         * bytes but this browser, so it is read into a data URL as before.
+         */
+        if (window.CoeQA && window.CoeQA.ready) {
+            try {
+                saveQuestion(title, description, course, yearLevel, subject, lesson, tags, {
+                    name: fileToUpload.name,
+                    type: fileToUpload.type,
+                    file: fileToUpload
+                });
+            } catch (error) {
+                handleQASaveError(error);
+            }
+            return;
+        }
+
         if (fileToUpload.size > QA_ATTACHMENT_MAX_BYTES) {
             showQANotice('Attachment is too large. Use a file under 2 MB, or post the question without the file.', 'warning');
             return;
@@ -289,6 +318,11 @@ function normalizeAnswer(answer) {
         answerer: answer.answerer || 'Anonymous',
         answererName: answer.answererName || 'Anonymous Student',
         verified: Boolean(answer.verified),
+        // Defaults to APPROVED so an answer written in the standalone
+        // (no-server) path is not permanently stuck behind a review that
+        // nothing there can perform.
+        reviewStatus: answer.reviewStatus || 'APPROVED',
+        rejectionNote: answer.rejectionNote || '',
         createdAt: answer.createdAt || new Date().toISOString(),
         votes: Array.isArray(answer.votes) ? answer.votes : [],
         flags: Array.isArray(answer.flags) ? answer.flags : [],
@@ -501,13 +535,7 @@ function openQuestionDetail(questionId) {
     if (answerCount) answerCount.textContent = answers.length;
 
     if (attachmentDiv) {
-        if (currentQuestion.attachment?.type?.startsWith('image')) {
-            attachmentDiv.innerHTML = `<img src="${escapeHtml(currentQuestion.attachment.data)}" alt="${escapeHtml(currentQuestion.attachment.name || 'Question attachment')}">`;
-        } else if (currentQuestion.attachment) {
-            attachmentDiv.innerHTML = `<p class="file-attachment"><span class="material-icons">attachment</span> ${escapeHtml(currentQuestion.attachment.name)}</p>`;
-        } else {
-            attachmentDiv.innerHTML = '';
-        }
+        attachmentDiv.innerHTML = renderQaAttachment(currentQuestion.attachment, 'Question attachment', '');
     }
 
     displayAnswers(answers, currentQuestion.id);
@@ -555,23 +583,61 @@ function renderAnswerCard(answer) {
         `).join('')
         : '<p class="empty-comments">No comments yet.</p>';
 
+    /*
+     * A held answer, shown to the two people allowed to see it.
+     *
+     * The server only sends a PENDING answer to its author and to reviewers, so
+     * reaching this branch already means the viewer is one of them. The banner
+     * says which — a student needs "yours is waiting", an administrator needs
+     * "this is the thing to decide about", and the buttons differ accordingly.
+     */
+    const pending = answer.reviewStatus === 'PENDING';
+    const rejected = answer.reviewStatus === 'REJECTED';
+
+    const reviewBanner = pending
+        ? `<div class="answer-review-banner">
+                <span class="material-icons">schedule</span>
+                <span>${qaIsAdmin
+                    ? 'Waiting for your review. Only you and the person who wrote it can see this.'
+                    : 'Waiting for review. Only you and the administrators can see this for now.'}</span>
+           </div>`
+        : rejected
+            ? `<div class="answer-review-banner is-rejected">
+                    <span class="material-icons">block</span>
+                    <span>Not published.${answer.rejectionNote ? ' ' + escapeHtml(answer.rejectionNote) : ''}</span>
+               </div>`
+            : '';
+
+    const reviewActions = qaIsAdmin && (pending || rejected)
+        ? `<button type="button" onclick="reviewAnswerDecision('${answer.id}', 'APPROVED')" class="answer-publish-btn">
+                <span class="material-icons">check_circle</span>Publish
+           </button>
+           ${pending
+                ? `<button type="button" onclick="reviewAnswerDecision('${answer.id}', 'REJECTED')" class="answer-refuse-btn">
+                        <span class="material-icons">block</span>Refuse
+                   </button>`
+                : ''}`
+        : '';
+
     return `
-        <article class="answer-card ${isBestAnswer ? 'best-answer' : ''}">
+        <article class="answer-card ${isBestAnswer ? 'best-answer' : ''}${pending ? ' is-pending' : ''}${rejected ? ' is-rejected' : ''}">
             ${isBestAnswer ? '<div class="best-answer-badge"><span class="material-icons">check_circle</span> Best Answer</div>' : ''}
+            ${reviewBanner}
             <div class="answer-header">
                 <div class="answerer-info">
                     <span class="answerer-name">${escapeHtml(answer.answererName)}</span>
                     <span class="answerer-date">${formatTimeAgo(answer.createdAt)}${answer.verified ? ' | Verified by admin' : ''}</span>
                 </div>
                 <div class="answer-actions">
-                    ${currentQuestion?.asker === getCurrentUserKey()
+                    ${reviewActions}
+                    ${!pending && !rejected && currentQuestion?.asker === getCurrentUserKey()
                         ? `<button type="button" onclick="markBestAnswer('${answer.id}')" class="mark-best-btn ${isBestAnswer ? 'marked' : ''}">
                             <span class="material-icons">${isBestAnswer ? 'check_circle' : 'radio_button_unchecked'}</span>
                             ${isBestAnswer ? 'Best' : 'Mark Best'}
                         </button>`
                         : ''
                     }
-                    ${qaIsAdmin
+                    ${qaIsAdmin && !pending && !rejected
                         ? `<button type="button" onclick="verifyAnswer('${answer.id}')" class="verify-btn ${answer.verified ? 'marked' : ''}">
                             <span class="material-icons">verified</span>
                             ${answer.verified ? 'Verified' : 'Verify'}
@@ -606,21 +672,53 @@ function renderAnswerCard(answer) {
     `;
 }
 
-function renderAnswerAttachment(answer) {
-    if (!answer.attachment) return '';
-    if (answer.attachment.type?.startsWith('image')) {
-        return `<img src="${escapeHtml(answer.attachment.data)}" alt="${escapeHtml(answer.attachment.name || 'Answer attachment')}" class="answer-attachment">`;
+/**
+ * Draw one attachment.
+ *
+ * Handles both shapes an attachment can arrive in — a `data:` URL from the
+ * standalone path, and a `/api/qa/attachment/...` path from the server. Two
+ * call sites (question and answer) had a copy of this each and only understood
+ * the first, which is why a file uploaded through the app appeared as nothing
+ * at all: the markup was drawn with `src="undefined"`.
+ *
+ * A non-image gets a link rather than a dead line of text. "attachment.pdf" as
+ * plain text was the old behaviour, and it told a student a file existed while
+ * giving them no way to open it.
+ */
+function renderQaAttachment(attachment, altLabel, imageClass) {
+    if (!attachment) return '';
+
+    const source = attachment.url || attachment.data || '';
+    const name = attachment.name || altLabel;
+    const isImage = String(attachment.type || '').startsWith('image');
+
+    if (!source) {
+        return `<p class="file-attachment"><span class="material-icons">attachment</span> ${escapeHtml(name)}</p>`;
     }
-    return `<p class="file-attachment"><span class="material-icons">attachment</span> ${escapeHtml(answer.attachment.name || 'Attached file')}</p>`;
+
+    if (isImage) {
+        return `<a href="${escapeHtml(source)}" target="_blank" rel="noopener" class="qa-attachment-link">
+                    <img src="${escapeHtml(source)}" alt="${escapeHtml(name)}"${imageClass ? ` class="${imageClass}"` : ''}>
+                </a>`;
+    }
+
+    return `<a class="file-attachment is-link" href="${escapeHtml(source)}" target="_blank" rel="noopener">
+                <span class="material-icons">attachment</span>${escapeHtml(name)}
+            </a>`;
+}
+
+function renderAnswerAttachment(answer) {
+    return renderQaAttachment(answer.attachment, 'Answer attachment', 'answer-attachment');
 }
 
 function handleAddAnswer(event) {
     event.preventDefault();
     if (!currentQuestion) return;
-    if (!qaIsAdmin) {
-        showQANotice('Only admins can answer student questions.', 'warning');
-        return;
-    }
+
+    // The admin-only gate is gone: a classmate who knows the answer may write
+    // one. What keeps a wrong answer off the board is review, not silence — a
+    // student's answer is held until an administrator publishes it. The server
+    // enforces both halves; this only decides what the page offers.
 
     const answerText = document.getElementById('answer-text')?.value.trim();
     if (!answerText) {
@@ -633,6 +731,17 @@ function handleAddAnswer(event) {
     const fileToUpload = fileInput?.files?.[0] || cameraInput?.files?.[0];
 
     if (fileToUpload) {
+        // Same split as the ask form — the File itself when there is a server
+        // to send it to, a data URL only when there is not.
+        if (window.CoeQA && window.CoeQA.ready) {
+            saveAnswer(answerText, {
+                name: fileToUpload.name,
+                type: fileToUpload.type,
+                file: fileToUpload
+            });
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = function (readerEvent) {
             saveAnswer(answerText, {
@@ -649,10 +758,6 @@ function handleAddAnswer(event) {
 }
 
 function saveAnswer(text, attachment) {
-    if (!qaIsAdmin) {
-        showQANotice('Only admins can answer student questions.', 'warning');
-        return;
-    }
     const answer = normalizeAnswer({
         id: generateId('answer'),
         questionId: currentQuestion.id,
@@ -824,11 +929,9 @@ function displayMyQuestions() {
 function displayMyAnswers() {
     const container = document.getElementById('my-answers-list');
     if (!container) return;
-    if (!qaIsAdmin) {
-        container.innerHTML = '<p class="empty-state">Only admins can answer questions.</p>';
-        return;
-    }
 
+    // No longer admin-only: students answer too, and this is where they see
+    // what they wrote and whether it has been published yet.
     const myAnswers = getAnswers()
         .filter(answer => answer.answerer === getCurrentUserKey())
         .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
@@ -843,6 +946,14 @@ function displayMyAnswers() {
         const question = questions.find(item => item.id === answer.questionId);
         if (!question) return '';
         const isBest = question.bestAnswerId === answer.id;
+        // Where a student finds out what happened to their answer. Without it
+        // a held answer is indistinguishable from one that was published.
+        const reviewBadge = answer.reviewStatus === 'PENDING'
+            ? '<span class="badge-pending"><span class="material-icons">schedule</span> Waiting for review</span>'
+            : answer.reviewStatus === 'REJECTED'
+                ? '<span class="badge-rejected"><span class="material-icons">block</span> Not published</span>'
+                : '';
+
         return `
             <article class="answer-item" onclick="openQuestionDetail('${question.id}')">
                 <h4>${escapeHtml(question.title)}</h4>
@@ -851,6 +962,7 @@ function displayMyAnswers() {
                     <span class="tag">${escapeHtml(question.course)}</span>
                     <span class="tag">${escapeHtml(question.subject)}</span>
                     <span class="tag"><span class="material-icons">thumb_up</span> ${answer.votes.length}</span>
+                    ${reviewBadge}
                     ${isBest ? '<span class="badge-best"><span class="material-icons">check_circle</span> Best Answer</span>' : ''}
                 </div>
                 <span class="answer-date">${formatTimeAgo(answer.createdAt)}</span>
@@ -859,26 +971,45 @@ function displayMyAnswers() {
     }).join('');
 }
 
+/**
+ * The answer box, and what it says above itself.
+ *
+ * It used to be hidden outright from anyone who was not staff. It is now shown
+ * to everybody, with the note changed from "you may not" to "yours is checked
+ * first" — which is the actual rule now, and the one thing a student needs to
+ * know before they spend five minutes writing a solution.
+ */
 function updateAnswerComposerAccess() {
     const answerSection = document.querySelector('.add-answer-section');
     if (!answerSection) return;
 
-    answerSection.classList.toggle('hidden', !qaIsAdmin);
+    answerSection.classList.remove('hidden');
 
     let notice = document.getElementById('student-answer-lock-note');
-    if (!qaIsAdmin) {
-        if (!notice) {
-            notice = document.createElement('div');
-            notice.id = 'student-answer-lock-note';
-            notice.className = 'student-answer-lock-note';
-            notice.innerHTML = '<span class="material-icons">admin_panel_settings</span><div><strong>Admin answers only</strong><small>Your question is saved. Please wait for an admin to reply.</small></div>';
-            answerSection.insertAdjacentElement('beforebegin', notice);
-        }
-        notice.hidden = false;
-        return;
+
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.id = 'student-answer-lock-note';
+        notice.className = 'student-answer-lock-note';
+        answerSection.insertAdjacentElement('beforebegin', notice);
     }
 
-    if (notice) notice.hidden = true;
+    if (qaIsAdmin) {
+        notice.innerHTML =
+            '<span class="material-icons">verified</span>' +
+            '<div><strong>Official reply</strong>' +
+            '<small>Your answer is published to everyone immediately.</small></div>';
+        notice.classList.add('is-staff');
+    } else {
+        notice.innerHTML =
+            '<span class="material-icons">rate_review</span>' +
+            '<div><strong>You can answer this</strong>' +
+            '<small>An administrator checks your answer before the rest of the college sees it. ' +
+            'You will see it here marked "Waiting for review" in the meantime.</small></div>';
+        notice.classList.remove('is-staff');
+    }
+
+    notice.hidden = false;
 }
 
 function displayAdminModeration() {
@@ -981,8 +1112,31 @@ function toggleArrayValue(items, value) {
     return items.includes(value) ? items.filter(item => item !== value) : [...items, value];
 }
 
+/**
+ * How this browser identifies the signed-in account inside Q&A records.
+ *
+ * MUST be the server's user id when there is a server, and this is the single
+ * most consequential line in the file.
+ *
+ * It used to return `username` — "@admin.emman". Meanwhile coe-qa.js fills the
+ * board from the API, where `question.asker` and `answer.answerer` are the
+ * server's user id ("cmsb…"). The two never matched, so every comparison of
+ * "is this mine?" was false for everybody:
+ *
+ *   * My Questions was permanently empty, however many you had asked;
+ *   * Admin Answers was permanently empty, however many you had answered —
+ *     which is exactly the "hindi lumalabas yung sinagot ng admin" report;
+ *   * the "you voted" highlight never lit, because coe-qa.js writes the vote
+ *     marker as the same user id;
+ *   * "delete my question" never offered itself to the person who asked it.
+ *
+ * None of it looked broken. Every list simply rendered its empty state.
+ *
+ * The username fallback is kept for the standalone case — index.html opened off
+ * the filesystem, where there is no session and ids do not exist.
+ */
 function getCurrentUserKey() {
-    return qaCurrentUser.username || qaCurrentUser.name || 'anonymous-student';
+    return qaCurrentUser.id || qaCurrentUser.username || qaCurrentUser.name || 'anonymous-student';
 }
 
 function resetUploadLabel(id) {

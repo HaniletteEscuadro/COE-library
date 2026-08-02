@@ -4,7 +4,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- `viewport-fit=cover` is what makes `env(safe-area-inset-*)` resolve to
+         anything other than zero. coe-mobile.css uses those insets to keep the
+         material viewer's close button out from under the camera cutout and its
+         footer clear of the home indicator — without this attribute every one
+         of those rules computed to 0px and the controls sat under the notch. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="COE Studio is a College of Engineering workspace for tasks, library materials, announcements, Q&A, and student support.">
     <meta name="theme-color" content="#07111f">
     <title>COE Studio | College of Engineering Workspace</title>
@@ -22,15 +27,17 @@
 
     <link rel="stylesheet" href="styles.css?v=coe-smart-refresh-2026">
     <link rel="stylesheet" href="coe-requested-polish.css?v=upload-fix-2026-08f">
-    <link rel="stylesheet" href="mobile.css?v=upload-fix-2026-08f">
+    <link rel="stylesheet" href="mobile.css?v=embed-links-2026-08a">
     <link rel="stylesheet" href="upload-ui.css?v=upload-fix-2026-08f">
-    <link rel="stylesheet" href="coe-live.css?v=live-2026-08a">
+    <link rel="stylesheet" href="coe-live.css?v=embed-links-2026-08a">
     <link rel="stylesheet" href="coe-explorer.css?v=live-2026-08a">
     <link rel="stylesheet" href="coe-chat.css?v=live-2026-08a">
     <link rel="stylesheet" href="coe-pdf.css?v=live-2026-08a">
+    <link rel="stylesheet" href="coe-calendar.css?v=calendar-2026-08a">
+    <link rel="stylesheet" href="coe-voice.css?v=voice-2026-08a">
     <!-- Last: the mobile rules for the live features have to outrank the
          !important layout guards those features use on desktop. -->
-    <link rel="stylesheet" href="coe-mobile.css?v=live-2026-08a">
+    <link rel="stylesheet" href="coe-mobile.css?v=embed-links-2026-08a">
     <link rel="stylesheet" href="coe-coesc.css?v=coesc-2026-08a">
     <link rel="stylesheet" href="coe-announce.css?v=announce-2026-08a">
     <link rel="stylesheet" href="coe-dashboard.css?v=dash-2026-08a">
@@ -1657,6 +1664,13 @@
                          coe-qa.js, and only for accounts that may review. -->
                     <section id="coe-qa-queue" class="coe-approval-queue" hidden aria-label="Questions waiting for review"></section>
 
+                    <!-- Student answers waiting to be published. A separate
+                         queue from the one above on purpose: "may this be
+                         asked?" and "is this answer good enough to show?" are
+                         two different decisions, and either list can be
+                         non-empty while the other is not. -->
+                    <section id="coe-qa-answer-queue" class="coe-approval-queue" hidden aria-label="Answers waiting for review"></section>
+
                     <div class="questions-list" id="questions-list">
                         <p class="empty-state">No questions yet. Be the first to ask!</p>
                     </div>
@@ -2175,6 +2189,21 @@
                         <span class="material-icons">view_agenda</span>
                         Compact
                     </button>
+                    <!-- Admin only; scripts.js hides it for everyone else. The
+                         board fills up over a semester and nothing expires on
+                         its own, so this is how old notices come off it. -->
+                    <div class="announcement-sweep" id="announcement-sweep" hidden>
+                        <select id="announcement-sweep-age" aria-label="Clear notices older than">
+                            <option value="30">Older than 30 days</option>
+                            <option value="60">Older than 60 days</option>
+                            <option value="90">Older than 90 days</option>
+                            <option value="180">Older than 6 months</option>
+                        </select>
+                        <button type="button" id="announcement-sweep-btn">
+                            <span class="material-icons">delete_sweep</span>
+                            Clear old
+                        </button>
+                    </div>
                 </div>
                 <form id="announcement-admin-form" class="announcement-admin-form announcement-publisher-form">
                     <div class="announcement-admin-header">
@@ -2294,8 +2323,8 @@
                     <section class="calendar-panel-card">
                         <div class="calendar-panel-heading">
                             <div>
-                                <h3>Agenda Today</h3>
-                                <p>Plans and targets for this date only.</p>
+                                <h3>Today</h3>
+                                <p>Admin agenda, announcements, and your own plans for this date.</p>
                             </div>
                         </div>
                         <form id="calendar-agenda-form" class="calendar-agenda-form admin-calendar-form">
@@ -2310,6 +2339,40 @@
                         </form>
                         <div id="calendar-today-list" class="calendar-event-list">
                             <p class="empty-home-section">No agenda today.</p>
+                        </div>
+                    </section>
+
+                    <!-- The student's own half of the calendar. Everything else
+                         on this screen belongs to somebody else — the admin's
+                         agenda and the announcement board — so this is the one
+                         card a student adds to and clears themselves. Private:
+                         no other account, administrators included, can read it. -->
+                    <section class="calendar-panel-card calendar-mine-card">
+                        <div class="calendar-panel-heading">
+                            <div>
+                                <h3>My Plan <span class="calendar-mine-badge">Private</span></h3>
+                                <p>Your own reminders. Only you can see these.</p>
+                            </div>
+                            <div class="calendar-mine-tools">
+                                <select id="calendar-mine-clear-scope" aria-label="What to clear">
+                                    <option value="past">Past entries</option>
+                                    <option value="done">Finished entries</option>
+                                    <option value="all">Everything</option>
+                                </select>
+                                <button type="button" id="calendar-mine-clear" class="calendar-mine-clear">
+                                    <span class="material-icons">delete_sweep</span>
+                                    <span>Clear</span>
+                                </button>
+                            </div>
+                        </div>
+                        <form id="calendar-mine-form" class="calendar-agenda-form calendar-mine-form">
+                            <input type="date" id="calendar-mine-date" required aria-label="Date">
+                            <input type="text" id="calendar-mine-title" placeholder="e.g. Review Statics Ch. 4" maxlength="160" required>
+                            <input type="text" id="calendar-mine-detail" placeholder="Note (optional)" maxlength="1000">
+                            <button type="submit">Add to my calendar</button>
+                        </form>
+                        <div id="calendar-mine-list" class="calendar-event-list">
+                            <p class="empty-home-section">Nothing planned yet.</p>
                         </div>
                     </section>
 
@@ -2625,61 +2688,80 @@
         <!-- Student Voice Section -->
         <section id="student-voice-panel" class="student-voice-section page-panel hidden" data-page="student-voice">
             <div class="voice-container">
-                <div class="voice-header voice-command-hero">
-                    <div class="voice-title-section">
-                        <span class="voice-eyebrow">Student Feedback Center</span>
-                        <h2>Your Voice Matters</h2>
-                        <p>Share your anonymous feedback, suggestions, and concerns with the college. Help us improve!</p>
-                    </div>
-                </div>
 
-                <div class="voice-command-dashboard" aria-label="Student voice dashboard">
-                    <article class="voice-command-card">
+                <!-- Hero -->
+                <header class="voice-hero">
+                    <div class="voice-hero-copy">
+                        <span class="voice-eyebrow">Student Feedback Center</span>
+                        <h1>Your Voice Matters</h1>
+                        <p>Raise a concern, suggest an improvement, or report a problem. Every submission is
+                           reviewed by the college and published to the board without your name on it.</p>
+                    </div>
+                    <div class="voice-hero-badge">
+                        <span class="material-icons">shield_person</span>
+                        <div>
+                            <strong>Anonymous on the board</strong>
+                            <small>Administrators and COESC can see who raised a concern so they can follow it up.
+                                   Faculty and your classmates cannot.</small>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Summary -->
+                <div class="voice-stats" aria-label="Student voice summary">
+                    <article class="voice-stat">
                         <span class="material-icons">record_voice_over</span>
                         <div>
-                            <small>Total Submitted</small>
                             <strong id="voice-dashboard-total">0</strong>
+                            <small>Total raised</small>
                         </div>
                     </article>
-                    <article class="voice-command-card">
+                    <article class="voice-stat is-pending">
                         <span class="material-icons">pending_actions</span>
                         <div>
-                            <small>Pending Review</small>
                             <strong id="voice-dashboard-pending">0</strong>
+                            <small>Waiting for review</small>
                         </div>
                     </article>
-                    <article class="voice-command-card">
-                        <span class="material-icons">visibility</span>
+                    <article class="voice-stat is-public">
+                        <span class="material-icons">campaign</span>
                         <div>
-                            <small>Public Updates</small>
                             <strong id="voice-dashboard-public">0</strong>
+                            <small>On the board</small>
                         </div>
                     </article>
-                    <article class="voice-command-card">
+                    <article class="voice-stat is-done">
                         <span class="material-icons">task_alt</span>
                         <div>
-                            <small>Addressed</small>
                             <strong id="voice-dashboard-addressed">0</strong>
+                            <small>Addressed</small>
                         </div>
                     </article>
                 </div>
 
-                <!-- Tabs for Student and Board -->
-                <div class="voice-tabs">
-                    <button class="voice-tab-btn active" data-tab="submission">Submit Concern</button>
-                    <button class="voice-tab-btn" data-tab="board">Public Board</button>
+                <!-- Tabs -->
+                <div class="voice-tabs" role="tablist">
+                    <button type="button" class="voice-tab-btn active" data-tab="submission" role="tab" aria-selected="true">
+                        <span class="material-icons">edit_note</span>Raise a concern
+                    </button>
+                    <button type="button" class="voice-tab-btn" data-tab="board" role="tab" aria-selected="false">
+                        <span class="material-icons">forum</span>Public board
+                    </button>
                 </div>
 
-                <!-- Submission Tab -->
+                <!-- Raise a concern -->
                 <div class="voice-tab-content active" id="submission-tab">
-                    <div class="concern-form-card">
-                        <h3>Submit Your Concern or Suggestion</h3>
-                        <p>Your submission is completely anonymous. Help us improve the COE experience!</p>
-                        <form id="concern-form">
-                            <div class="form-row">
+                    <div class="voice-card concern-form-card">
+                        <div class="voice-card-head">
+                            <h2>What would you like the college to know?</h2>
+                            <p>Be specific — the clearer the detail, the easier it is to act on.</p>
+                        </div>
+
+                        <form id="concern-form" class="voice-form">
+                            <div class="voice-field">
                                 <label for="concern-category">Category</label>
                                 <select id="concern-category" required>
-                                    <option value="">Select a category...</option>
+                                    <option value="">Choose one&hellip;</option>
                                     <option value="Academic Concern">Academic Concern</option>
                                     <option value="Library Materials">Library Materials</option>
                                     <option value="Facilities">Facilities</option>
@@ -2687,96 +2769,133 @@
                                     <option value="General Suggestion">General Suggestion</option>
                                 </select>
                             </div>
-                            <div class="form-row">
+
+                            <div class="voice-field">
                                 <label for="concern-title">Subject</label>
-                                <input type="text" id="concern-title" placeholder="Brief subject of your concern..." required>
+                                <input type="text" id="concern-title" maxlength="160"
+                                       placeholder="e.g. Third-floor lab has no working outlets" required>
                             </div>
-                            <div class="form-row">
+
+                            <div class="voice-field">
                                 <label for="concern-description">Details</label>
-                                <textarea id="concern-description" placeholder="Describe your concern or suggestion in detail..." rows="5" required></textarea>
+                                <textarea id="concern-description" rows="7" maxlength="4000"
+                                          placeholder="Where is it, when did you notice it, and what would help?" required></textarea>
                             </div>
-                            <div class="form-actions">
-                                <button type="submit" class="submit-btn">Submit Anonymously</button>
-                                <button type="reset" class="reset-btn">Clear Form</button>
+
+                            <!-- Shown and required only for an Academic Concern.
+                                 student-voice.js toggles it from the category
+                                 above; the server re-checks, so the toggle is a
+                                 convenience and not the rule. -->
+                            <div class="voice-field voice-field-email" id="concern-email-field" hidden>
+                                <label for="concern-email">Email for the reply <span class="voice-required">required</span></label>
+                                <input type="email" id="concern-email" maxlength="160"
+                                       placeholder="you@au.edu.ph"
+                                       autocomplete="email">
+                                <small class="voice-field-hint">
+                                    An academic concern is never posted on the public board. The reply and any
+                                    updates are sent to this address only.
+                                </small>
                             </div>
-                            <div id="concern-success-message" class="success-message hidden">
+
+                            <!-- The consent notice. This is the promise the
+                                 server keeps in src/lib/concerns.ts — if the set
+                                 of people who can see the name ever widens, this
+                                 wording has to widen with it. -->
+                            <div class="voice-consent">
+                                <p class="voice-consent-head">
+                                    <span class="material-icons">badge</span>
+                                    <span>Before you send this</span>
+                                </p>
+                                <ul class="voice-consent-list">
+                                    <li><strong>Your name is recorded</strong> with this concern, so the college has a
+                                        documented record it can follow up.</li>
+                                    <li><strong>Only the administrators and the COE Student Council (COESC)</strong> can see
+                                        who raised it. That is what lets them contact you about it.</li>
+                                    <li><strong>Faculty members cannot see your name</strong> — not on the board, and not
+                                        in the moderation queue.</li>
+                                    <li><strong>On the public board it is anonymous.</strong> Once approved, your concern
+                                        appears to everyone with no name attached.</li>
+                                </ul>
+                                <label class="voice-consent-check">
+                                    <input type="checkbox" id="concern-consent" required>
+                                    <span>I understand and agree that the administrators and COESC will see that I raised
+                                          this concern.</span>
+                                </label>
+                            </div>
+
+                            <div class="voice-form-actions">
+                                <button type="submit" class="voice-submit">
+                                    <span class="material-icons">send</span>Submit
+                                </button>
+                                <button type="reset" class="voice-reset">Clear</button>
+                            </div>
+
+                            <div id="concern-success-message" class="voice-success hidden">
                                 <span class="material-icons">check_circle</span>
-                                <p>Thank you! Your concern has been submitted and is pending admin review.</p>
+                                <div>
+                                    <strong>Sent for review.</strong>
+                                    <span>An administrator will look at it. It appears on the board once approved.</span>
+                                </div>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- Public Board Tab -->
+                <!-- Public board -->
                 <div class="voice-tab-content" id="board-tab">
-                    <div class="board-header">
-                        <h3>Student Voice Dashboard</h3>
-                        <p>See what concerns have been raised and their status</p>
-                    </div>
+                    <div class="voice-board-grid">
+                        <div class="voice-card voice-chart-card">
+                            <div class="voice-card-head">
+                                <h2>Where things stand</h2>
+                                <p>Every submission the college has received.</p>
+                            </div>
+                            <div class="voice-chart" id="voice-chart"></div>
+                        </div>
 
-                    <!-- Dashboard Cards -->
-                    <div class="concern-dashboard">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <span class="material-icons">message</span>
+                        <div class="voice-card voice-mini-stats">
+                            <div class="voice-mini">
+                                <small>On the board</small>
+                                <strong id="total-concerns-count">0</strong>
                             </div>
-                            <div class="card-content">
-                                <span class="card-label">Total Concerns</span>
-                                <span class="card-number" id="total-concerns-count">0</span>
+                            <div class="voice-mini">
+                                <small>Pending review</small>
+                                <strong id="pending-concerns-count">0</strong>
                             </div>
-                        </div>
-                        <div class="dashboard-card">
-                            <div class="card-icon pending">
-                                <span class="material-icons">schedule</span>
+                            <div class="voice-mini">
+                                <small>Addressed</small>
+                                <strong id="resolved-concerns-count">0</strong>
                             </div>
-                            <div class="card-content">
-                                <span class="card-label">Pending Review</span>
-                                <span class="card-number" id="pending-concerns-count">0</span>
-                            </div>
-                        </div>
-                        <div class="dashboard-card">
-                            <div class="card-icon resolved">
-                                <span class="material-icons">check_circle</span>
-                            </div>
-                            <div class="card-content">
-                                <span class="card-label">Addressed</span>
-                                <span class="card-number" id="resolved-concerns-count">0</span>
-                            </div>
-                        </div>
-                        <div class="dashboard-card">
-                            <div class="card-icon common">
-                                <span class="material-icons">trending_up</span>
-                            </div>
-                            <div class="card-content">
-                                <span class="card-label">Most Common</span>
-                                <span class="card-text" id="most-common-category">-</span>
+                            <div class="voice-mini is-wide">
+                                <small>Most raised</small>
+                                <strong id="most-common-category">&mdash;</strong>
                             </div>
                         </div>
                     </div>
 
-                    <div class="voice-chart-card">
-                        <div>
-                            <h4>Concern Status Chart</h4>
-                            <p>Pending, approved, and addressed submissions at a glance.</p>
+                    <div class="voice-card voice-board-card">
+                        <div class="voice-card-head">
+                            <h2>Concerns from students</h2>
+                            <p>Published anonymously once an administrator approves them.</p>
                         </div>
-                        <div class="voice-chart" id="voice-chart"></div>
-                    </div>
 
-                    <!-- Concerns List -->
-                    <div class="concerns-section">
-                        <div class="section-header">
-                            <h4>Approved Concerns & Updates</h4>
-                            <div class="filter-buttons">
-                                <button class="filter-btn active" data-filter="all">All</button>
-                                <button class="filter-btn" data-filter="Academic Concern">Academic</button>
-                                <button class="filter-btn" data-filter="Library Materials">Library</button>
-                                <button class="filter-btn" data-filter="Facilities">Facilities</button>
-                                <button class="filter-btn" data-filter="Student Support">Support</button>
-                                <button class="filter-btn" data-filter="General Suggestion">General</button>
-                            </div>
+                        <p class="voice-board-note">
+                            <span class="material-icons">mark_email_read</span>
+                            <span><strong>Academic concerns are not shown here.</strong> They are answered privately by
+                                  email, because the details of one are usually enough to identify the student who
+                                  raised it even without a name.</span>
+                        </p>
+
+                        <div class="voice-filters" role="group" aria-label="Filter by category">
+                            <button type="button" class="filter-btn active" data-filter="all">All</button>
+                            <button type="button" class="filter-btn" data-filter="Academic Concern">Academic</button>
+                            <button type="button" class="filter-btn" data-filter="Library Materials">Library</button>
+                            <button type="button" class="filter-btn" data-filter="Facilities">Facilities</button>
+                            <button type="button" class="filter-btn" data-filter="Student Support">Support</button>
+                            <button type="button" class="filter-btn" data-filter="General Suggestion">General</button>
                         </div>
+
                         <div class="concerns-list" id="concerns-list">
-                            <p class="empty-concerns">No approved concerns yet. Check back soon!</p>
+                            <p class="empty-concerns">Loading the board&hellip;</p>
                         </div>
                     </div>
                 </div>
@@ -2834,14 +2953,24 @@
                 <!-- Left: Moderation Tools -->
                 <div class="admin-column">
                     <!-- Concern Approval Panel -->
-                    <div class="admin-card admin-panel-card admin-moderation-card">
+                    <!-- `data-voice-moderator-only`: student-voice.js hides this
+                         whenever the API says this account may not moderate. The
+                         server refuses the calls regardless — this only stops a
+                         queue of names being drawn for somebody who should not
+                         see them. -->
+                    <div class="admin-card admin-panel-card admin-moderation-card" data-voice-moderator-only hidden>
                         <div class="admin-card-header">
                             <div class="admin-card-title-group">
                                 <h3><span class="material-icons">feedback</span> Student Voice Moderation</h3>
-                                <p id="voice-admin-notice-summary">No pending student submissions.</p>
+                                <p id="voice-admin-notice-summary">No submissions waiting for review.</p>
                             </div>
                             <span id="voice-admin-pending-pill" class="voice-admin-pending-pill hidden" aria-live="polite">0 pending</span>
                         </div>
+                        <p class="voice-admin-privacy">
+                            <span class="material-icons">lock</span>
+                            Names below are visible to administrators only. The public board shows these
+                            concerns without them.
+                        </p>
                         <div class="voice-admin-tabs">
                             <button class="voice-admin-tab active" data-admin-tab="pending">Pending <span class="voice-tab-badge" data-voice-tab-count="pending">0</span></button>
                             <button class="voice-admin-tab" data-admin-tab="approved">Approved <span class="voice-tab-badge" data-voice-tab-count="approved">0</span></button>
@@ -3002,45 +3131,72 @@
             <div class="modal" id="concern-detail-modal">
                 <div class="modal-content concern-detail-content">
                     <span class="close-btn" id="close-concern-modal">&times;</span>
-                    <h3>Concern Details</h3>
+                    <h3>Review concern</h3>
                     <div class="concern-detail-info">
                         <div class="detail-row">
-                            <label>Category:</label>
+                            <label>Category</label>
                             <span id="detail-category"></span>
                         </div>
                         <div class="detail-row">
-                            <label>Subject:</label>
+                            <label>Subject</label>
                             <span id="detail-title"></span>
                         </div>
-                        <div class="detail-row">
-                            <label>Description:</label>
-                            <div id="detail-description"></div>
+                        <!-- Administrators only. This dialog is opened from the
+                             moderation queue, and `authorName` is present only in
+                             an administrator's API payload — a student's response
+                             has no author field at all, so there is nothing here
+                             for them to read even if they reach this markup. -->
+                        <div class="detail-row detail-row-author">
+                            <label>Raised by</label>
+                            <span id="detail-author"></span>
+                        </div>
+                        <!-- Only present when the student gave one. For an
+                             academic concern this is the only way to reply. -->
+                        <div class="detail-row detail-row-contact" id="detail-contact-row" hidden>
+                            <label>Reply to</label>
+                            <span id="detail-contact"></span>
                         </div>
                         <div class="detail-row">
-                            <label>Status:</label>
+                            <label>Submitted</label>
+                            <span id="concern-detail-date"></span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Status</label>
                             <span id="detail-status"></span>
                         </div>
-                        <div class="detail-row">
-                            <label>Submitted:</label>
-                            <span id="concern-detail-date"></span>
+                        <div class="detail-row detail-row-block">
+                            <label>Details</label>
+                            <div id="detail-description"></div>
                         </div>
                     </div>
                     <div class="concern-admin-actions">
                         <div class="status-section">
-                            <label for="detail-status-select">Update Status:</label>
+                            <label for="detail-status-select">Status</label>
+                            <!-- Values match the API's enum. They used to read
+                                 "Pending"/"Approved"/"Addressed", which the server
+                                 rejects — the dialog could not save at all. -->
                             <select id="detail-status-select">
-                                <option value="Pending">Pending</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Addressed">Addressed</option>
+                                <option value="PENDING">Pending review</option>
+                                <option value="APPROVED">Approved &mdash; publish to the board</option>
+                                <option value="ADDRESSED">Addressed</option>
                             </select>
+                            <!-- student-voice.js hides the "Approved" option and
+                                 shows this whenever the concern is one that is
+                                 never published. -->
+                            <p class="detail-private-hint" id="detail-private-hint" hidden>
+                                <span class="material-icons">lock</span>
+                                This category is never posted on the public board. Reply to the student at the
+                                address above, then mark it <strong>Addressed</strong>.
+                            </p>
                         </div>
                         <div class="response-section">
-                            <label for="detail-response">Admin Response (Optional):</label>
-                            <textarea id="detail-response" placeholder="Add a response to the student's concern..." rows="3"></textarea>
+                            <label for="detail-response">Response shown on the board (optional)</label>
+                            <textarea id="detail-response" rows="4"
+                                      placeholder="What is being done about this? Students see this beneath the concern."></textarea>
                         </div>
                         <div class="modal-buttons">
-                            <button id="save-concern-btn" class="setting-btn">Save Changes</button>
-                            <button id="reject-concern-btn" class="setting-btn danger">Reject Concern</button>
+                            <button type="button" id="save-concern-btn" class="setting-btn primary">Save</button>
+                            <button type="button" id="reject-concern-btn" class="setting-btn danger">Reject</button>
                         </div>
                     </div>
                 </div>
@@ -3215,7 +3371,7 @@
     <script src="library-storage.js?v=upload-fix-2026-08f"></script>
 
     <script src="scripts.js?v=upload-fix-2026-08f" defer></script>
-    <script src="student-voice.js" defer></script>
+    <script src="student-voice.js?v=voice-2026-08a" defer></script>
     <script src="tanong-mo-sagot-ko.js?v=qa-ask-button-2026" defer></script>
     <!-- After tanong-mo-sagot-ko.js: it replaces that file's save functions so
          questions and answers go to the shared database. -->
@@ -3225,6 +3381,9 @@
     <script src="coe-board.js?v=live-2026-08a" defer></script>
     <!-- After scripts.js: it replaces that file's localStorage admin panel. -->
     <script src="coe-admin.js?v=live-2026-08a" defer></script>
+    <!-- After scripts.js: it calls window.renderCalendarDashboard, which
+         scripts.js exposes from inside its DOMContentLoaded handler. -->
+    <script src="coe-calendar.js?v=calendar-2026-08a" defer></script>
     <!-- After scripts.js: both take over parts of the panels it builds. -->
     <script src="coe-chat.js?v=live-2026-08a" defer></script>
     <script src="coe-announce.js?v=announce-2026-08a" defer></script>
@@ -3232,9 +3391,9 @@
     <script src="coe-coesc.js?v=coesc-2026-08a" defer></script>
     <!-- Loads PDF.js from /vendor on first use, not on every page load. -->
     <script src="coe-pdf.js?v=live-2026-08a" defer></script>
-    <script src="enhanced-library.js?v=upload-fix-2026-08f" defer></script>
+    <script src="enhanced-library.js?v=embed-links-2026-08a" defer></script>
     <script src="mobile.js?v=upload-fix-2026-08f" defer></script>
-    <script src="upload-ui.js?v=upload-fix-2026-08f" defer></script>
+    <script src="upload-ui.js?v=embed-links-2026-08a" defer></script>
 </body>
 
 </html>

@@ -430,3 +430,249 @@ body.dark-theme .qa-review-note.is-refused,
   background: rgba(217, 48, 37, 0.20);
   color: #f2938c;
 }
+
+/* ---------------------------------------------------------------------------
+   FRAMED LINK MATERIALS
+   ---------------------------------------------------------------------------
+   A Drive or YouTube material used to be a placeholder with a button that
+   opened a new tab. enhanced-library.js now rewrites those links to their
+   embeddable form and frames them in the viewer instead, so the student reads
+   the material where they already are — which on a phone is the difference
+   between reading it and being handed off to another app entirely.
+
+   `.detail-preview iframe` in styles.css already gives width and a min-height;
+   only what is specific to a framed *link* lives here.
+   --------------------------------------------------------------------------- */
+
+.detail-preview .preview-embed {
+  /* Fills the pane rather than sitting in the middle of it: the pane is a
+     centring grid, and an embed that does not stretch leaves a band of
+     background on both sides of a lecture. */
+  width: 100%;
+  justify-self: stretch;
+  align-self: stretch;
+  border: 0;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+/* A lecture. 16:9 and nothing taller — a player stretched to a document's
+   height is a video with two black bands, and `min-height` in the base
+   stylesheet would impose exactly that. */
+.detail-preview .preview-embed.is-video {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  height: auto;
+}
+
+/* A Drive file or a Doc. These are read, so height is what they need; the base
+   stylesheet's 420px floor is right and only the maximum is set here. */
+.detail-preview .preview-embed.is-doc {
+  min-height: 460px;
+  max-height: 72vh;
+}
+
+/* The way out, not the way in — small, quiet, and under the frame. It only
+   matters for the minority of Drive files whose owner has disabled embedding,
+   where the frame shows Google's own refusal page. */
+.detail-preview .preview-link-alt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  /* 44px: this is a link inside a scrolling pane on a touch screen. */
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.28));
+  color: var(--text-secondary, #64748b);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.detail-preview .preview-link-alt .material-icons {
+  font-size: 17px;
+}
+
+.detail-preview .preview-link-alt:active,
+.detail-preview .preview-link-alt:hover {
+  color: var(--text-primary, #0f172a);
+  border-color: var(--border-strong, rgba(148, 163, 184, 0.5));
+}
+
+/* ---------------------------------------------------------------------------
+   Q&A — HELD ANSWERS AND ATTACHMENTS
+   ---------------------------------------------------------------------------
+   Students can now answer, and their answer waits for an administrator before
+   anyone else sees it. That introduces a state the board never had — visible to
+   its author and to reviewers, invisible to everybody else — and a state nobody
+   can act on is a state that has to be labelled.
+
+   The attachment rules are here for a related reason: a question's file used to
+   be dropped on the way to the server, so nothing ever rendered one.
+   --------------------------------------------------------------------------- */
+
+/* The banner on a held answer, inside the question's detail pane. */
+.answer-review-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 119, 6, 0.32);
+  background: rgba(217, 119, 6, 0.10);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #b45309;
+}
+
+.answer-review-banner.is-rejected {
+  border-color: rgba(185, 28, 28, 0.32);
+  background: rgba(185, 28, 28, 0.09);
+  color: #b91c1c;
+}
+
+.answer-review-banner .material-icons {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+/* Dim the card itself, so a held answer does not read as published at a glance
+   in a thread that also contains published ones. */
+.answer-card.is-pending,
+.answer-card.is-rejected {
+  border-style: dashed;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+/* The two review buttons on the card. */
+.answer-publish-btn,
+.answer-refuse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid rgba(21, 128, 61, 0.42);
+  background: transparent;
+  color: #15803d;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.answer-refuse-btn {
+  border-color: rgba(185, 28, 28, 0.42);
+  color: #b91c1c;
+}
+
+.answer-publish-btn .material-icons,
+.answer-refuse-btn .material-icons {
+  font-size: 17px;
+}
+
+/* Status pills in the My Answers list. `.badge-best` beside them is styled by
+   the base sheet; these match its shape so a row of them lines up. */
+.badge-pending,
+.badge-rejected {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
+}
+
+.badge-rejected {
+  background: rgba(185, 28, 28, 0.14);
+  color: #b91c1c;
+}
+
+.badge-pending .material-icons,
+.badge-rejected .material-icons {
+  font-size: 14px;
+}
+
+/* An excerpt of the answer text in the reviewer's queue, so a decision can be
+   made from the list rather than by opening every thread. */
+.coe-approval-excerpt {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #64748b);
+  overflow-wrap: anywhere;
+}
+
+/* --- Attachments ------------------------------------------------------- */
+
+.qa-attachment-link {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.qa-attachment-link img {
+  display: block;
+  /* Bounded, or a 12 MP phone photo pushes the answer text off the screen. */
+  max-width: 100%;
+  max-height: 420px;
+  width: auto;
+  height: auto;
+  border-radius: 10px;
+}
+
+/* A non-image attachment. This used to be plain text — it told a student a
+   file existed and gave them no way to open it. */
+.file-attachment.is-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 9px 14px;
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  color: var(--text-primary, inherit);
+  font-size: 0.87rem;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.file-attachment.is-link:hover,
+.file-attachment.is-link:active {
+  background: var(--surface-hover, rgba(148, 163, 184, 0.12));
+}
+
+.file-attachment.is-link .material-icons {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+/* The note above the answer box now speaks to students too, and says something
+   encouraging rather than a refusal — so it should not look like a warning. */
+body:not(.auth-body) .student-answer-lock-note.is-staff {
+  border-color: rgba(21, 128, 61, 0.32);
+  background: rgba(21, 128, 61, 0.08);
+}
+
+@media (max-width: 900px) {
+  .qa-attachment-link img {
+    max-height: 46dvh;
+  }
+
+  .answer-publish-btn,
+  .answer-refuse-btn {
+    min-height: 44px;
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}

@@ -19,9 +19,13 @@ import {
   deleteQuestion,
   getQuestionDetail,
   recordQuestionView,
+  reviewAnswer,
   reviewQuestion,
   toggleAnswerVote,
+  type QaAttachment,
 } from "@/lib/qa";
+import { readQaAttachment } from "@/lib/qa-upload";
+import { UploadValidationError } from "@/lib/upload";
 import { UserServiceError } from "@/lib/users";
 import { z } from "zod";
 
@@ -40,6 +44,14 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("delete-answer"), answerId: z.string().trim().min(1) }),
   z.object({
     action: z.literal("review"),
+    decision: z.enum(["APPROVED", "REJECTED"]),
+    note: z.string().trim().max(500).optional(),
+  }),
+  // Publishing or refusing one student's answer. Named apart from "review" so
+  // a mis-sent payload cannot approve the whole question by accident.
+  z.object({
+    action: z.literal("review-answer"),
+    answerId: z.string().trim().min(1),
     decision: z.enum(["APPROVED", "REJECTED"]),
     note: z.string().trim().max(500).optional(),
   }),
@@ -71,12 +83,42 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/qa/ques
 
   const { id } = await ctx.params;
 
+  /*
+   * Multipart only matters for one action: posting an answer with a file.
+   *
+   * Everything else is a small JSON payload, so the form branch reads just the
+   * fields an answer needs rather than trying to reconstruct every action's
+   * shape from a FormData.
+   */
+  const contentType = request.headers.get("content-type") ?? "";
   let body: unknown;
+  let attachment: QaAttachment | null = null;
 
-  try {
-    body = await request.json();
-  } catch {
-    body = {};
+  if (contentType.includes("multipart/form-data")) {
+    let form: FormData;
+
+    try {
+      form = await request.formData();
+    } catch {
+      return NextResponse.json({ message: "Could not read the upload." }, { status: 400 });
+    }
+
+    body = { action: String(form.get("action") ?? "answer"), text: form.get("text") ?? "" };
+
+    try {
+      attachment = await readQaAttachment(form);
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        return NextResponse.json({ message: error.message, code: error.code }, { status: 400 });
+      }
+      throw error;
+    }
+  } else {
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
   }
 
   const parsed = actionSchema.safeParse(body);
@@ -103,8 +145,19 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/qa/ques
   try {
     switch (parsed.data.action) {
       case "answer": {
-        const answer = await addAnswer(id, parsed.data.text, actor);
-        return NextResponse.json({ message: "Answer posted.", id: answer.id }, { status: 201 });
+        const answer = await addAnswer(id, parsed.data.text, actor, attachment);
+        const queued = answer.reviewStatus !== "APPROVED";
+
+        return NextResponse.json(
+          {
+            message: queued
+              ? "Sent for review. It appears under the question once an administrator approves it."
+              : "Answer posted.",
+            id: answer.id,
+            reviewStatus: answer.reviewStatus,
+          },
+          { status: 201 },
+        );
       }
 
       case "vote":
@@ -137,6 +190,23 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/qa/ques
               ? `"${question.title}" is now on the board.`
               : `"${question.title}" was not published.`,
           reviewStatus: question.reviewStatus,
+        });
+      }
+
+      case "review-answer": {
+        const answer = await reviewAnswer(
+          parsed.data.answerId,
+          parsed.data.decision,
+          parsed.data.note,
+          actor,
+        );
+
+        return NextResponse.json({
+          message:
+            parsed.data.decision === "APPROVED"
+              ? "The answer is now visible to everyone."
+              : "The answer was not published.",
+          reviewStatus: answer.reviewStatus,
         });
       }
     }

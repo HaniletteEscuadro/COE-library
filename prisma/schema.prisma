@@ -128,6 +128,9 @@ model User {
   // Announcements and submissions
   announcements       Announcement[]     @relation("AnnouncementAuthor")
   announcementReads   AnnouncementRead[]
+  calendarEntries     CalendarEntry[]
+  concerns            Concern[]          @relation("ConcernAuthor")
+  reviewedConcerns    Concern[]          @relation("ConcernReviewer")
   createdAssignments  Assignment[]       @relation("AssignmentAuthor")
   submissions         Submission[]       @relation("SubmissionStudent")
   gradedSubmissions   Submission[]       @relation("SubmissionGrader")
@@ -1236,6 +1239,118 @@ model Announcement {
   @@index([authorId])
 }
 
+// ===========================================================================
+// STUDENT VOICE
+//
+// "Your Voice Matters" — a student raises a concern, an administrator reviews
+// it, and once approved it appears on a board the whole college reads.
+//
+// THE ONE RULE THIS TABLE EXISTS TO ENFORCE
+// -----------------------------------------
+// `authorId` is recorded, and it is never sent to a student. The board is
+// anonymous to everyone except the administrators who have to act on it — a
+// facilities complaint nobody can follow up on is not worth collecting, and a
+// complaint that names the student to their classmates is worse than none.
+//
+// That split is enforced in `src/lib/concerns.ts`, which builds two different
+// payloads and only ever returns the identified one to an administrator. It is
+// not enforced by hiding a field in the browser.
+// ===========================================================================
+
+model Concern {
+  id       String  @id @default(cuid())
+  /// Who raised it. Nullable so a concern survives the account being deleted —
+  /// the college still needs to see the issue, it simply becomes unattributed.
+  authorId String?
+
+  /// "Academic Concern" | "Library Materials" | "Facilities" |
+  /// "Student Support" | "General Suggestion"
+  category    String
+  title       String
+  description String
+
+  /// ConcernStatus — PENDING | APPROVED | ADDRESSED.
+  /// PENDING is invisible to everyone but administrators.
+  status String @default("PENDING")
+
+  /// The administrator's public reply, shown on the board beneath the concern.
+  response String?
+
+  /// When the student ticked "I understand who can see my name".
+  ///
+  /// Recorded rather than assumed. The whole arrangement here is a trade — the
+  /// college gets an attributable record it can follow up and document, the
+  /// student gets a board that never shows their name — and a trade needs the
+  /// moment of agreement written down. A row with no `consentAt` was created
+  /// before this existed, and is treated as not-consented.
+  consentAt DateTime?
+
+  /// Where to send the reply, for concerns that are never published.
+  ///
+  /// Required for an Academic Concern and optional for everything else. An
+  /// academic concern is handled privately — it never reaches the public board
+  /// at all — so without a way to reach the student back there is no way to
+  /// close the loop, and the concern is a message into a drawer.
+  contactEmail String?
+
+  reviewedById String?
+  approvedAt   DateTime?
+  addressedAt  DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  /// Soft delete, so rejecting a concern keeps the audit trail honest.
+  deletedAt DateTime?
+
+  author     User? @relation("ConcernAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("ConcernReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  // The board is "not deleted, this status, newest first".
+  @@index([deletedAt, status, createdAt])
+  @@index([authorId])
+  @@index([category])
+}
+
+// ===========================================================================
+// PERSONAL CALENDAR
+//
+// The mirror image of Announcement. An announcement is one shared row every
+// account reads; a CalendarEntry is one account's own plan and is never shown
+// to anybody else — not to an administrator, not in the audit log.
+//
+// The calendar screen draws both together: the college's notices, and the
+// student's own list beside them.
+// ===========================================================================
+
+model CalendarEntry {
+  id     String @id @default(cuid())
+  userId String
+
+  /// The day this is planned for, as "YYYY-MM-DD".
+  ///
+  /// Deliberately a string rather than a DateTime. A plan is *for a day*, not
+  /// for an instant: "review Statics on the 5th" means the 5th wherever the
+  /// student happens to be. Stored as a DateTime it would be pinned to an
+  /// instant in UTC, and a phone set to Manila time (UTC+8) would show
+  /// midnight-dated entries on the previous day — the single most common way a
+  /// calendar is quietly wrong by one square.
+  date String
+
+  title  String
+  detail String?
+
+  /// Ticked off. Kept rather than deleted so the day still shows what was done.
+  done Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // "my entries, for this range of days" is the only query this table serves.
+  @@index([userId, date])
+}
+
 /// Per-user read receipt, so the bell can show an accurate unread count.
 model AnnouncementRead {
   id             String   @id @default(cuid())
@@ -1408,6 +1523,21 @@ model Question {
   viewCount   Int @default(0)
   flagCount   Int @default(0)
 
+  /// The photo or file attached to the question.
+  ///
+  /// The portal has always had the file picker — "Add subject, details, and
+  /// optional photo/file" — and the detail pane has always had the markup to
+  /// draw it. There was simply nowhere to put the bytes, so every attachment
+  /// was read in the browser and dropped on the way to the server.
+  ///
+  /// `attachmentKey` is a storage key under STORAGE_DIR, exactly like a library
+  /// material, and is never sent to a client: downloads go through an
+  /// authenticated route that resolves it server-side.
+  attachmentKey  String?
+  attachmentName String?
+  attachmentMime String?
+  attachmentSize Int     @default(0)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -1439,6 +1569,32 @@ model Answer {
   verifiedById String?
   verifiedAt   DateTime?
 
+  /// Whether this answer is allowed on the board at all.
+  ///
+  /// Deliberately a second column beside `verified`, and the distinction is the
+  /// whole point of letting students answer:
+  ///
+  ///   reviewStatus  may anyone read this?      (PENDING until an admin says so)
+  ///   verified      is this the right answer?  (the badge, set on acceptance)
+  ///
+  /// Folding them into one would mean an admin could not publish a helpful
+  /// student answer without also stamping it as the verified correct one.
+  ///
+  /// Staff answers are APPROVED on creation; a student's waits. Same rule, and
+  /// the same column name, as Question.reviewStatus.
+  ///
+  /// ReviewStatus — PENDING | APPROVED | REJECTED
+  reviewStatus  String    @default("APPROVED")
+  rejectionNote String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+
+  /// Optional working / photo of the solution. See Question.attachmentKey.
+  attachmentKey  String?
+  attachmentName String?
+  attachmentMime String?
+  attachmentSize Int     @default(0)
+
   voteCount    Int @default(0)
   commentCount Int @default(0)
   flagCount    Int @default(0)
@@ -1457,6 +1613,8 @@ model Answer {
   @@index([questionId, voteCount])
   @@index([answererId])
   @@index([verified])
+  // The moderation queue: "pending answers, oldest first".
+  @@index([reviewStatus, createdAt])
 }
 
 model AnswerVote {

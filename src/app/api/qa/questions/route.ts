@@ -10,7 +10,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAuth } from "@/lib/session";
 import { verifyCsrf, csrfError } from "@/lib/security";
-import { canReviewQuestions, createQuestion, listQuestions, QUESTION_STATUSES } from "@/lib/qa";
+import {
+  canReviewQuestions,
+  createQuestion,
+  listQuestions,
+  QUESTION_STATUSES,
+  type QaAttachment,
+} from "@/lib/qa";
+import { readQaAttachment } from "@/lib/qa-upload";
+import { UploadValidationError } from "@/lib/upload";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -87,12 +95,58 @@ export async function POST(request: NextRequest) {
     return csrfError();
   }
 
-  let body: unknown;
+  /*
+   * JSON or multipart.
+   *
+   * The portal's ask form has always had a file picker, and until now the only
+   * accepted body was JSON — so the browser read the file, and the request that
+   * followed had no room to carry it. Multipart is what a file needs; JSON is
+   * kept because every other caller sends it and there is no reason to break
+   * them for the sake of one field.
+   */
+  const contentType = request.headers.get("content-type") ?? "";
+  const isMultipart = contentType.includes("multipart/form-data");
 
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
+  let body: unknown;
+  let attachment: QaAttachment | null = null;
+
+  if (isMultipart) {
+    let form: FormData;
+
+    try {
+      form = await request.formData();
+    } catch {
+      return NextResponse.json({ message: "Could not read the upload." }, { status: 400 });
+    }
+
+    body = {
+      title: form.get("title") ?? "",
+      description: form.get("description") ?? "",
+      course: form.get("course") ?? "CE",
+      yearLevel: form.get("yearLevel") ?? "",
+      subject: form.get("subject") ?? "",
+      lesson: form.get("lesson") ?? "",
+      // Sent comma-separated by a form; the schema wants an array.
+      tags: String(form.get("tags") ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    };
+
+    try {
+      attachment = await readQaAttachment(form);
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        return NextResponse.json({ message: error.message, code: error.code }, { status: 400 });
+      }
+      throw error;
+    }
+  } else {
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
+    }
   }
 
   const parsed = createSchema.safeParse(body);
@@ -105,7 +159,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const question = await createQuestion(parsed.data, {
+    const question = await createQuestion({ ...parsed.data, attachment }, {
       id: auth.user.id,
       name: auth.user.name ?? auth.user.username ?? "COE user",
       role: auth.user.role,

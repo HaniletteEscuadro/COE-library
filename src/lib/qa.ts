@@ -42,18 +42,38 @@ export function canVerifyAnswers(role: string | null | undefined) {
 }
 
 /**
- * Who may post an answer.
+ * Who may post an answer without waiting for review.
  *
- * "Tanong Mo, Sagot Ko" is a board where students ask and staff reply — the
- * page has always said "Please wait for an official reply" and hidden the
- * answer box from everyone else. Until now that was only the UI hiding it, so
- * anyone who called the API directly could answer anyway. This is the rule
- * being enforced where it counts.
+ * Staff. Their reply is the official one and goes straight onto the board.
  */
 const QA_ANSWERER_ROLES = ["ADMIN", "FACULTY"] as const;
 
+/**
+ * Who may post an answer at all.
+ *
+ * Students too, now. The board used to be "students ask, staff reply", and a
+ * classmate who knew the answer had nowhere to put it — which on a board whose
+ * name is "Tanong Mo, Sagot Ko" was the odd half to have missing.
+ *
+ * The safeguard is not who may write, it is what happens next: an answer from
+ * anyone outside QA_ANSWERER_ROLES is created PENDING and stays invisible to
+ * the rest of the college until an administrator publishes it. So a student can
+ * help, and nobody reads a wrong answer in the meantime.
+ */
+const QA_ANY_ANSWERER_ROLES = ["ADMIN", "FACULTY", "REGISTRAR", "LIBRARIAN", "STUDENT"] as const;
+
 export function canAnswerQuestions(role: string | null | undefined) {
+  return hasRole(role, QA_ANY_ANSWERER_ROLES);
+}
+
+/** True when this account's answers skip the review queue. */
+export function canAnswerWithoutReview(role: string | null | undefined) {
   return hasRole(role, QA_ANSWERER_ROLES);
+}
+
+/** Who may publish or refuse a pending answer. Same set that may verify one. */
+export function canReviewAnswers(role: string | null | undefined) {
+  return hasRole(role, QA_MODERATOR_ROLES);
 }
 
 /**
@@ -85,6 +105,9 @@ type QuestionRow = {
   bestAnswerId: string | null;
   answerCount: number;
   viewCount: number;
+  attachmentName: string | null;
+  attachmentMime: string | null;
+  attachmentSize: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -104,6 +127,9 @@ export function toRealtimeQuestion(question: QuestionRow): RealtimeQuestion {
     askerId: question.askerId,
     askerName: question.askerName,
     bestAnswerId: question.bestAnswerId,
+    attachmentName: question.attachmentName,
+    attachmentMime: question.attachmentMime,
+    attachmentSize: question.attachmentSize,
     answerCount: question.answerCount,
     viewCount: question.viewCount,
     createdAt: question.createdAt.toISOString(),
@@ -118,8 +144,12 @@ type AnswerRow = {
   answererId: string | null;
   answererName: string;
   verified: boolean;
+  reviewStatus: string;
   voteCount: number;
   commentCount: number;
+  attachmentName: string | null;
+  attachmentMime: string | null;
+  attachmentSize: number;
   createdAt: Date;
 };
 
@@ -131,8 +161,14 @@ export function toRealtimeAnswer(answer: AnswerRow): RealtimeAnswer {
     answererId: answer.answererId,
     answererName: answer.answererName,
     verified: answer.verified,
+    reviewStatus: answer.reviewStatus,
     voteCount: answer.voteCount,
     commentCount: answer.commentCount,
+    // The name and type only. `attachmentKey` is deliberately absent — see the
+    // note on RealtimeQuestion.
+    attachmentName: answer.attachmentName,
+    attachmentMime: answer.attachmentMime,
+    attachmentSize: answer.attachmentSize,
     createdAt: answer.createdAt.toISOString(),
   };
 }
@@ -261,8 +297,27 @@ export async function getQuestionDetail(
 
   if (!question) return null;
 
+  /*
+   * Which answers this viewer may read.
+   *
+   * A pending answer is visible to its author — so a student can see that what
+   * they wrote was received, and is waiting — and to the administrators who
+   * have to judge it. Rejected answers are visible only to their author, with
+   * the note explaining why, and to reviewers. Everyone else sees the published
+   * ones and nothing else.
+   *
+   * This is the query, not a filter applied afterwards: an answer the viewer
+   * may not read is never loaded, so there is no later step that could forget
+   * to drop it.
+   */
   const answers = await prisma.answer.findMany({
-    where: { questionId: id, deletedAt: null },
+    where: {
+      questionId: id,
+      deletedAt: null,
+      ...(canReviewAnswers(viewerRole)
+        ? {}
+        : { OR: [{ reviewStatus: "APPROVED" }, { answererId: viewerId ?? "__none__" }] }),
+    },
     orderBy: [{ verified: "desc" }, { voteCount: "desc" }, { createdAt: "asc" }],
     include: {
       comments: {
@@ -304,6 +359,102 @@ export async function getQuestionDetail(
 }
 
 // ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
+
+/**
+ * A file that has already been validated and written to storage.
+ *
+ * The route does the validating and the writing — the same `validateUpload` and
+ * `saveFile` the library uses, so a renamed executable is rejected by its magic
+ * bytes here exactly as it is there. This type is only the record of it.
+ */
+export type QaAttachment = {
+  key: string;
+  name: string;
+  mime: string;
+  size: number;
+};
+
+function attachmentColumns(attachment: QaAttachment | null | undefined) {
+  if (!attachment) return {};
+
+  return {
+    attachmentKey: attachment.key,
+    attachmentName: attachment.name,
+    attachmentMime: attachment.mime,
+    attachmentSize: attachment.size,
+  };
+}
+
+/**
+ * The storage key for one attachment, and only if this viewer may read it.
+ *
+ * Everything about who is allowed to see what lives here rather than in the
+ * route, so the download and the page that links to it cannot disagree:
+ *
+ *   * a question's attachment follows the question — published, or yours, or
+ *     you are a reviewer;
+ *   * an answer's follows the answer, which adds the pending case: an answer
+ *     awaiting review is readable by the person who wrote it and by the
+ *     administrators who have to judge it, and by nobody else.
+ */
+export async function resolveAttachment(
+  type: "question" | "answer",
+  id: string,
+  viewer: { id: string; role: string },
+): Promise<{ key: string; name: string; mime: string } | null> {
+  const moderator = canReviewAnswers(viewer.role);
+
+  if (type === "question") {
+    const question = await prisma.question.findFirst({
+      where: { id, deletedAt: null, attachmentKey: { not: null } },
+      select: { attachmentKey: true, attachmentName: true, attachmentMime: true, askerId: true, reviewStatus: true },
+    });
+
+    if (!question?.attachmentKey) return null;
+
+    const allowed = moderator || question.reviewStatus === "APPROVED" || question.askerId === viewer.id;
+    if (!allowed) return null;
+
+    return {
+      key: question.attachmentKey,
+      name: question.attachmentName ?? "attachment",
+      mime: question.attachmentMime ?? "application/octet-stream",
+    };
+  }
+
+  const answer = await prisma.answer.findFirst({
+    where: { id, deletedAt: null, attachmentKey: { not: null } },
+    select: {
+      attachmentKey: true,
+      attachmentName: true,
+      attachmentMime: true,
+      answererId: true,
+      reviewStatus: true,
+      question: { select: { reviewStatus: true, askerId: true } },
+    },
+  });
+
+  if (!answer?.attachmentKey) return null;
+
+  const answerVisible =
+    moderator || answer.reviewStatus === "APPROVED" || answer.answererId === viewer.id;
+  const questionVisible =
+    moderator ||
+    answer.question.reviewStatus === "APPROVED" ||
+    answer.question.askerId === viewer.id;
+
+  if (!answerVisible || !questionVisible) return null;
+
+  return {
+    key: answer.attachmentKey,
+    name: answer.attachmentName ?? "attachment",
+    mime: answer.attachmentMime ?? "application/octet-stream",
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
 
@@ -316,6 +467,7 @@ export async function createQuestion(
     subject?: string;
     lesson?: string;
     tags?: string[];
+    attachment?: QaAttachment | null;
   },
   actor: { id: string; name: string; role: string },
 ) {
@@ -337,6 +489,7 @@ export async function createQuestion(
       reviewStatus: approved ? "APPROVED" : "PENDING",
       reviewedById: approved ? actor.id : null,
       reviewedAt: approved ? new Date() : null,
+      ...attachmentColumns(input.attachment),
     },
   });
 
@@ -370,6 +523,150 @@ async function notifyReviewers(title: string, askerName: string) {
       }),
     ),
   );
+}
+
+/** Ping every account that can publish a pending answer. */
+async function notifyAnswerReviewers(questionTitle: string, answererName: string) {
+  const reviewers = await prisma.user.findMany({
+    where: { role: { in: [...QA_MODERATOR_ROLES] }, status: "ACTIVE", deletedAt: null },
+    select: { id: true },
+  });
+
+  await Promise.all(
+    reviewers.map((reviewer) =>
+      createNotification({
+        userId: reviewer.id,
+        type: "QA_ANSWER_PENDING",
+        title: "An answer is waiting for review",
+        body: `${answererName} answered: ${questionTitle}`,
+        href: "/portal/index.html#qa",
+        actorName: answererName,
+      }),
+    ),
+  );
+}
+
+/** Answers waiting to be published, for the reviewer's queue. */
+export async function listPendingAnswers(role: string | null | undefined) {
+  if (!canReviewAnswers(role)) {
+    throw new UserServiceError("You do not have permission to review answers.", 403);
+  }
+
+  const rows = await prisma.answer.findMany({
+    where: { reviewStatus: "PENDING", deletedAt: null },
+    orderBy: { createdAt: "asc" },
+    take: 100,
+    include: { question: { select: { id: true, title: true, subject: true, course: true } } },
+  });
+
+  return rows.map((row) => ({
+    ...toRealtimeAnswer(row),
+    questionTitle: row.question.title,
+    questionSubject: row.question.subject,
+    questionCourse: row.question.course,
+  }));
+}
+
+/**
+ * Publish or refuse a student's answer.
+ *
+ * The mirror of `reviewQuestion`, and deliberately shaped the same way: on
+ * approval it emits `answer:created` — the answer's first appearance on
+ * everyone's board — so a published answer travels the identical live path a
+ * staff answer takes at creation, rather than through a second mechanism that
+ * would have to be kept in step.
+ */
+export async function reviewAnswer(
+  id: string,
+  decision: "APPROVED" | "REJECTED",
+  note: string | undefined,
+  actor: { id: string; role: string },
+) {
+  if (!canReviewAnswers(actor.role)) {
+    throw new UserServiceError("You do not have permission to review answers.", 403);
+  }
+
+  const existing = await prisma.answer.findFirst({
+    where: { id, deletedAt: null },
+    include: { question: { select: { id: true, title: true, status: true, askerId: true } } },
+  });
+
+  if (!existing) {
+    throw new UserServiceError("That answer no longer exists.", 404);
+  }
+
+  if (existing.reviewStatus === decision) {
+    throw new UserServiceError("That answer has already been reviewed.", 409);
+  }
+
+  /*
+   * The counter moves with the decision, in both directions.
+   *
+   * Publishing a pending answer increments it; un-publishing one that was
+   * already public decrements it. Doing only the first would leave the count
+   * permanently high after a refusal — and `answerCount` exists precisely so
+   * the card does not have to be trusted to a join.
+   */
+  const wasPublished = existing.reviewStatus === "APPROVED";
+  const willPublish = decision === "APPROVED";
+  const delta = willPublish && !wasPublished ? 1 : !willPublish && wasPublished ? -1 : 0;
+
+  const [answer, question] = await prisma.$transaction([
+    prisma.answer.update({
+      where: { id },
+      data: {
+        reviewStatus: decision,
+        rejectionNote: decision === "REJECTED" ? (note ?? null) : null,
+        reviewedById: actor.id,
+        reviewedAt: new Date(),
+      },
+    }),
+    prisma.question.update({
+      where: { id: existing.questionId },
+      data: {
+        ...(delta !== 0 ? { answerCount: { increment: delta } } : {}),
+        ...(willPublish && existing.question.status === "Unanswered"
+          ? { status: "Answered" }
+          : {}),
+      },
+    }),
+  ]);
+
+  if (willPublish) {
+    emitRealtime("answer:created", toRealtimeAnswer(answer));
+  } else {
+    emitRealtime("answer:deleted", { id: answer.id, questionId: answer.questionId });
+  }
+
+  emitRealtime("question:updated", toRealtimeQuestion(question));
+
+  // Tell the person who wrote it, either way — an answer that vanishes with no
+  // explanation is worse than one that is refused with a reason.
+  if (answer.answererId) {
+    await createNotification({
+      userId: answer.answererId,
+      type: willPublish ? "QA_ANSWER_APPROVED" : "QA_ANSWER_REJECTED",
+      title: willPublish ? "Your answer was published" : "Your answer was not published",
+      body: willPublish
+        ? existing.question.title
+        : note?.trim() || "An administrator did not publish this answer.",
+      href: `/portal/index.html#qa-${existing.questionId}`,
+    });
+  }
+
+  // And tell the asker their question now has a reply they can read.
+  if (willPublish && existing.question.askerId && existing.question.askerId !== answer.answererId) {
+    await createNotification({
+      userId: existing.question.askerId,
+      type: "QA_ANSWER",
+      title: `${answer.answererName} answered your question`,
+      body: existing.question.title,
+      href: `/portal/index.html#qa-${existing.questionId}`,
+      actorName: answer.answererName,
+    });
+  }
+
+  return answer;
 }
 
 /**
@@ -433,14 +730,10 @@ export async function addAnswer(
   questionId: string,
   text: string,
   actor: { id: string; name: string; role: string },
+  attachment?: QaAttachment | null,
 ) {
-  // The rule the page has always claimed, now actually enforced. Hiding the
-  // answer box in the UI was never a permission check.
   if (!canAnswerQuestions(actor.role)) {
-    throw new UserServiceError(
-      "Only faculty and administrators can answer questions.",
-      403,
-    );
+    throw new UserServiceError("Your account cannot answer questions.", 403);
   }
 
   const question = await prisma.question.findFirst({
@@ -456,8 +749,17 @@ export async function addAnswer(
     throw new UserServiceError("That question is still waiting for review.", 409);
   }
 
-  // The answer and the parent's counter move together, so the card can never
-  // show "0 answers" next to a visible answer.
+  // Staff answers go up immediately; everyone else's waits for an administrator.
+  const published = canAnswerWithoutReview(actor.role);
+
+  /*
+   * `answerCount` counts what people can actually read.
+   *
+   * A pending answer must not bump it, or the card says "1 answer" and opens
+   * to an empty thread for everybody except its author — which is the same
+   * class of lie the counter was denormalised to avoid. It is incremented on
+   * approval instead.
+   */
   const [answer, updatedQuestion] = await prisma.$transaction([
     prisma.answer.create({
       data: {
@@ -465,24 +767,35 @@ export async function addAnswer(
         text: text.trim(),
         answererId: actor.id,
         answererName: actor.name,
+        reviewStatus: published ? "APPROVED" : "PENDING",
+        reviewedById: published ? actor.id : null,
+        reviewedAt: published ? new Date() : null,
+        ...attachmentColumns(attachment),
       },
     }),
     prisma.question.update({
       where: { id: questionId },
       data: {
-        answerCount: { increment: 1 },
+        ...(published ? { answerCount: { increment: 1 } } : {}),
         // Only lift "Unanswered". A question already Verified or Solved must
         // not be dragged back down by a new reply.
-        ...(question.status === "Unanswered" ? { status: "Answered" } : {}),
+        ...(published && question.status === "Unanswered" ? { status: "Answered" } : {}),
       },
     }),
   ]);
 
-  emitRealtime("answer:created", toRealtimeAnswer(answer));
-  emitRealtime("question:updated", toRealtimeQuestion(updatedQuestion));
+  if (published) {
+    emitRealtime("answer:created", toRealtimeAnswer(answer));
+    emitRealtime("question:updated", toRealtimeQuestion(updatedQuestion));
+  } else {
+    // Not broadcast — nobody else may see it yet. The reviewers are told
+    // instead, the same way a pending question tells them.
+    await notifyAnswerReviewers(question.title, actor.name);
+  }
 
-  // Tell the asker, unless they answered their own question.
-  if (question.askerId && question.askerId !== actor.id) {
+  // Tell the asker, unless they answered their own question — and only once the
+  // answer is something they can actually open.
+  if (published && question.askerId && question.askerId !== actor.id) {
     await createNotification({
       userId: question.askerId,
       type: "QA_ANSWER",
