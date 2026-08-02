@@ -185,13 +185,70 @@
    dropdown, an account status control, and when each person last signed in.
    ========================================================================== */
 
+/*
+ * THE ACCOUNT NAME USED TO DISAPPEAR ENTIRELY
+ *
+ * This was `minmax(0, 1fr) 140px minmax(0, 300px)`, and the list sits in the
+ * right-hand column of `.admin-split-grid`, which is `minmax(360px, 0.92fr)`.
+ * At that minimum the arithmetic is:
+ *
+ *     360  container
+ *    - 36  card padding
+ *    - 24  row padding
+ *    - 24  two gaps
+ *    = 276  usable
+ *    - 140  the role select, fixed
+ *    - 300  the controls, which want up to 300
+ *    =   0  left for the name
+ *
+ * `minmax(0, …)` is what permits that: the `0` says this track may collapse
+ * completely. And `.coe-admin-who strong` carries `overflow: hidden` with
+ * `white-space: nowrap`, so at zero width it renders *nothing* — not an
+ * ellipsis, not a sliver. The column was simply blank, on a desktop, with a
+ * wide viewport. Which is why it looked like a colour problem and was not.
+ *
+ * `minmax(140px, 1fr)` gives the name a floor it can never fall through. The
+ * container query below is the real fix, and this is what holds if it is not
+ * supported.
+ */
 .coe-admin-head,
 .coe-admin-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px minmax(0, 300px);
+  grid-template-columns: minmax(140px, 1fr) 140px minmax(0, 300px);
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
+}
+
+/*
+ * The row responds to its CONTAINER, not the viewport.
+ *
+ * A media query is the wrong tool here: the viewport is a full desktop while
+ * this particular column is 360px, so `@media` never fires and the row is
+ * crushed anyway. `@container` asks the only question that matters — how much
+ * room does this list actually have?
+ */
+.admin-account-list {
+  container-type: inline-size;
+  container-name: adminlist;
+}
+
+@container adminlist (max-width: 560px) {
+  .coe-admin-head {
+    display: none;
+  }
+
+  /* Name on its own line, then the meta and the controls under it. Three
+     columns cannot be made to fit 276px; two lines can. */
+  .coe-admin-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: stretch;
+  }
+
+  .coe-admin-controls {
+    justify-content: flex-start;
+  }
 }
 
 .coe-admin-head {
@@ -216,19 +273,32 @@
   min-width: 0;
 }
 
+/*
+ * The account name.
+ *
+ * `white-space: nowrap` plus `overflow: hidden` is what turned a squeezed
+ * column into a blank one. A truncated name at least shows an ellipsis and
+ * tells you something is there; at zero width even that has nowhere to draw.
+ * Wrapping is the honest failure — the name is the one thing this row exists
+ * to identify, so it should be the last thing sacrificed to the layout.
+ */
 .coe-admin-who strong {
   display: block;
   font-size: 0.9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
+/* The username and email under it. Still clipped rather than wrapped — an
+   address is long, secondary, and the row would double in height — but with
+   `min-height` so the line is never squeezed out of existence the way the
+   name above was. */
 .coe-admin-who small,
 .coe-admin-meta small {
   display: block;
+  min-height: 1em;
   font-size: 0.75rem;
-  opacity: 0.62;
+  opacity: 0.7;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

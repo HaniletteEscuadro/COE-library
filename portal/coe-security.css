@@ -301,6 +301,33 @@
   max-height: 560px;
   overflow-y: auto;
   padding-right: 4px;
+
+  /*
+   * Measured against its own width, not the window's.
+   *
+   * This card sits in a column of `.admin-split-grid`, so it can be 500px wide
+   * on a 1400px desktop. The `@media (max-width: 760px)` block at the bottom of
+   * this file never fires there, and the four-column row below gets squeezed —
+   * which is exactly how the account list next to it ended up rendering names
+   * of zero width. Same bug, so the same tool.
+   */
+  container-type: inline-size;
+  container-name: seclog;
+}
+
+@container seclog (max-width: 620px) {
+  /* icon + sentence on one line, tag and time on the next. */
+  .seclog-row {
+    grid-template-columns: 38px minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  .seclog-tag,
+  .seclog-when {
+    grid-column: 2;
+    justify-self: start;
+    text-align: left;
+  }
 }
 
 .seclog-row {
