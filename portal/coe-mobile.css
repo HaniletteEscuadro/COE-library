@@ -245,11 +245,30 @@
 
   /* --- 3. Material viewer ------------------------------------------------ */
 
-  /* Full screen on a phone. A centred dialog with margins wastes the third of
-     the screen a document reader most needs. */
+  /*
+   * Full screen on a phone, pinned to the viewport.
+   *
+   * A centred dialog with margins wastes the third of the screen a document
+   * reader most needs — but the important part here is `position: fixed` and
+   * `inset: 0`, stated explicitly rather than inherited from the base `.modal`
+   * rule.
+   *
+   * The dialog is authored deep inside the library panel, and `fixed` stops
+   * meaning "the viewport" the moment any ancestor gains a transform, filter,
+   * backdrop-filter or contain — at which point it anchors to that ancestor
+   * instead, and on a phone it opens somewhere down the page that you have to
+   * scroll back up to find. openMaterialDetail() now reparents it to <body>,
+   * which is the real fix; this says the same thing in CSS so that a rule
+   * added to the base `.modal` later cannot quietly undo it.
+   */
   #material-detail-modal.is-open {
+    position: fixed !important;
+    inset: 0 !important;
+    /* Above the mobile top bar (8000) and the nav drawer (9000). */
+    z-index: 9500 !important;
     padding: 0 !important;
     align-items: stretch !important;
+    justify-content: stretch !important;
   }
 
   #material-detail-modal.is-open .material-detail-content {

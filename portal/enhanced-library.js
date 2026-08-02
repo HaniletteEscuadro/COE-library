@@ -2462,12 +2462,36 @@ function openMaterialDetail(materialId) {
     // block container — which is why the viewer opened pinned to the top-left
     // corner instead of in the middle of the screen.
     const detailModal = document.getElementById('material-detail-modal');
+
+    /*
+     * Move the dialog to <body> before showing it.
+     *
+     * It is authored deep inside the library panel, and `position: fixed` only
+     * means "relative to the viewport" while no ancestor is a containing
+     * block. Any ancestor with a `transform`, `filter`, `backdrop-filter`,
+     * `perspective`, `will-change` or `contain` silently changes that — the
+     * dialog then anchors to that ancestor instead, so on a phone it opens
+     * wherever the library happens to be scrolled to and you have to scroll
+     * back up to find it. An ancestor with `overflow: hidden` can clip it, and
+     * an ancestor stacking context can bury it behind the page.
+     *
+     * Rather than audit every rule that touches every wrapper — and re-audit
+     * it each time one is added — the dialog is reparented to <body>, where
+     * none of those can reach it. This is the portal pattern, and it is why
+     * component libraries all do it.
+     *
+     * Moved once and left there: `appendChild` on an element already in place
+     * would still detach and re-insert it, which restarts CSS transitions and
+     * reloads any iframe inside.
+     */
+    if (detailModal.parentElement !== document.body) {
+        document.body.appendChild(detailModal);
+    }
+
     detailModal.style.display = 'flex';
     detailModal.classList.add('is-open');
 
-    // Lock the page behind it, or scrolling the preview scrolls the library
-    // underneath once the preview reaches its end.
-    document.body.classList.add('coe-modal-open');
+    lockBackgroundScroll();
 
     // Focus the dialog so Escape and Tab land inside it rather than on
     // whatever was focused in the list behind.
@@ -2478,6 +2502,49 @@ function openMaterialDetail(materialId) {
         // Start at the top: a reopened modal keeps its old scroll position.
         dialog.scrollTop = 0;
     }
+}
+
+/**
+ * Freeze the page behind the viewer, and remember where it was.
+ *
+ * `overflow: hidden` on <body> alone does not hold on iOS Safari — the page
+ * keeps rubber-banding behind the dialog, and on some versions the address bar
+ * collapsing mid-gesture scrolls it for real. Pinning the body with
+ * `position: fixed` at a negative offset is the technique that actually works
+ * there; the offset is what stops the page jumping to the top the moment the
+ * dialog opens.
+ *
+ * The class is kept as well, because other stylesheets hang rules off it.
+ */
+let savedScrollY = 0;
+
+function lockBackgroundScroll() {
+    if (document.body.classList.contains('coe-modal-open')) return;
+
+    savedScrollY = window.scrollY || window.pageYOffset || 0;
+
+    document.body.classList.add('coe-modal-open');
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedScrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+}
+
+function unlockBackgroundScroll() {
+    if (!document.body.classList.contains('coe-modal-open')) return;
+
+    document.body.classList.remove('coe-modal-open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+
+    // Back to exactly where they were. Without this the library jumps to the
+    // top every time a material is closed, which loses their place in a list
+    // they may have scrolled a long way down.
+    window.scrollTo(0, savedScrollY);
 }
 
 /**
@@ -2526,7 +2593,11 @@ function closeMaterialDetail() {
 
     modal.style.display = 'none';
     modal.classList.remove('is-open');
-    document.body.classList.remove('coe-modal-open');
+
+    // Releases the pin AND restores the scroll position it was holding. A bare
+    // classList.remove() here would leave <body> position:fixed at a negative
+    // top, which reads as the whole page having gone blank.
+    unlockBackgroundScroll();
 
     // Tear down the PDF, or its worker and page buffers stay alive behind a
     // closed dialog and its keyboard handler keeps answering arrow keys.

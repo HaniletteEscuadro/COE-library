@@ -205,6 +205,14 @@
   }
 
   body:not(.auth-body) .modal {
+    /* Pinned to the viewport, said out loud.
+       Every dialog in this portal is authored inside the panel it belongs to,
+       and `position: fixed` stops meaning "the viewport" as soon as any
+       ancestor gains a transform, filter or contain — the dialog then opens
+       wherever that ancestor is scrolled to, which on a phone means having to
+       scroll back up to find it. */
+    position: fixed !important;
+    inset: 0 !important;
     align-items: flex-end !important;
     padding: 0 !important;
   }
