@@ -52,9 +52,44 @@ Service → **Variables**:
 |---|---|---|
 | `DATABASE_URL` | `file:/var/data/coe.db` | database on the volume, not the container |
 | `STORAGE_DIR` | `/var/data/storage` | uploads on the volume |
+| `STORAGE_MAX_BYTES` | e.g. `100GB` | ceiling the app enforces — match it to the volume |
 | `NEXTAUTH_URL` | `https://<your-app>.up.railway.app` | session cookies and the Socket.IO CORS origin |
 | `NEXTAUTH_SECRET` | a long random string | signs the session JWTs |
 | `NODE_ENV` | `production` | |
+
+### How big can the library get?
+
+Two different numbers, and only one of them is in this repository.
+
+**The volume** is the real disk. Its size is set in Railway → the service →
+**Settings → Volumes**, it can be resized later, and it is what you are billed
+for. Railway's per-plan volume ceiling changes; check the current limit on your
+plan before promising anyone 100 GB.
+
+**`STORAGE_MAX_BYTES`** is a ceiling this app refuses to cross, so that a full
+library says so in a sentence instead of failing halfway through a write. It
+creates no space. Set it to the volume's size.
+
+Get them the wrong way round and the failure is confusing rather than
+dangerous: with a 100 GB ceiling on a 5 GB volume, uploads break at 5 GB while
+the error quotes 100 GB. The server prints a warning at boot when it can read
+the volume's real size and the two disagree.
+
+### Per-file size, and why it is not 100 GB
+
+`MAX_UPLOAD_FILE_MB` defaults to 250. That is a **memory** limit, not a disk
+one: the upload route reads each file into a Buffer to check its magic bytes
+and hash it, and Next has already materialised its own copy in `formData()`,
+so one upload peaks at roughly twice the file size in RAM.
+
+Raising it to a gigabyte does not give you gigabyte uploads — it gives you a
+container killed for running out of memory partway through one, which looks
+from the outside like the site restarting at random. Raise the container's
+memory first; budget about 3x the per-file limit.
+
+A library of 100 GB made of 250 MB files is fine. A single 4 GB video is not,
+and needs the upload route to stream to disk rather than buffer — a rewrite of
+the multipart handling, not a bigger number here.
 
 Generate a secret with:
 

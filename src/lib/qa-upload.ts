@@ -18,6 +18,7 @@
 
 import { validateUpload, UploadValidationError, formatFileSize } from "@/lib/upload";
 import { saveFile } from "@/lib/storage";
+import { assertCapacityFor } from "@/lib/quota";
 import type { QaAttachment } from "@/lib/qa";
 
 /** 12 MB — a phone photo of a whiteboard is about 4. */
@@ -46,6 +47,11 @@ export async function readQaAttachment(
       "TOO_LARGE",
     );
   }
+
+  // Q&A attachments share the volume with the library, so they answer to the
+  // same ceiling. A quota that only counted one of the two would be a quota
+  // the disk does not agree with.
+  await assertCapacityFor(entry.size);
 
   const buffer = Buffer.from(await entry.arrayBuffer());
 

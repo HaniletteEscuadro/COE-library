@@ -25,6 +25,7 @@ import {
   validateUpload,
 } from "@/lib/upload";
 import { removeFile, saveFile } from "@/lib/storage";
+import { assertCapacityFor } from "@/lib/quota";
 import { materialUploadSchema, formatZodError } from "@/lib/validation";
 import { getIpFromHeaders, getUserAgentFromHeaders } from "@/lib/security";
 
@@ -136,6 +137,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: error.message, code: error.code }, { status: 413 });
     }
     throw error;
+  }
+
+  /*
+   * Is there room for it?
+   *
+   * Before any bytes are written, so a refused batch leaves nothing on disk to
+   * clean up afterwards. Checked against the whole batch rather than per file,
+   * because half a batch landing and the rest failing at the ceiling is worse
+   * than the whole thing being refused with a number the uploader can act on.
+   */
+  try {
+    await assertCapacityFor(files.reduce((sum, file) => sum + file.size, 0));
+  } catch (error) {
+    return toErrorResponse(error);
   }
 
   const created: Array<{ id: string; title: string; sizeBytes: number }> = [];

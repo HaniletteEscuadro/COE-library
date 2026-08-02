@@ -24,6 +24,8 @@ import {
   type MaterialStatus,
 } from "@/lib/enums";
 import { ADMIN_ROLES, hasRole } from "@/lib/rbac";
+import { getStorageUsage } from "@/lib/quota";
+import { removeFile } from "@/lib/storage";
 
 /**
  * Joins needed to serialise a material for the wire. Kept as one constant so
@@ -693,6 +695,26 @@ export async function deleteMaterial(
 
   if (options.hard) {
     await prisma.material.delete({ where: { id } });
+
+    /*
+     * Remove the bytes too.
+     *
+     * This used to be left to the caller — the return value carried
+     * `storageKey` and a comment saying the caller "may want to clean up the
+     * stored file". No caller ever did, so a permanent delete removed the row
+     * and left the file on the volume for ever. On a library measured in tens
+     * of gigabytes that is how a disk fills up with material nobody can see,
+     * reach, or account for.
+     *
+     * Best effort: the row is already gone, so a failure here must not turn a
+     * completed delete into an error. It is logged instead, and
+     * `measureDiskUsage` in quota.ts is what surfaces the leftovers.
+     */
+    if (existing.storageKey) {
+      await removeFile(existing.storageKey).catch((error) => {
+        console.error("[library] deleted material but could not remove its file", id, error);
+      });
+    }
   } else {
     await prisma.material.update({ where: { id }, data: { deletedAt: new Date() } });
   }
@@ -716,8 +738,84 @@ export async function deleteMaterial(
     userAgent: actor.userAgent,
   });
 
-  // The caller may want to clean up the stored file on a hard delete.
-  return { id, storageKey: options.hard ? existing.storageKey : null };
+  /*
+   * The storage key is deliberately NOT returned any more.
+   *
+   * It used to be, and the route spread the result straight into its JSON —
+   * so a permanent delete answered with the file's internal on-disk path. That
+   * is the one value the rest of this module goes out of its way to keep
+   * server-side (see the note on `toRealtimeMaterial`), handed to the client by
+   * the one function that had no reason to.
+   */
+  return { id, hard: Boolean(options.hard) };
+}
+
+/**
+ * Reclaim the space held by materials that were deleted a while ago.
+ *
+ * A soft delete keeps the row — the audit trail should still make sense — and
+ * keeps the file, because a soft delete is meant to be reversible. Nothing
+ * reverses one today, so without this the bytes are unreachable and permanent:
+ * the library reports free space it does not have, and the volume fills with
+ * material no page can show.
+ *
+ * `olderThanDays` is the grace period. Deleting something by accident and
+ * noticing a week later is common; this is what makes that recoverable from a
+ * backup rather than from nothing at all.
+ *
+ * @returns how many rows were purged and how many bytes came back
+ */
+export async function purgeDeletedMaterials(
+  olderThanDays: number,
+  actor: ActorContext & { role?: string | null },
+) {
+  if (!canModerate(actor.role)) {
+    throw new UserServiceError("Only administrators can purge deleted materials.", 403);
+  }
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - Math.max(0, olderThanDays));
+
+  const rows = await prisma.material.findMany({
+    where: { deletedAt: { not: null, lt: cutoff } },
+    select: { id: true, storageKey: true, sizeBytes: true, title: true },
+  });
+
+  let bytes = 0;
+  let purged = 0;
+
+  for (const row of rows) {
+    // File first, then the row. The other order can leave a row pointing at
+    // nothing if the process dies between the two, which is the shape that
+    // makes a library list materials that 404.
+    if (row.storageKey) {
+      await removeFile(row.storageKey).catch((error) => {
+        console.error("[library] purge could not remove", row.storageKey, error);
+      });
+    }
+
+    await prisma.material.delete({ where: { id: row.id } }).then(
+      () => {
+        purged += 1;
+        bytes += row.sizeBytes;
+      },
+      (error) => console.error("[library] purge could not delete row", row.id, error),
+    );
+  }
+
+  await recordAuditLog({
+    actorId: actor.actorId,
+    action: "DELETE",
+    entity: "BOOK",
+    message: `Purged ${purged} material(s) deleted more than ${olderThanDays} days ago`,
+    ipAddress: actor.ipAddress,
+    userAgent: actor.userAgent,
+    metadata: { purged, bytes },
+  });
+
+  await broadcastLibraryStats();
+
+  return { purged, bytes };
 }
 
 /** Restore a soft-deleted material. */
@@ -849,6 +947,12 @@ export async function getLibraryStats() {
       }),
     ]);
 
+  // How full the library is. Carried on the stats payload rather than behind
+  // its own endpoint because it belongs beside the other library counters, and
+  // because the tiles that show them are refreshed on every material change
+  // anyway — which is exactly when the number moves.
+  const storage = await getStorageUsage();
+
   return {
     totalMaterials,
     pdfs,
@@ -858,6 +962,10 @@ export async function getLibraryStats() {
     totalDownloads: totals._sum.downloadCount ?? 0,
     totalViews: totals._sum.viewCount ?? 0,
     pendingApprovals,
+    storageUsedBytes: storage.usedBytes,
+    storageCapacityBytes: storage.capacityBytes,
+    storageFreeBytes: storage.freeBytes,
+    storagePercentUsed: storage.percentUsed,
   };
 }
 

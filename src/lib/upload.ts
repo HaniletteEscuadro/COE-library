@@ -24,9 +24,43 @@ import { extname } from "path";
 // Limits
 // ---------------------------------------------------------------------------
 
-export const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB per file
-export const MAX_FILES_PER_UPLOAD = 20;
-export const MAX_TOTAL_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB per batch
+/**
+ * Per-file and per-batch limits.
+ *
+ * THESE ARE MEMORY LIMITS, NOT DISK LIMITS
+ * ----------------------------------------
+ * How much the library can *hold* is a separate question, answered by
+ * `src/lib/quota.ts` and by the size of the mounted volume. These three
+ * numbers are bounded by something else entirely: the upload route reads each
+ * file with `Buffer.from(await file.arrayBuffer())`, so a file is fully
+ * resident in RAM while it is validated, hashed and written — and Next has
+ * already materialised its own copy inside `formData()` before that. Peak
+ * memory for one upload is therefore roughly **twice the file size**, and a
+ * batch is the sum of the files in it.
+ *
+ * So raising MAX_FILE_BYTES to a gigabyte does not give you gigabyte uploads.
+ * It gives you a container that is killed for running out of memory partway
+ * through one, which looks to a student like the site randomly restarting.
+ *
+ * 250 MB is the default because it fits a full lecture recording while leaving
+ * headroom on a 1 GB container with a few concurrent uploads. Raise it with
+ * `MAX_UPLOAD_FILE_MB` only after raising the container's memory to match —
+ * budget about 3x the per-file limit.
+ *
+ * Accepting files larger than RAM needs the route to stream to disk instead of
+ * buffering, which is a rewrite of the multipart handling rather than a
+ * different number here.
+ */
+function envMegabytes(name: string, fallbackMb: number) {
+  const raw = Number(process.env[name]);
+  return (Number.isFinite(raw) && raw > 0 ? raw : fallbackMb) * 1024 * 1024;
+}
+
+export const MAX_FILE_BYTES = envMegabytes("MAX_UPLOAD_FILE_MB", 250);
+export const MAX_FILES_PER_UPLOAD = Number(process.env.MAX_UPLOAD_FILES) > 0
+  ? Number(process.env.MAX_UPLOAD_FILES)
+  : 40;
+export const MAX_TOTAL_UPLOAD_BYTES = envMegabytes("MAX_UPLOAD_BATCH_MB", 1024);
 
 /**
  * Allowed types, keyed by canonical MIME.

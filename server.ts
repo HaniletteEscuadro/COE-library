@@ -18,7 +18,7 @@
 import "dotenv/config";
 
 import { createHash } from "crypto";
-import { existsSync } from "fs";
+import { existsSync, statfs } from "fs";
 import { createServer } from "http";
 import { dirname, join, relative, resolve, isAbsolute } from "path";
 import next from "next";
@@ -273,6 +273,20 @@ function assertDurableStorage() {
     );
   }
 
+  /*
+   * Does the ceiling fit the volume?
+   *
+   * `STORAGE_MAX_BYTES` is what the app refuses to exceed; the volume is what
+   * actually exists. Setting the first to 100 GB on a 5 GB volume produces a
+   * library that fills up at 5 GB and an error message quoting 100 GB, which
+   * sends whoever reads it looking in the wrong place entirely.
+   *
+   * A warning, not a refusal: the app is perfectly correct in this state, it
+   * is only the operator's expectation that is wrong, and refusing to boot
+   * over an expectation would be worse than saying so.
+   */
+  warnIfCapacityExceedsVolume(storageRoot);
+
   if (problems.length === 0) return;
 
   console.error(
@@ -284,6 +298,77 @@ function assertDurableStorage() {
       `  ALLOW_EPHEMERAL_STORAGE=true.\n`,
   );
   process.exit(1);
+}
+
+/**
+ * Compare the configured ceiling against the real free space on the volume.
+ *
+ * `statfs` is the only way to ask "how big is this filesystem" from Node, and
+ * it is not available on every platform — so every failure here is swallowed.
+ * This is a courtesy message; it must never be the reason a deploy does not
+ * start.
+ */
+function warnIfCapacityExceedsVolume(storageRoot: string) {
+  try {
+    const capacity = parseCapacityHere(process.env.STORAGE_MAX_BYTES);
+    // The volume, not the directory: storage/ may not exist until the first
+    // upload, but the mount point it sits on does.
+    const target = existsSync(storageRoot) ? storageRoot : dirname(storageRoot);
+
+    if (!existsSync(target)) return;
+
+    statfs(target, (error, stats) => {
+      if (error || !stats) return;
+
+      const volumeBytes = stats.blocks * stats.bsize;
+      if (volumeBytes <= 0 || capacity <= volumeBytes) return;
+
+      console.warn(
+        `\n  STORAGE_MAX_BYTES is larger than the volume it sits on.\n` +
+          `      configured ceiling  ${formatGb(capacity)}\n` +
+          `      volume at ${target}  ${formatGb(volumeBytes)}\n` +
+          `    Uploads will start failing at ${formatGb(volumeBytes)}, with an error\n` +
+          `    quoting the ceiling. Resize the volume in the host's dashboard, or\n` +
+          `    lower STORAGE_MAX_BYTES to match what is really there.\n`,
+      );
+    });
+  } catch {
+    // Not supported here. The app is unaffected.
+  }
+}
+
+function formatGb(bytes: number) {
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+/**
+ * A local copy of `parseCapacity` from `src/lib/quota.ts`.
+ *
+ * Duplicated rather than imported, for the same reason `CHAT_CHANNELS` lives
+ * in `realtime.ts` instead of `chat.ts`: quota.ts imports prisma and
+ * `lib/users`, and `lib/users` reaches `lib/security` and then `next/server`.
+ * Pulling that chain into the custom server crashes it on boot with
+ * "AsyncLocalStorage accessed in runtime where it is not available".
+ *
+ * Nine lines of pure string parsing is a cheaper price than that. If the
+ * accepted formats ever change, both copies change — hence this note in each.
+ */
+function parseCapacityHere(value: string | undefined | null): number {
+  const DEFAULT = 100 * 1024 ** 3;
+  const raw = String(value ?? "").trim();
+  if (!raw) return DEFAULT;
+
+  const match = raw.match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb|tb)?$/i);
+  if (!match) return DEFAULT;
+
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return DEFAULT;
+
+  const unit = (match[2] ?? "b").toLowerCase();
+  const multiplier =
+    unit === "tb" ? 1024 ** 4 : unit === "gb" ? 1024 ** 3 : unit === "mb" ? 1024 ** 2 : unit === "kb" ? 1024 : 1;
+
+  return Math.floor(amount * multiplier);
 }
 
 function assertProductionConfig() {

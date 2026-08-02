@@ -129,6 +129,17 @@ export type RealtimeLibraryStats = {
   totalDownloads: number;
   totalViews: number;
   pendingApprovals: number;
+  /**
+   * How full the library is.
+   *
+   * Broadcast with the rest so the usage tile moves the moment somebody
+   * uploads, rather than at the next page load — a storage figure that is
+   * stale is a storage figure nobody trusts.
+   */
+  storageUsedBytes: number;
+  storageCapacityBytes: number;
+  storageFreeBytes: number;
+  storagePercentUsed: number;
 };
 
 /** An announcement as broadcast to the board. */
