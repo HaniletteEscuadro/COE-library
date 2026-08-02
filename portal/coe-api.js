@@ -393,12 +393,27 @@
      * browser still showed 518 materials, because its session died with the
      * data and every sync since had 401'd without touching the cache.
      */
+    /*
+     * Three of these names were wrong, so three caches survived sign-out.
+     *
+     * `coeQaQuestions` and `coeTasks` are not keys anything writes — the real
+     * ones are `coeQAHubQuestions`, `coeQAHubAnswers` and `coeLearningTasks`.
+     * A removeItem on a key that does not exist succeeds silently, so the list
+     * looked complete and the Q&A board and the task list were left in place
+     * for whoever opened the browser next. Exactly the leak the comment above
+     * describes, in the code meant to prevent it.
+     *
+     * Every name here is one a `localStorage.setItem` elsewhere actually uses.
+     */
     const SESSION_CACHE_KEYS = [
         'coeLearningFiles',      // the library list
-        'coeQaQuestions',        // Q&A board
+        'coeQAHubQuestions',     // Q&A board
+        'coeQAHubAnswers',       // Q&A answers, including held ones
         'coeChatMessages',       // chat threads
         'coeAnnouncements',
-        'coeTasks'
+        'coeLearningTasks',
+        'coeMyCalendar',         // the signed-in account's private calendar
+        'coeStudentVoiceConcerns'
     ];
 
     function clearSessionCaches() {

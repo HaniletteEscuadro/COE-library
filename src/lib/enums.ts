@@ -37,6 +37,21 @@ export const USER_ROLES = [
    */
   "ORG_OFFICER_PICE",
   "ORG_OFFICER_IIEE",
+  /**
+   * COE Student Council officer.
+   *
+   * Added for Student Voice: a concern names the student who raised it, and the
+   * two bodies that are meant to see that name are the administrators and the
+   * council — the council being the body students elected to carry their
+   * concerns. Faculty are deliberately not among them, because a concern is
+   * frequently *about* a lecturer.
+   *
+   * Like the other two officer roles this is NOT in ADMIN_ROLES: it grants
+   * exactly one thing, `canSeeConcernIdentity` in `src/lib/concerns.ts`, plus
+   * the concern moderation that goes with it. It confers no library upload, no
+   * admin dashboard, and no account management.
+   */
+  "ORG_OFFICER_COESC",
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];

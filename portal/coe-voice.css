@@ -1,0 +1,1245 @@
+/**
+ * Student Voice — "Your Voice Matters".
+ *
+ * Its own stylesheet, loaded after the base sheets, because the section was
+ * rebuilt around a different set of class names. Anything still using the old
+ * ones (`.voice-command-card`, `.dashboard-card`, `.board-header`) is styled by
+ * styles.css and simply no longer appears in the markup.
+ *
+ * WHAT THIS IS FIXING
+ * -------------------
+ * The screen was three stacked grids of small tiles — four "command" cards,
+ * then four more "dashboard" cards saying almost the same thing, then a chart,
+ * then the list — at roughly 0.8rem. On a phone it was a column of twelve
+ * boxes before a single concern was visible.
+ *
+ * So: one row of four figures, one card per job, and body text at a size that
+ * can be read at arm's length. Everything is one column below 900px.
+ *
+ * Colours use the portal's custom properties with literal fallbacks — there is
+ * a light and a dark theme, and a hard-coded panel is unreadable in one.
+ */
+
+/* ---------------------------------------------------------------------------
+   Shell
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-container {
+  display: grid;
+  gap: 18px;
+  /* A measure, not the full width of a 27" monitor. Long lines of body text
+     are the main reason a feedback page reads as heavy. */
+  max-width: 1180px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.student-voice-section .voice-card {
+  padding: 26px 28px;
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+  min-width: 0;
+}
+
+.student-voice-section .voice-card-head {
+  margin-bottom: 20px;
+}
+
+.student-voice-section .voice-card-head h2 {
+  margin: 0 0 6px;
+  font-size: 1.32rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.student-voice-section .voice-card-head p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   Hero
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 24px;
+  align-items: center;
+  padding: 30px 32px;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.14), rgba(29, 78, 216, 0.03));
+}
+
+.student-voice-section .voice-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+}
+
+.student-voice-section .voice-hero h1 {
+  margin: 0 0 10px;
+  /* Fluid: 1.7rem on a phone up to 2.4rem on a desktop, without a breakpoint. */
+  font-size: clamp(1.7rem, 1.1rem + 2.2vw, 2.4rem);
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.student-voice-section .voice-hero-copy p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+}
+
+.student-voice-section .voice-hero-badge {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(29, 78, 216, 0.26);
+  background: var(--surface-card, rgba(255, 255, 255, 0.06));
+}
+
+.student-voice-section .voice-hero-badge .material-icons {
+  font-size: 30px;
+  color: #1d4ed8;
+  flex: 0 0 auto;
+}
+
+.student-voice-section .voice-hero-badge strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.98rem;
+}
+
+.student-voice-section .voice-hero-badge small {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   Summary figures
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.student-voice-section .voice-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+  min-width: 0;
+}
+
+.student-voice-section .voice-stat .material-icons {
+  font-size: 28px;
+  color: var(--text-secondary, #64748b);
+  flex: 0 0 auto;
+}
+
+.student-voice-section .voice-stat strong {
+  display: block;
+  /* The number is the thing. It was 1rem and lost among four labels. */
+  font-size: 2rem;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+.student-voice-section .voice-stat small {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.student-voice-section .voice-stat.is-pending .material-icons { color: #b45309; }
+.student-voice-section .voice-stat.is-public .material-icons { color: #1d4ed8; }
+.student-voice-section .voice-stat.is-done .material-icons { color: #15803d; }
+
+/* ---------------------------------------------------------------------------
+   Tabs
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+}
+
+.student-voice-section .voice-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 0;
+  /* 48px. This is the control that switches between the two halves of the
+     page, and it was a 30px text link. */
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-family: inherit;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-voice-section .voice-tab-btn .material-icons {
+  font-size: 20px;
+}
+
+.student-voice-section .voice-tab-btn.active {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.student-voice-section .voice-tab-content {
+  display: none;
+}
+
+.student-voice-section .voice-tab-content.active {
+  display: block;
+}
+
+/* ---------------------------------------------------------------------------
+   The form
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-form {
+  display: grid;
+  gap: 18px;
+  max-width: 720px;
+}
+
+.student-voice-section .voice-field {
+  display: grid;
+  gap: 7px;
+}
+
+.student-voice-section .voice-field label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.student-voice-section .voice-field input,
+.student-voice-section .voice-field select,
+.student-voice-section .voice-field textarea {
+  width: 100%;
+  /* 16px minimum: below that, iOS Safari zooms the viewport in on focus and
+     does not zoom back out. */
+  min-height: 50px;
+  padding: 13px 15px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  border-radius: 12px;
+  background: var(--surface-input, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary, inherit);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  box-sizing: border-box;
+}
+
+.student-voice-section .voice-field textarea {
+  min-height: 170px;
+  resize: vertical;
+}
+
+.student-voice-section .voice-field :is(input, select, textarea):focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 1px;
+  border-color: #1d4ed8;
+}
+
+.student-voice-section .voice-privacy-note {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 15px 17px;
+  border-radius: 12px;
+  border: 1px solid rgba(29, 78, 216, 0.22);
+  background: rgba(29, 78, 216, 0.07);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.student-voice-section .voice-privacy-note .material-icons {
+  font-size: 20px;
+  color: #1d4ed8;
+  flex: 0 0 auto;
+}
+
+.student-voice-section .voice-form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.student-voice-section .voice-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 12px;
+  background: #1d4ed8;
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.student-voice-section .voice-submit:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.student-voice-section .voice-reset {
+  min-height: 50px;
+  padding: 0 22px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-voice-section .voice-success {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  padding: 17px 19px;
+  border-radius: 12px;
+  border: 1px solid rgba(21, 128, 61, 0.3);
+  background: rgba(21, 128, 61, 0.09);
+}
+
+.student-voice-section .voice-success.hidden {
+  display: none;
+}
+
+.student-voice-section .voice-success .material-icons {
+  color: #15803d;
+  font-size: 24px;
+}
+
+.student-voice-section .voice-success strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.student-voice-section .voice-success span {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   Board
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-board-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.student-voice-section .voice-chart {
+  display: grid;
+  gap: 14px;
+}
+
+.student-voice-section .voice-chart-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: center;
+  font-size: 0.92rem;
+}
+
+.student-voice-section .voice-chart-track {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.18));
+  overflow: hidden;
+}
+
+.student-voice-section .voice-chart-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #1d4ed8;
+}
+
+.student-voice-section .voice-chart-fill.pending { background: #d97706; }
+.student-voice-section .voice-chart-fill.approved { background: #1d4ed8; }
+.student-voice-section .voice-chart-fill.addressed { background: #15803d; }
+
+.student-voice-section .voice-chart-row strong {
+  text-align: right;
+  font-size: 1.05rem;
+}
+
+.student-voice-section .voice-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+
+.student-voice-section .voice-mini {
+  min-width: 0;
+}
+
+.student-voice-section .voice-mini.is-wide {
+  grid-column: 1 / -1;
+}
+
+.student-voice-section .voice-mini small {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.student-voice-section .voice-mini strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.student-voice-section .voice-mini.is-wide strong {
+  font-size: 1.05rem;
+}
+
+/* --- Filters --- */
+
+.student-voice-section .voice-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.student-voice-section .filter-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.28));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-voice-section .filter-btn.active {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+}
+
+/* --- Groups and cards --- */
+
+.student-voice-section .concerns-list {
+  display: grid;
+  gap: 14px;
+}
+
+.student-voice-section .concern-group {
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.student-voice-section .concern-group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.09));
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.student-voice-section .concern-group-list {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.student-voice-section .concern-card {
+  padding: 20px 22px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: var(--surface-card, rgba(255, 255, 255, 0.03));
+}
+
+.student-voice-section .concern-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 11px;
+}
+
+.student-voice-section .concern-title {
+  margin: 0 0 9px;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.student-voice-section .concern-description {
+  margin: 0;
+  font-size: 0.97rem;
+  line-height: 1.65;
+  color: var(--text-secondary, #475569);
+  /* Long words and pasted URLs must not push the card sideways. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.student-voice-section .concern-response {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-left: 3px solid #15803d;
+  border-radius: 0 10px 10px 0;
+  background: rgba(21, 128, 61, 0.08);
+}
+
+.student-voice-section .concern-response strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 0.86rem;
+  color: #15803d;
+}
+
+.student-voice-section .concern-response .material-icons {
+  font-size: 17px;
+}
+
+.student-voice-section .concern-response p {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.student-voice-section .concern-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.16));
+  font-size: 0.82rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.student-voice-section .concern-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.student-voice-section .concern-meta .material-icons {
+  font-size: 16px;
+}
+
+/* --- Badges --- */
+
+.student-voice-section :is(.concern-category, .concern-status) {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.student-voice-section .concern-category {
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text-primary, #0f172a);
+}
+
+.student-voice-section .category-academic { background: rgba(29, 78, 216, 0.15); color: #1d4ed8; }
+.student-voice-section .category-library { background: rgba(126, 34, 206, 0.15); color: #7e22ce; }
+.student-voice-section .category-facilities { background: rgba(180, 83, 9, 0.16); color: #b45309; }
+.student-voice-section .category-support { background: rgba(21, 128, 61, 0.15); color: #15803d; }
+.student-voice-section .category-general { background: rgba(100, 116, 139, 0.18); color: #475569; }
+
+.student-voice-section .status-pending { background: rgba(217, 119, 6, 0.16); color: #b45309; }
+.student-voice-section .status-approved { background: rgba(29, 78, 216, 0.15); color: #1d4ed8; }
+.student-voice-section .status-addressed { background: rgba(21, 128, 61, 0.15); color: #15803d; }
+
+.student-voice-section .empty-concerns {
+  margin: 0;
+  padding: 34px 20px;
+  border-radius: 12px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.07));
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   The administrator's queue (inside the admin panel)
+   --------------------------------------------------------------------------- */
+
+.voice-admin-privacy {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(180, 83, 9, 0.26);
+  background: rgba(180, 83, 9, 0.08);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #b45309;
+}
+
+.voice-admin-privacy .material-icons {
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+
+.admin-concern-card {
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--surface-card, rgba(255, 255, 255, 0.03));
+}
+
+.admin-concern-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.admin-concern-headline {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.admin-concern-headline h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* The identity row. Marked out rather than blended in — an administrator has
+   to be able to tell at a glance which part of this card the student cannot
+   see. */
+.admin-concern-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(180, 83, 9, 0.09);
+  font-size: 0.84rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.admin-concern-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.admin-concern-author small {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.admin-concern-identity .material-icons {
+  font-size: 16px;
+}
+
+.admin-concern-identity .concern-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.admin-concern-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.voice-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* 42px and labelled. These were 30px icon-only buttons whose only
+     explanation was a `title` attribute — which never appears on a touch
+     screen, so on a phone they were four unlabelled squares. */
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.voice-act .material-icons {
+  font-size: 18px;
+}
+
+.voice-act.is-approve { border-color: rgba(29, 78, 216, 0.4); color: #1d4ed8; }
+.voice-act.is-addressed { border-color: rgba(21, 128, 61, 0.4); color: #15803d; }
+.voice-act.is-reject { border-color: rgba(185, 28, 28, 0.4); color: #b91c1c; }
+
+.voice-act:hover,
+.voice-act:active {
+  background: var(--surface-hover, rgba(148, 163, 184, 0.12));
+}
+
+.voice-admin-live-alert {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(217, 119, 6, 0.32);
+  background: rgba(217, 119, 6, 0.1);
+}
+
+.voice-admin-live-alert .material-icons {
+  color: #b45309;
+  flex: 0 0 auto;
+}
+
+.voice-admin-live-alert div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.voice-admin-live-alert strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.voice-admin-live-alert p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #64748b);
+  overflow-wrap: anywhere;
+}
+
+.voice-admin-live-alert button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #b45309;
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.voice-tab-badge.is-zero {
+  opacity: 0.45;
+}
+
+/* --- The review dialog --- */
+
+.concern-detail-content .concern-detail-info {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.concern-detail-content .detail-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  font-size: 0.94rem;
+}
+
+.concern-detail-content .detail-row label {
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+}
+
+.concern-detail-content .detail-row-block {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.concern-detail-content .detail-row-block div {
+  padding: 13px 15px;
+  border-radius: 10px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.09));
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.concern-detail-content .detail-row-author span {
+  font-weight: 800;
+  color: #b45309;
+}
+
+.concern-detail-content .concern-admin-actions {
+  display: grid;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+}
+
+.concern-detail-content :is(.status-section, .response-section) {
+  display: grid;
+  gap: 7px;
+}
+
+.concern-detail-content :is(.status-section, .response-section) label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.concern-detail-content :is(select, textarea) {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  border-radius: 10px;
+  background: var(--surface-input, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary, inherit);
+  font-family: inherit;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.concern-detail-content textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.concern-detail-content .modal-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.concern-detail-content .modal-buttons .setting-btn {
+  min-height: 46px;
+  padding: 0 22px;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme
+   --------------------------------------------------------------------------- */
+
+body.dark-theme .student-voice-section .voice-hero,
+:root[data-theme="dark"] .student-voice-section .voice-hero {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.16), rgba(96, 165, 250, 0.03));
+}
+
+body.dark-theme .student-voice-section :is(.voice-eyebrow, .voice-hero-badge .material-icons),
+:root[data-theme="dark"] .student-voice-section :is(.voice-eyebrow, .voice-hero-badge .material-icons) {
+  color: #93c5fd;
+}
+
+body.dark-theme .student-voice-section .voice-tab-btn.active,
+body.dark-theme .student-voice-section .filter-btn.active,
+body.dark-theme .student-voice-section .voice-submit,
+:root[data-theme="dark"] .student-voice-section .voice-tab-btn.active,
+:root[data-theme="dark"] .student-voice-section .filter-btn.active,
+:root[data-theme="dark"] .student-voice-section .voice-submit {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+body.dark-theme .student-voice-section .concern-description,
+:root[data-theme="dark"] .student-voice-section .concern-description {
+  color: #cbd5e1;
+}
+
+body.dark-theme :is(.voice-admin-privacy, .admin-concern-author),
+:root[data-theme="dark"] :is(.voice-admin-privacy, .admin-concern-author) {
+  color: #fbbf24;
+}
+
+body.dark-theme .concern-detail-content .detail-row-author span,
+:root[data-theme="dark"] .concern-detail-content .detail-row-author span {
+  color: #fbbf24;
+}
+
+/* ---------------------------------------------------------------------------
+   Phones
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .student-voice-section .voice-hero {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 22px 20px;
+    gap: 18px;
+  }
+
+  .student-voice-section .voice-card {
+    padding: 20px 18px;
+  }
+
+  /* Two across, not four. Four figures on a 375px screen is 80px each, which
+     is narrower than the word "Waiting for review". */
+  .student-voice-section .voice-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-voice-section .voice-stat {
+    padding: 15px;
+    gap: 11px;
+  }
+
+  .student-voice-section .voice-stat strong {
+    font-size: 1.6rem;
+  }
+
+  .student-voice-section .voice-board-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .student-voice-section .voice-chart-row {
+    grid-template-columns: 78px minmax(0, 1fr) 36px;
+    font-size: 0.86rem;
+  }
+
+  .student-voice-section .voice-tab-btn {
+    font-size: 0.88rem;
+    padding: 0 8px;
+  }
+
+  .student-voice-section .voice-form-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .student-voice-section .voice-submit,
+  .student-voice-section .voice-reset {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .student-voice-section .concern-card {
+    padding: 16px;
+  }
+
+  /* Full-width action buttons: four 42px pills wrapping onto three lines is
+     harder to hit than four rows. */
+  .admin-concern-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .voice-act {
+    justify-content: center;
+  }
+
+  .voice-admin-live-alert {
+    flex-wrap: wrap;
+  }
+
+  .voice-admin-live-alert button {
+    width: 100%;
+  }
+
+  .concern-detail-content .detail-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .concern-detail-content .modal-buttons .setting-btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   CONSENT, PRIVATE CATEGORIES, AND THE REPLY ADDRESS
+   ---------------------------------------------------------------------------
+   Three things the board did not have before:
+
+     * a consent notice the student reads and ticks before sending, because the
+       concern now carries their name;
+     * an email box that appears only for the categories answered privately;
+     * and, on the reviewer's side, the marks that say "this one is never
+       published" and "here is where to reply".
+
+   The consent block is deliberately the heaviest thing on the form. It is the
+   one part a student must actually read.
+   --------------------------------------------------------------------------- */
+
+.student-voice-section .voice-consent {
+  padding: 20px 22px;
+  border-radius: 14px;
+  border: 1px solid rgba(29, 78, 216, 0.28);
+  background: rgba(29, 78, 216, 0.06);
+}
+
+.student-voice-section .voice-consent-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.student-voice-section .voice-consent-head .material-icons {
+  font-size: 21px;
+  color: #1d4ed8;
+}
+
+.student-voice-section .voice-consent-list {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  font-size: 0.91rem;
+  line-height: 1.55;
+  color: var(--text-secondary, #475569);
+}
+
+.student-voice-section .voice-consent-list strong {
+  color: var(--text-primary, #0f172a);
+}
+
+.student-voice-section .voice-consent-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: 11px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  background: var(--surface-card, rgba(255, 255, 255, 0.06));
+  font-size: 0.92rem;
+  line-height: 1.5;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-voice-section .voice-consent-check input[type="checkbox"] {
+  /* 22px. This is the control the whole arrangement turns on, and a 13px
+     default checkbox is not a tap target. */
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #1d4ed8;
+  cursor: pointer;
+}
+
+/* --- The conditional email field --- */
+
+.student-voice-section .voice-required {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(180, 83, 9, 0.16);
+  color: #b45309;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.student-voice-section .voice-field-hint {
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #64748b);
+}
+
+.student-voice-section .voice-field-email[hidden] {
+  display: none;
+}
+
+/* --- The board's explanation of what is missing from it --- */
+
+.student-voice-section .voice-board-note {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(180, 83, 9, 0.24);
+  background: rgba(180, 83, 9, 0.07);
+  font-size: 0.89rem;
+  line-height: 1.55;
+}
+
+.student-voice-section .voice-board-note .material-icons {
+  font-size: 20px;
+  color: #b45309;
+  flex: 0 0 auto;
+}
+
+/* --- The reviewer's side --- */
+
+.admin-concern-card.is-private {
+  border-left: 3px solid #b45309;
+}
+
+.admin-concern-mail,
+.admin-concern-private,
+.admin-concern-noconsent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.admin-concern-mail {
+  color: #1d4ed8;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.admin-concern-mail:hover {
+  text-decoration: underline;
+}
+
+.admin-concern-private {
+  color: #b45309;
+}
+
+.admin-concern-noconsent {
+  color: #b91c1c;
+}
+
+.admin-concern-mail .material-icons,
+.admin-concern-private .material-icons,
+.admin-concern-noconsent .material-icons {
+  font-size: 16px;
+}
+
+.concern-detail-content .detail-row-contact a {
+  color: #1d4ed8;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.concern-detail-content .detail-private-hint {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 9px 0 0;
+  padding: 11px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(180, 83, 9, 0.26);
+  background: rgba(180, 83, 9, 0.08);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #b45309;
+}
+
+.concern-detail-content .detail-private-hint[hidden] {
+  display: none;
+}
+
+.concern-detail-content .detail-private-hint .material-icons {
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+
+/* --- Dark theme --- */
+
+body.dark-theme .student-voice-section .voice-consent,
+:root[data-theme="dark"] .student-voice-section .voice-consent {
+  border-color: rgba(96, 165, 250, 0.32);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+body.dark-theme .student-voice-section .voice-consent-head .material-icons,
+body.dark-theme .admin-concern-mail,
+:root[data-theme="dark"] .student-voice-section .voice-consent-head .material-icons,
+:root[data-theme="dark"] .admin-concern-mail {
+  color: #93c5fd;
+}
+
+body.dark-theme .student-voice-section .voice-consent-list strong,
+:root[data-theme="dark"] .student-voice-section .voice-consent-list strong {
+  color: #e8eef6;
+}
+
+body.dark-theme :is(.admin-concern-private, .student-voice-section .voice-board-note .material-icons,
+                    .concern-detail-content .detail-private-hint, .student-voice-section .voice-required),
+:root[data-theme="dark"] :is(.admin-concern-private, .student-voice-section .voice-board-note .material-icons,
+                    .concern-detail-content .detail-private-hint, .student-voice-section .voice-required) {
+  color: #fbbf24;
+}
+
+@media (max-width: 900px) {
+  .student-voice-section .voice-consent {
+    padding: 16px;
+  }
+
+  .student-voice-section .voice-consent-list {
+    padding-left: 18px;
+    font-size: 0.88rem;
+  }
+}

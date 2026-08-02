@@ -48,6 +48,9 @@
         { value: 'REGISTRAR', label: 'Registrar' },
         { value: 'ORG_OFFICER_PICE', label: 'PICE Officer' },
         { value: 'ORG_OFFICER_IIEE', label: 'IIEE Officer' },
+        // Sees who raised a Student Voice concern, and moderates the board.
+        // Nothing else — not the admin dashboard, not library uploads.
+        { value: 'ORG_OFFICER_COESC', label: 'COESC Officer' },
         { value: 'ADMIN', label: 'Admin' },
         { value: 'USER', label: 'Unassigned' }
     ];
