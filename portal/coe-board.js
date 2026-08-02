@@ -104,6 +104,81 @@
         });
     }
 
+    /**
+     * Take one off the board, for everyone.
+     *
+     * The portal's own delete only ever spliced the row out of the in-memory
+     * array and rewrote `coeAnnouncements`. That looked right for about a
+     * second: the card vanished, and the next `syncAnnouncements()` — a socket
+     * event, a page change, anything — refetched the server's list and put it
+     * straight back. An administrator could press Delete all afternoon and the
+     * board would not change for anybody, themselves included.
+     *
+     * The server soft-deletes and broadcasts `announcement:deleted`, so every
+     * open browser refreshes from the same list rather than each patching its
+     * own copy.
+     */
+    function deleteAnnouncement(id) {
+        return global.CoeApi.del('/api/announcements/' + encodeURIComponent(id));
+    }
+
+    /**
+     * Clear notices published before `beforeIso`.
+     *
+     * There is no bulk endpoint, so this is a loop of single deletes. That is a
+     * deliberate choice rather than a shortcut: each one goes through the same
+     * permission check and writes its own audit-log row, so "who cleared the
+     * board and when" is answerable afterwards. A college board is tens of
+     * notices, not thousands, and the sweep is bounded by what one page holds.
+     *
+     * Sequential, not parallel — twenty concurrent writes against one SQLite
+     * file is how you get `SQLITE_BUSY`, and this is not a hot path.
+     *
+     * @returns {Promise<{cleared: number, failed: number}>}
+     */
+    function clearAnnouncementsBefore(beforeIso) {
+        const cutoff = new Date(beforeIso).getTime();
+
+        if (Number.isNaN(cutoff)) {
+            return Promise.reject(new Error('Invalid cut-off date.'));
+        }
+
+        return global.CoeApi.get('/api/announcements?pageSize=100')
+            .then(function (result) {
+                const rows = (result && result.announcements) || [];
+
+                // Pinned notices survive. Pinning is the explicit signal that
+                // something should stay up, and a date sweep that ignored it
+                // would take the one notice the admin most meant to keep.
+                const stale = rows.filter(function (row) {
+                    if (row.pinned) return false;
+                    const posted = new Date(row.publishedAt || row.createdAt || 0).getTime();
+                    return !Number.isNaN(posted) && posted < cutoff;
+                });
+
+                let cleared = 0;
+                let failed = 0;
+
+                return stale.reduce(function (chain, row) {
+                    return chain.then(function () {
+                        return deleteAnnouncement(row.id)
+                            .then(function () { cleared += 1; })
+                            .catch(function (error) {
+                                // One refusal must not strand the rest. A 403
+                                // here means this account may not delete that
+                                // particular notice, which is a real answer.
+                                console.warn('[coe-board] could not clear', row.id, error.message || error);
+                                failed += 1;
+                            });
+                    });
+                }, Promise.resolve()).then(function () {
+                    return syncAnnouncements().then(function () {
+                        return { cleared: cleared, failed: failed };
+                    });
+                });
+            });
+    }
+
     // -----------------------------------------------------------------------
     // Tasks / assignments
     // -----------------------------------------------------------------------
@@ -330,6 +405,8 @@
         syncAnnouncements,
         syncTasks,
         postAnnouncement,
+        deleteAnnouncement,
+        clearAnnouncementsBefore,
         postTask,
         submitWork,
         toPortalAnnouncement,
