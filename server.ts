@@ -237,6 +237,40 @@ function assertDurableStorage() {
         `    Every uploaded file is erased on the next deploy. Put it on the volume:\n` +
         `      STORAGE_DIR=/var/data/storage   (Railway and Render alike)`,
     );
+  } else if (!existsSync(dirname(storageRoot))) {
+    /*
+     * The same "is anything actually mounted there?" check the database gets,
+     * which STORAGE_DIR did not have — and the asymmetry had a specific and
+     * nasty failure mode.
+     *
+     * Set DATABASE_URL correctly and STORAGE_DIR to a path on a volume that is
+     * mounted somewhere else, and every check above passes. The server starts,
+     * the database is durable, and uploads are written to a directory `mkdir
+     * -p` happily creates on the container's own disk. Nothing fails. Then the
+     * next deploy replaces the container, and the result is the worst shape
+     * this can take: the Material rows survive, so the library still lists
+     * every file, and each one 404s when opened. It reads as "the uploads
+     * broke" rather than "the uploads were never anywhere durable" — and by
+     * then the bytes are gone.
+     *
+     * The *parent* is checked, not the directory itself: storage/ is created
+     * lazily on the first upload, so its absence is normal. Its parent is the
+     * volume, and the volume must already be there.
+     */
+    const mounted = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
+
+    problems.push(
+      `  STORAGE_DIR points into a directory that does not exist:\n` +
+        `      ${storageRoot}  ->  needs  ${dirname(storageRoot)}/\n` +
+        (mounted
+          ? `    The volume attached to this service is mounted at "${mounted}".\n` +
+            `    Set:\n` +
+            `      STORAGE_DIR=${mounted}/storage`
+          : `    Nothing is mounted there, so uploads would be written to the\n` +
+            `    container's own disk and thrown away on the next deploy —\n` +
+            `    leaving every material in the library pointing at a file that\n` +
+            `    no longer exists. Check Settings -> Volumes.`),
+    );
   }
 
   if (problems.length === 0) return;

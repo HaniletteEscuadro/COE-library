@@ -101,6 +101,47 @@ if (git) {
 
   if (!tracked.some((f) => f.startsWith("portal/"))) {
     fail("portal/ is not tracked by git — the front-end would not be deployed.");
+  } else {
+    /*
+     * Every bundled file, not just the directory.
+     *
+     * The check above passes as soon as *something* under portal/ is tracked,
+     * which is true from the first commit onwards — so it never fires again,
+     * and it does not notice the case that actually happens: a NEW front-end
+     * file added to the portal. `npm run build` copies it in, it works
+     * perfectly on the developer's machine, and it is left untracked. The push
+     * carries every other change and not that file, and the deployed page asks
+     * for a script that answers 404 — so the feature it belongs to is simply
+     * absent, with nothing in the build log to say why.
+     *
+     * Listing the missing files by name makes the fix a copyable `git add`.
+     */
+    const trackedPortal = new Set(tracked.filter((f) => f.startsWith("portal/")));
+    const bundled = [];
+
+    const walk = (directory, prefix) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const relative = `${prefix}${entry.name}`;
+        if (entry.isDirectory()) walk(join(directory, entry.name), `${relative}/`);
+        else if (entry.isFile()) bundled.push(relative);
+      }
+    };
+
+    walk(join(APP_ROOT, "portal"), "portal/");
+
+    const untracked = bundled.filter((file) => !trackedPortal.has(file));
+
+    if (untracked.length) {
+      fail(
+        `${untracked.length} bundled portal file(s) are not tracked by git, so they\n` +
+          "    would be missing from the deploy:\n" +
+          untracked.map((f) => `      ${f}`).join("\n") +
+          "\n    Add them:\n" +
+          `      git add ${untracked.map((f) => `"${f}"`).join(" ")}`,
+      );
+    } else {
+      notes.push(`all ${bundled.length} bundled portal files are tracked`);
+    }
   }
 }
 
@@ -140,8 +181,19 @@ if (problems.length === 0) {
   console.log("  Remember, in the host's variables — not in a file:");
   console.log("    NEXTAUTH_SECRET   npm run gen:secret");
   console.log("    NEXTAUTH_URL      the real public https:// address");
-  console.log("    DATABASE_URL      file:/data/coe.db      (on the mounted volume)");
-  console.log("    STORAGE_DIR       /data/storage          (on the mounted volume)\n");
+  /*
+   * `/var/data`, not `/data`.
+   *
+   * This is the one inconsistency RAILWAY.md opens with: render.yaml, the boot
+   * check in server.ts and the deploy guide all say /var/data, and this reminder
+   * said /data. Copying it into Railway's variables while the volume is mounted
+   * at /var/data is exactly the failure the guide describes — migrations
+   * "succeed" against the container's own disk and the data is thrown away on
+   * the next deploy. One path everywhere.
+   */
+  console.log("    DATABASE_URL      file:/var/data/coe.db  (on the mounted volume)");
+  console.log("    STORAGE_DIR       /var/data/storage      (on the mounted volume)");
+  console.log("    …and the volume's Mount Path must be that same /var/data.\n");
   process.exit(0);
 }
 

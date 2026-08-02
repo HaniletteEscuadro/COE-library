@@ -269,8 +269,24 @@
     min-height: 44dvh !important;
   }
 
-  #material-detail-modal.is-open .detail-preview iframe {
+  /* `:not(.is-video)` matters. A framed YouTube lecture carries its own 16:9
+     ratio, and forcing 44dvh onto a 375px-wide frame makes it ~350px tall — a
+     player with a black band above and below the picture. Documents still take
+     the height, because that is what reading one needs. */
+  #material-detail-modal.is-open .detail-preview iframe:not(.is-video) {
     min-height: 44dvh !important;
+  }
+
+  /* Edge to edge. The pane's 16px padding costs 32px of a 375px screen, which
+     is most of a Drive document's left margin. */
+  #material-detail-modal.is-open .detail-preview .preview-embed {
+    width: 100% !important;
+    max-height: none !important;
+    border-radius: 8px !important;
+  }
+
+  #material-detail-modal.is-open .detail-preview .preview-embed.is-doc {
+    min-height: 56dvh !important;
   }
 
   #material-detail-modal.is-open .detail-preview img,
@@ -541,7 +557,7 @@
 
 @media (max-height: 500px) and (orientation: landscape) {
   #material-detail-modal.is-open .detail-preview,
-  #material-detail-modal.is-open .detail-preview iframe {
+  #material-detail-modal.is-open .detail-preview iframe:not(.is-video) {
     min-height: 62dvh !important;
   }
 

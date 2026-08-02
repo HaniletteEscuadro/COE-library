@@ -731,7 +731,7 @@ function buildCategoryLessonFolderId(subjectFolderId, category, lesson) {
  * The lessons that actually have material in a folder, with their counts.
  *
  * Derived from the materials rather than from a list of lessons someone has to
- * maintain, so a lesson folder exists exactly when there is something in it —
+ * maintain, so a lesson folder exists exactly when tht is something in it —
  * and an empty one can never be left behind.
  *
  * Sorted numerically, so "Lesson 2" comes before "Lesson 10" rather than after.
@@ -1255,7 +1255,7 @@ function getHoverPreviewText(material) {
     const type = getDisplayType(material);
     if (type === 'Video') return 'Video preview available. Open to play without leaving the library.';
     if (type === 'PDF') return 'PDF preview available. Open to review before downloading.';
-    if (type === 'Google Drive Link') return 'Cloud link. Opens safely in a new tab.';
+    if (type === 'Google Drive Link') return 'Cloud link. Opens inside the viewer — no new tab.';
     const source = String(getMaterialSource(material) || '').trim();
     if (material.previewType === 'text' && source) {
         return `${source.slice(0, 140)}${source.length > 140 ? '...' : ''}`;
@@ -1263,16 +1263,157 @@ function getHoverPreviewText(material) {
     return `${getMaterialCategory(material)} for ${material.subject || material.lesson || 'this folder'}.`;
 }
 
+/**
+ * Is this value safe to put behind a link the student can follow?
+ *
+ * The scheme is the whole check, and it is the only one that belongs here:
+ * `javascript:` and `data:` are what turn an `href` into script execution, and
+ * both are refused. Anything left is an ordinary web address.
+ *
+ * WHY THIS IS NO LONGER A HOST ALLOWLIST
+ * --------------------------------------
+ * It used to accept only Drive, Docs and two spellings of youtube.com. Two
+ * things were wrong with that:
+ *
+ *   * The upload form accepts *any* http(s) link and labels it "External link",
+ *     so every non-Google link saved cleanly and then previewed as "Link
+ *     preview not available". The material existed and could not be opened by
+ *     anybody — which reads as a broken upload, not as a policy.
+ *   * The list also missed `youtu.be` and `m.youtube.com` — the two forms a
+ *     phone's share sheet and the YouTube app actually copy. The links most
+ *     likely to be pasted from a phone were the ones most likely to be refused.
+ *
+ * Nothing is framed on the strength of this function. Embedding goes through
+ * `getEmbeddableUrl`, which still recognises only Google and YouTube, and the
+ * CSP's `frame-src` refuses everything else at the browser level regardless.
+ * So an arbitrary URL here can become a link to follow, never an iframe.
+ */
 function getSafeExternalUrl(value) {
     try {
         const url = new URL(String(value || ''));
-        const allowedHosts = ['drive.google.com', 'docs.google.com', 'youtube.com', 'www.youtube.com'];
-        return ['https:', 'http:'].includes(url.protocol) && allowedHosts.includes(url.hostname.toLowerCase())
-            ? url.toString()
-            : '';
+        return ['https:', 'http:'].includes(url.protocol) ? url.toString() : '';
     } catch (error) {
         return '';
     }
+}
+
+/**
+ * Turn a shared link into one that renders *inside* the viewer.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * A Drive or YouTube link used to be a placeholder with an "Open Material"
+ * button, and the button was a new tab. On a laptop that is a mild annoyance.
+ * On a phone it is the difference between reading the material and not: the tab
+ * opens in the browser's own chrome or hands off to the YouTube/Drive app, the
+ * student loses the folder they were standing in, and coming back means finding
+ * the library again from the sign-in page.
+ *
+ * Both providers publish an embeddable form of the same URL. Rewriting to it
+ * means the material appears in the pane the student is already looking at —
+ * the same place a PDF or an uploaded video appears — and Back still closes the
+ * viewer rather than leaving the site.
+ *
+ * @param {string} value a URL that has already passed getSafeExternalUrl
+ * @returns {string} an embeddable URL, or '' when the link has no embed form
+ */
+function getEmbeddableUrl(value) {
+    let url;
+
+    try {
+        url = new URL(String(value || ''));
+    } catch (error) {
+        return '';
+    }
+
+    const host = url.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const path = url.pathname;
+
+    // --- YouTube -----------------------------------------------------------
+    //
+    // `youtube-nocookie.com` rather than `youtube.com`: it serves the same
+    // player without writing tracking cookies for a student who only opened a
+    // lecture. Everything else about the embed is identical.
+    if (host === 'youtu.be') {
+        const id = path.slice(1).split('/')[0];
+        return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : '';
+    }
+
+    if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+        // Already an embed — leave it alone.
+        if (path.startsWith('/embed/')) return url.toString();
+
+        const watchId = url.searchParams.get('v');
+        if (watchId) {
+            const list = url.searchParams.get('list');
+            return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(watchId)}` +
+                (list ? `?list=${encodeURIComponent(list)}` : '');
+        }
+
+        // Shorts and /live/ both carry the id as the last path segment.
+        const shortsMatch = path.match(/^\/(shorts|live|v)\/([^/]+)/);
+        if (shortsMatch) {
+            return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(shortsMatch[2])}`;
+        }
+
+        const list = url.searchParams.get('list');
+        if (list) {
+            return `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(list)}`;
+        }
+
+        return '';
+    }
+
+    // --- Google Drive ------------------------------------------------------
+    if (host === 'drive.google.com') {
+        // https://drive.google.com/file/d/<id>/view?usp=sharing
+        const fileMatch = path.match(/^\/file\/d\/([^/]+)/);
+        if (fileMatch) {
+            return `https://drive.google.com/file/d/${encodeURIComponent(fileMatch[1])}/preview`;
+        }
+
+        // The older share form, still what some Drive clients copy.
+        const openId = url.searchParams.get('id');
+        if (path === '/open' && openId) {
+            return `https://drive.google.com/file/d/${encodeURIComponent(openId)}/preview`;
+        }
+
+        // A whole shared folder. Drive has a dedicated embed for these; without
+        // it a folder link is the one Drive shape that cannot be framed.
+        const folderMatch = path.match(/^\/drive\/(?:u\/\d+\/)?folders\/([^/]+)/);
+        if (folderMatch) {
+            return `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(folderMatch[1])}#grid`;
+        }
+
+        return '';
+    }
+
+    // --- Google Docs / Sheets / Slides -------------------------------------
+    if (host === 'docs.google.com') {
+        /*
+         * A form is answered rather than read, so it takes its live view with
+         * `embedded=true` instead of a preview.
+         *
+         * Matched before the general rule and with its own pattern on purpose:
+         * a form's shared URL is `/forms/d/e/<id>/viewform`, where the segment
+         * after `/d/` is the literal "e". The general `\/d\/([^/]+)` below would
+         * capture that "e" as the id and build a URL pointing at nothing.
+         */
+        const formMatch = path.match(/^\/forms\/d\/e\/([^/]+)/);
+        if (formMatch) {
+            return `https://docs.google.com/forms/d/e/${encodeURIComponent(formMatch[1])}/viewform?embedded=true`;
+        }
+
+        // /document/d/<id>/edit -> /document/d/<id>/preview. The same swap works
+        // for spreadsheets and presentations, and is what Docs' own "Publish to
+        // the web" produces.
+        const docMatch = path.match(/^\/(document|spreadsheets|presentation)\/d\/([^/]+)/);
+        if (!docMatch) return '';
+
+        return `https://docs.google.com/${docMatch[1]}/d/${encodeURIComponent(docMatch[2])}/preview`;
+    }
+
+    return '';
 }
 
 function isCurrentUserEditor() {
@@ -2231,9 +2372,48 @@ function openMaterialDetail(materialId) {
         preview.innerHTML = `<video controls src="${escapeHtml(previewSource)}"></video>`;
     } else if (currentMaterial.previewType === 'link' || detailMaterialType === 'Google Drive Link') {
         const safeUrl = getSafeExternalUrl(currentMaterial.externalUrl || currentMaterial.content);
-        preview.innerHTML = safeUrl
-            ? `<div class="preview-placeholder"><span class="material-icons">${icon}</span><p>External classroom material opens in a new tab.</p><a class="preview-link" href="${safeUrl}" target="_blank" rel="noopener">Open Material</a></div>`
-            : `<div class="preview-placeholder"><span class="material-icons">${icon}</span><p>Link preview not available</p></div>`;
+        /*
+         * Framed here rather than handed to a new tab.
+         *
+         * A new tab is the worst outcome on a phone: it leaves COE Studio, and
+         * on Android it usually hands off to the YouTube or Drive app entirely,
+         * so coming back means signing in again. Both providers publish an
+         * embeddable form of the URL — see getEmbeddableUrl — and framing it
+         * puts the lecture in the same pane a PDF appears in.
+         *
+         * `allowfullscreen` matters more than it looks: the frame is roughly
+         * 44% of a phone screen, so watching anything at a readable size means
+         * the player's own fullscreen button has to work.
+         */
+        const embedUrl = safeUrl ? getEmbeddableUrl(safeUrl) : '';
+
+        if (embedUrl) {
+            // A video wants 16:9; a document wants height. Framing both the same
+            // way means either a letterboxed lecture or a Drive PDF read through
+            // a slot — so the shape is chosen here and the stylesheet follows.
+            const embedShape = /youtube(-nocookie)?\.com\/embed\//.test(embedUrl) ? 'is-video' : 'is-doc';
+
+            preview.innerHTML =
+                `<iframe class="preview-embed ${embedShape}" src="${escapeHtml(embedUrl)}" ` +
+                `title="${escapeHtml(getMaterialDisplayName(currentMaterial))}" ` +
+                `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" ` +
+                `allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>` +
+                // Kept as a way out, not as the way in. Some Drive files refuse
+                // to be framed (owner-restricted sharing), and the frame then
+                // shows the provider's own "cannot be displayed" page — this is
+                // what a student uses when that happens.
+                `<a class="preview-link preview-link-alt" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener">` +
+                `<span class="material-icons">open_in_new</span>Having trouble? Open it in a new tab</a>`;
+        } else if (safeUrl) {
+            preview.innerHTML =
+                `<div class="preview-placeholder"><span class="material-icons">${icon}</span>` +
+                `<p>This link has no in-app preview, so it opens in a new tab.</p>` +
+                `<a class="preview-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener">Open Material</a></div>`;
+        } else {
+            preview.innerHTML =
+                `<div class="preview-placeholder"><span class="material-icons">${icon}</span>` +
+                `<p>Link preview not available</p></div>`;
+        }
     } else if (currentMaterial.previewType === 'text') {
         preview.innerHTML = `<pre class="file-preview-text">${escapeHtml(String(previewSource || 'No preview available'))}</pre>`;
     } else {
@@ -2243,7 +2423,13 @@ function openMaterialDetail(materialId) {
 
     const downloadBtn = document.getElementById('download-material-btn');
     if (downloadBtn) {
-        downloadBtn.innerHTML = detailMaterialType === 'Google Drive Link'
+        // The label has to match what the button now does. A framed link is
+        // viewed in place, so promising "open_in_new" would be a lie — and the
+        // one thing this button must not do on a phone is look like it leaves.
+        const linkIsFramed = (detailMaterialType === 'Google Drive Link' || currentMaterial.previewType === 'link') &&
+            Boolean(getEmbeddableUrl(getSafeExternalUrl(currentMaterial.externalUrl || currentMaterial.content)));
+
+        downloadBtn.innerHTML = detailMaterialType === 'Google Drive Link' && !linkIsFramed
             ? '<span class="material-icons">open_in_new</span>Access Link'
             : '<span class="material-icons">visibility</span>Access Module';
     }
@@ -2799,6 +2985,21 @@ function accessMaterialOnly(materialId) {
         if (material.id) { // Only track if material has an ID
             trackMaterialDownload(material.id);
         }
+
+        /*
+         * If the viewer is already showing it, take the student to it instead of
+         * opening a second copy elsewhere.
+         *
+         * This button used to be an unconditional `window.open`. On a phone that
+         * meant tapping "Access Link" left the site — even though the video was
+         * already playing a few hundred pixels further down the same screen.
+         * A new tab is now only for the links that genuinely have no embed.
+         */
+        if (getEmbeddableUrl(safeUrl)) {
+            document.getElementById('detail-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         window.open(safeUrl, '_blank', 'noopener');
         return;
     }

@@ -262,16 +262,55 @@
   }
 }
 
-/* Respect the notch / home indicator on iPhones. */
+/* Respect the notch / home indicator on iPhones.
+   These rules only do anything because index.html declares `viewport-fit=cover`
+   — without it every `env(safe-area-inset-*)` resolves to 0px and the bar sits
+   under the status bar with its buttons half-covered. */
 @supports (padding: max(0px)) {
   @media (max-width: 900px) {
     .m-bar {
       padding-left: max(12px, env(safe-area-inset-left)) !important;
       padding-right: max(12px, env(safe-area-inset-right)) !important;
+      /* The bar is pinned to top:0, which under `viewport-fit=cover` is behind
+         the status bar. Grow it by the inset and push its contents down, rather
+         than moving it — a gap above a translucent bar shows the page sliding
+         underneath. */
+      padding-top: env(safe-area-inset-top) !important;
+      height: calc(56px + env(safe-area-inset-top)) !important;
+      box-sizing: border-box !important;
+    }
+
+    /* The page starts below the taller bar. Both numbers come from the same
+       place, so they cannot drift apart. */
+    body:not(.auth-body) .main-content {
+      padding-top: calc(66px + env(safe-area-inset-top)) !important;
+      padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    }
+
+    /* Landscape puts the cutout on a side, so the drawer needs the inset too. */
+    body:not(.auth-body) .sidebar {
+      padding-left: max(0px, env(safe-area-inset-left)) !important;
+    }
+
+    /* The account sheet hangs from the bar and has to follow it down. */
+    .m-account-sheet {
+      top: calc(60px + env(safe-area-inset-top)) !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    body:not(.auth-body) .main-content {
+      padding-top: calc(64px + env(safe-area-inset-top)) !important;
+    }
+  }
+
+  @media (max-height: 460px) and (orientation: landscape) {
+    .m-bar {
+      height: calc(48px + env(safe-area-inset-top)) !important;
     }
 
     body:not(.auth-body) .main-content {
-      padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      padding-top: calc(56px + env(safe-area-inset-top)) !important;
     }
   }
 }

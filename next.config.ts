@@ -52,8 +52,21 @@ function contentSecurityPolicy(frameAncestors: string) {
     // pdf.js runs its parser in a worker created from a blob URL.
     "worker-src 'self' blob:",
 
-    // Lecture embeds, and the PDF preview iframe.
-    "frame-src 'self' blob: https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://accounts.google.com",
+    /*
+     * Lecture embeds, and the PDF preview iframe.
+     *
+     * The two Drive hosts are what let a shared Drive file or Google Doc be read
+     * *inside* the material viewer instead of in a new tab. Without them the
+     * frame is refused by the browser and the pane goes blank with a console
+     * error — which on a phone reads as a broken upload, since the new-tab
+     * button it replaced is no longer the primary way in.
+     *
+     * Framing a Google viewer is not a widening of trust in any meaningful
+     * sense: `img-src` here is already `https:`, and these are read-only viewer
+     * origins that cannot reach into this page — a cross-origin frame has no
+     * access to the parent document or its cookies.
+     */
+    "frame-src 'self' blob: https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://accounts.google.com https://drive.google.com https://docs.google.com",
 
     // Only in production: on a plain http://localhost this would rewrite local
     // asset requests to https and break the dev server.

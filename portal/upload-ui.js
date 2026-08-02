@@ -296,6 +296,10 @@
 
       var lesson = (document.getElementById('upload-lesson') || {}).value || 'General';
       var course = (document.getElementById('upload-discipline') || {}).value || 'CE';
+      // Where the button sits during the round trip. A link POST is fast but not
+      // instant, and a form that looks idle invites a second submit.
+      var submitBtn = form.querySelector('button[type="submit"], .gd-submit');
+      var submitLabel = submitBtn ? submitBtn.innerHTML : '';
 
       var user = {};
       try { user = JSON.parse(localStorage.getItem('studentWorkplaceCurrentUser') || '{}') || {}; } catch (e) { user = {}; }
@@ -309,11 +313,91 @@
         ? window.getLibraryFolderContext(openFolderId)
         : {};
 
+      var destination = folder.folderName || lesson;
+      // The folder decides the shelf. Only fall back to the link's own kind
+      // when the upload is not aimed at a category folder.
+      var category = folder.category || (info.type === 'Video' ? 'Video Lectures' : 'GDrive Links');
+      var title = folder.subject ? folder.subject + ' - ' + info.kind : lesson;
+
+      /** Clear the composer and refresh whichever library views are mounted. */
+      function finish(headline, detail, tone) {
+        input.value = '';
+        preview.hidden = true;
+        setMode('file');
+        if (window.closeUploadModal) window.closeUploadModal();
+        form.reset();
+
+        if (window.showLibraryToast) {
+          window.showLibraryToast(headline, detail, tone || 'success');
+        }
+
+        try {
+          if (window.enhancedLibrary && window.enhancedLibrary.populateLibraryFolderTree) {
+            window.enhancedLibrary.populateLibraryFolderTree();
+          }
+          if (typeof window.displayLibrary === 'function') window.displayLibrary();
+        } catch (error) {
+          console.warn('[upload] link saved, but the view did not refresh', error);
+        }
+      }
+
+      // --- Shared library ---------------------------------------------------
+      //
+      // A pasted link used to be written straight into this browser's own copy
+      // of the library and nowhere else. It looked like it worked -- the card
+      // appeared, the toast said "added" -- but the server never heard about
+      // it, so nobody else could see it and it was gone the moment the cache
+      // was rebuilt from the database. Files already took this path; links did
+      // not, which is the whole of the bug.
+      //
+      // The local branch below is kept only for opening index.html straight off
+      // the filesystem, where there is no server to talk to.
+      if (window.CoeLive && window.CoeLive.ready) {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = 'Adding link...';
+        }
+
+        window.CoeLive.uploadMaterial({
+          folder: {
+            course: folder.course || course,
+            year: folder.year || '',
+            subject: folder.subject || '',
+            category: category
+          },
+          title: title,
+          description: '',
+          tags: [],
+          lesson: folder.lesson || lesson,
+          professorName: folder.professorName || '',
+          externalUrl: info.url
+        }).then(function (result) {
+          finish(
+            result.status === 'pending' ? 'Sent for approval' : info.kind + ' added',
+            result.status === 'pending' ? result.message : destination,
+            result.status === 'pending' ? 'info' : 'success'
+          );
+        }).catch(function (error) {
+          // Nothing is cleared on failure: the address stays in the box so it
+          // can be retried without being pasted again.
+          if (window.showLibraryToast) {
+            window.showLibraryToast('Could not add link', (error && error.message) || 'Try again.', 'error');
+          }
+        }).then(function () {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = submitLabel;
+          }
+        });
+
+        return;
+      }
+
       var record = {
         id: 'link-' + Date.now() + '-' + Math.random().toString(16).slice(2, 8),
         folderId: folder.folderId || '',
         folderName: folder.folderName || '',
-        title: folder.subject ? folder.subject + ' - ' + info.kind : lesson,
+        title: title,
         name: info.kind,
         originalName: info.kind,
         description: '',
@@ -321,9 +405,7 @@
         year: folder.year || '',
         subject: folder.subject || lesson,
         lesson: folder.lesson || lesson,
-        // The folder decides the shelf. Only fall back to the link's own kind
-        // when the upload is not aimed at a category folder.
-        materialCategory: folder.category || (info.type === 'Video' ? 'Video Lectures' : 'GDrive Links'),
+        materialCategory: category,
         professorName: folder.professorName || '',
         professorUsername: folder.professorUsername || '',
         type: info.type,
@@ -343,8 +425,6 @@
         downloads: 0,
         views: 0
       };
-
-      var destination = folder.folderName || lesson;
 
       // scripts.js owns the in-memory list. Writing to localStorage behind its
       // back meant the next upload from anywhere else overwrote this record.
@@ -366,25 +446,7 @@
         }
       }
 
-      if (window.showLibraryToast) {
-        window.showLibraryToast(info.kind + ' added', destination, 'success');
-      }
-
-      input.value = '';
-      preview.hidden = true;
-      setMode('file');
-      if (window.closeUploadModal) window.closeUploadModal();
-      form.reset();
-
-      // Refresh whichever library views are mounted.
-      try {
-        if (window.enhancedLibrary && window.enhancedLibrary.populateLibraryFolderTree) {
-          window.enhancedLibrary.populateLibraryFolderTree();
-        }
-        if (typeof window.displayLibrary === 'function') window.displayLibrary();
-      } catch (error) {
-        console.warn('[upload] link saved, but the view did not refresh', error);
-      }
+      finish(info.kind + ' added', destination, 'success');
     }, true);
   }
   if (document.readyState === 'loading') {
