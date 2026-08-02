@@ -1,0 +1,484 @@
+/**
+ * Class Contribution.
+ *
+ * WHAT WAS WRONG
+ * --------------
+ * The panel was a grid of nine identical cards — Flow Score beside Active Days
+ * beside Course Mix, every one the same size, the same weight, the same colour.
+ * Nine numbers shouting at once say nothing about which of them matters, so the
+ * page read as decoration rather than as information.
+ *
+ * Two other things made it worse:
+ *
+ *   * every colour was hard-coded dark (`#f8fafc` text on a near-black
+ *     gradient), so in the light theme it was a black slab in the middle of a
+ *     white page;
+ *   * "Course Mix: 5 | 3" put two unrelated numbers in one tile with a pipe
+ *     between them, which is a label only its author can read.
+ *
+ * WHAT IT IS NOW
+ * --------------
+ * Four headline figures, then the two breakdowns beside the activity feed, then
+ * the rest as small tiles. Nothing was removed — it is ranked, and it follows
+ * the theme.
+ */
+
+.contrib-page {
+  display: grid;
+  gap: 18px;
+  /* A measure. The panel used to run the full width of a 27" monitor, which
+     stretched four tiles to 400px each and left the numbers marooned. */
+  max-width: 1240px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Page heading
+   --------------------------------------------------------------------------- */
+
+.contrib-pagehead {
+  padding: 26px 28px;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.13), rgba(29, 78, 216, 0.02));
+}
+
+.contrib-eyebrow {
+  display: inline-block;
+  margin-bottom: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+}
+
+.contrib-pagehead h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.55rem, 1.1rem + 1.8vw, 2.1rem);
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.contrib-pagehead p {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 0.96rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---------------------------------------------------------------------------
+   Headline figures
+   --------------------------------------------------------------------------- */
+
+.contrib-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.contrib-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+  min-width: 0;
+}
+
+.contrib-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.14));
+  color: var(--text-secondary, #64748b);
+}
+
+.contrib-stat-icon .material-icons {
+  font-size: 22px;
+}
+
+.contrib-stat-body {
+  min-width: 0;
+}
+
+.contrib-stat-value {
+  display: block;
+  /* The number is the point. It was one line among three of equal weight. */
+  font-size: 2.1rem;
+  font-weight: 850;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+
+.contrib-stat-title {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.contrib-stat-detail {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #64748b);
+  overflow-wrap: anywhere;
+}
+
+/* One accent per tile, so the four are distinguishable at a glance without
+   any of them being louder than the others. */
+.contrib-stat.is-primary .contrib-stat-icon { background: rgba(29, 78, 216, 0.13); color: #1d4ed8; }
+.contrib-stat.is-blue .contrib-stat-icon { background: rgba(2, 132, 199, 0.13); color: #0284c7; }
+.contrib-stat.is-violet .contrib-stat-icon { background: rgba(126, 34, 206, 0.13); color: #7e22ce; }
+.contrib-stat.is-amber .contrib-stat-icon { background: rgba(180, 83, 9, 0.14); color: #b45309; }
+
+/* ---------------------------------------------------------------------------
+   Body — breakdown beside the feed
+   --------------------------------------------------------------------------- */
+
+.contrib-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.contrib-card {
+  padding: 24px 26px;
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
+  background: var(--surface-card, rgba(255, 255, 255, 0.04));
+  min-width: 0;
+}
+
+/*
+ * Which card takes which column, stated rather than inherited from source
+ * order — so reordering the markup cannot silently swap them.
+ */
+.contrib-mix-card { grid-column: 1; }
+.contrib-feed-card { grid-column: 2; }
+
+/*
+ * A floor for the feed.
+ *
+ * The mix card is always four bars tall; the feed can be a single line. Left
+ * to itself the pair drew as a tall box beside a short one with a band of
+ * empty page under it.
+ */
+.contrib-feed-card {
+  min-height: 260px;
+}
+
+.contrib-card-head {
+  margin-bottom: 20px;
+}
+
+.contrib-card-head h2 {
+  margin: 0 0 5px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.contrib-card-head p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #64748b);
+}
+
+/* --- The two mixes --- */
+
+.contrib-mix-group + .contrib-mix-group {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.16));
+}
+
+.contrib-mix-title {
+  margin: 0 0 13px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #64748b);
+}
+
+.contrib-mix-row + .contrib-mix-row {
+  margin-top: 14px;
+}
+
+.contrib-mix-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+  min-width: 0;
+}
+
+.contrib-mix-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contrib-mix-figures {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.contrib-mix-figures strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.contrib-mix-figures small {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.contrib-mix-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.18));
+  overflow: hidden;
+}
+
+.contrib-mix-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  /* A flat colour, not a gradient. Four gradients in one card was the reason
+     it read as a chart nobody could compare bars in. */
+  background: #1d4ed8;
+  transition: width 260ms ease;
+}
+
+.contrib-mix-fill.is-problem { background: #7e22ce; }
+.contrib-mix-fill.is-upload { background: #0284c7; }
+.contrib-mix-fill.is-ce { background: #1d4ed8; }
+.contrib-mix-fill.is-ee { background: #b45309; }
+
+/* --- The activity feed --- */
+
+.contrib-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.contrib-feed-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 11px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.14));
+}
+
+.contrib-feed-item:last-child {
+  border-bottom: 0;
+}
+
+.contrib-feed-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.contrib-feed-text {
+  font-size: 0.89rem;
+  line-height: 1.45;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contrib-feed-time {
+  font-size: 0.76rem;
+  color: var(--text-secondary, #64748b);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.contrib-empty {
+  margin: 0;
+  padding: 26px 18px;
+  border-radius: 12px;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.07));
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #64748b);
+  list-style: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Secondary figures
+   --------------------------------------------------------------------------- */
+
+.contrib-minis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.contrib-mini {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.18));
+  background: var(--surface-card, rgba(255, 255, 255, 0.03));
+  min-width: 0;
+}
+
+.contrib-mini-title {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+}
+
+.contrib-mini-value {
+  display: block;
+  margin: 4px 0 2px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.contrib-mini-detail {
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #64748b);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme
+   ---------------------------------------------------------------------------
+   The panel used to be dark-only by accident — hard-coded near-black cards
+   that looked deliberate at night and wrong by day. Everything above uses the
+   theme's own properties; these are only the accents that need a lighter
+   value to stay readable on a dark surface.
+   --------------------------------------------------------------------------- */
+
+body.dark-theme .contrib-pagehead,
+:root[data-theme="dark"] .contrib-pagehead {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(96, 165, 250, 0.02));
+}
+
+body.dark-theme .contrib-eyebrow,
+body.dark-theme .contrib-stat.is-primary .contrib-stat-icon,
+:root[data-theme="dark"] .contrib-eyebrow,
+:root[data-theme="dark"] .contrib-stat.is-primary .contrib-stat-icon {
+  color: #93c5fd;
+}
+
+body.dark-theme .contrib-stat.is-blue .contrib-stat-icon,
+:root[data-theme="dark"] .contrib-stat.is-blue .contrib-stat-icon { color: #7dd3fc; }
+
+body.dark-theme .contrib-stat.is-violet .contrib-stat-icon,
+:root[data-theme="dark"] .contrib-stat.is-violet .contrib-stat-icon { color: #d8b4fe; }
+
+body.dark-theme .contrib-stat.is-amber .contrib-stat-icon,
+:root[data-theme="dark"] .contrib-stat.is-amber .contrib-stat-icon { color: #fbbf24; }
+
+body.dark-theme .contrib-mix-fill.is-ce,
+body.dark-theme .contrib-feed-dot,
+:root[data-theme="dark"] .contrib-mix-fill.is-ce,
+:root[data-theme="dark"] .contrib-feed-dot { background: #60a5fa; }
+
+body.dark-theme .contrib-mix-fill.is-problem,
+:root[data-theme="dark"] .contrib-mix-fill.is-problem { background: #c084fc; }
+
+body.dark-theme .contrib-mix-fill.is-upload,
+:root[data-theme="dark"] .contrib-mix-fill.is-upload { background: #38bdf8; }
+
+body.dark-theme .contrib-mix-fill.is-ee,
+:root[data-theme="dark"] .contrib-mix-fill.is-ee { background: #fbbf24; }
+
+/* ---------------------------------------------------------------------------
+   Tablet and phone
+   ---------------------------------------------------------------------------
+   Four across and a 1.25fr/1fr split are the two shapes that crush first.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 1200px) {
+  .contrib-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked now, so the explicit column assignments above have to be released
+     or both cards fight for column 1 and the feed disappears under the mix. */
+  .contrib-mix-card,
+  .contrib-feed-card {
+    grid-column: auto;
+  }
+
+  .contrib-feed-card {
+    min-height: 0;
+  }
+
+  .contrib-stats,
+  .contrib-minis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .contrib-pagehead {
+    padding: 20px 18px;
+  }
+
+  .contrib-card {
+    padding: 18px 16px;
+  }
+
+  /* One across below 640px: two 150px tiles cannot hold "Total contributions"
+     above a two-digit number without the label wrapping to three lines. */
+  .contrib-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contrib-stat {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .contrib-stat-value {
+    font-size: 1.8rem;
+  }
+
+  .contrib-minis {
+    gap: 10px;
+  }
+
+  /* The time moves under the message rather than fighting it for the row. */
+  .contrib-feed-item {
+    grid-template-columns: 10px minmax(0, 1fr);
+    row-gap: 3px;
+  }
+
+  .contrib-feed-time {
+    grid-column: 2;
+  }
+}

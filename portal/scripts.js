@@ -212,7 +212,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '@espera',
         '@dianalan'
     ]);
-    const classContributors = [];
+    // `classContributors` lived here. Its only reader was the dead leaderboard
+    // removed further down, so it was an array nothing ever read.
     const contributorsGrid = document.getElementById('contributors-grid');
     const addLessonBtn = document.getElementById('add-lesson-btn');
     const problemPhotoUploadInput = document.getElementById('problem-photo-upload');
@@ -20832,71 +20833,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function buildContributorLeaderboard() {
-        return initStoredUsers()
-            .map(function (account) {
-                const normalizedUsername = String(account.username || '').toLowerCase();
-                const problemCount = tasks.filter(task => (task.ownerUsername || '').toLowerCase() === normalizedUsername).length;
-                const uploadCount = uploadedFiles.filter(file => (file.ownerUsername || '').toLowerCase() === normalizedUsername).length;
-                return {
-                    username: account.username,
-                    name: account.name || account.username,
-                    role: (account.role || account.type || 'STUDENT').toUpperCase(),
-                    discipline: account.discipline || 'N/A',
-                    problemCount,
-                    uploadCount,
-                    score: problemCount + uploadCount
-                };
-            })
-            .sort(function (left, right) {
-                if (right.score !== left.score) return right.score - left.score;
-                if (right.problemCount !== left.problemCount) return right.problemCount - left.problemCount;
-                return left.name.localeCompare(right.name);
-            })
-            .map(function (account, index) {
-                const accentPalette = ['#f59e0b', '#2563eb', '#0f766e', '#9333ea', '#dc2626', '#ea580c'];
-                const accent = account.role === 'ADMIN' ? '#f59e0b' : accentPalette[index % accentPalette.length];
-                return {
-                    rank: `#${index + 1}`,
-                    username: account.username,
-                    name: `${account.name} | ${account.discipline} | ${account.role}`,
-                    score: account.score,
-                    label: `${account.problemCount} problems | ${account.uploadCount} uploads`,
-                    accent
-                };
-            });
-    }
-
-    function displayMembers() {
-        if (!contributorsGrid) return;
-
-        classContributors.length = 0;
-        buildContributorLeaderboard().forEach(contributor => classContributors.push(contributor));
-        contributorsGrid.innerHTML = '';
-
-        if (!classContributors.length) {
-            contributorsGrid.innerHTML = '<p class="empty-tasks">No contributors available yet.</p>';
-            return;
-        }
-
-        contributorsGrid.innerHTML = classContributors.map(function (contributor) {
-            return `
-                <div class="contributor-top">
-                    <span class="contributor-rank">${escapeHtml(contributor.rank)}</span>
-                    <div>
-                        <h3>${escapeHtml(contributor.username)}</h3>
-                        <p>${escapeHtml(contributor.name)}</p>
-                    </div>
-                </div>
-                <div class="contributor-score" style="background:${contributor.accent}1A;color:${contributor.accent}">
-                    <span>${escapeHtml(String(contributor.score))}</span>
-                    <small>${escapeHtml(contributor.label)}</small>
-                </div>
-            `;
-        }).map(function (markup) {
-            return `<div class="contributor-card">${markup}</div>`;
-        }).join('');
-    }
+    /*
+     * `buildContributorLeaderboard` and a second `displayMembers` used to sit
+     * here. Both were dead: a later `function displayMembers()` declaration
+     * further down this file shadows this one entirely, so the leaderboard has
+     * never rendered — the same trap that produced the two commented-out
+     * `displayMembers` stubs earlier in the file.
+     *
+     * Worth removing rather than renaming. It drew each account's username,
+     * name, discipline and role into #contributors-grid, which contradicts the
+     * promise printed at the top of that page: "No account details are shown
+     * anywhere on this page." Left in place, reordering the two declarations —
+     * or deleting the wrong one — would have started leaking names.
+     */
 
     if (homeTodoDateInput) {
         homeTodoDateInput.value = new Date().toISOString().split('T')[0];
@@ -23807,134 +23756,181 @@ document.addEventListener('DOMContentLoaded', function () {
         const flowScore = (tasks.length * 3) + (uploadedFiles.length * 2) + completedTodos;
         const recentActivity = activityLog.slice(0, 4);
 
-        const cards = [
+        /*
+         * Two tiers, not nine equal boxes.
+         *
+         * The panel used to be a grid of nine identical cards — Flow Score
+         * beside Active Days beside Course Mix, every one the same size and
+         * the same weight. Nine numbers shouted at once say nothing about
+         * which of them matters, so the page was read as decoration.
+         *
+         * `headline` is the four figures somebody actually opens this page
+         * for. `secondary` is the rest, drawn smaller underneath. Nothing was
+         * removed; it is only ranked.
+         */
+        const headline = [
             {
-                title: 'Class Contribution',
+                title: 'Total contributions',
                 value: String(totalContributions),
-                detail: `${tasks.length} problem entr${tasks.length === 1 ? 'y' : 'ies'} and ${uploadedFiles.length} library upload${uploadedFiles.length === 1 ? '' : 's'} saved so far.`
+                detail: `${tasks.length} problem entr${tasks.length === 1 ? 'y' : 'ies'} · ${uploadedFiles.length} library upload${uploadedFiles.length === 1 ? '' : 's'}`,
+                icon: 'workspace_premium',
+                tone: 'is-primary'
             },
             {
-                title: 'Flow Score',
-                value: String(flowScore),
-                detail: 'Built from saved problems, uploads, and completed focus items.'
-            },
-            {
-                title: 'Saved Problems',
-                value: String(tasks.length),
-                detail: `${attachmentCount} entries include attachments ready for review.`
-            },
-            {
-                title: 'Library Depth',
+                title: 'Library depth',
                 value: String(uploadedFiles.length),
-                detail: `${folders.length} folder${folders.length === 1 ? '' : 's'} keeping materials organized.`
+                detail: `Across ${folders.length} folder${folders.length === 1 ? '' : 's'}`,
+                icon: 'library_books',
+                tone: 'is-blue'
             },
             {
-                title: 'Focus Queue',
-                value: String(pendingTodos),
-                detail: `${completedTodos} completed task${completedTodos === 1 ? '' : 's'} already closed out.`
+                title: 'Saved problems',
+                value: String(tasks.length),
+                detail: `${attachmentCount} with an attachment`,
+                icon: 'functions',
+                tone: 'is-violet'
             },
             {
-                title: 'Completion Rate',
-                value: `${completionRate}%`,
-                detail: homeTodos.length ? 'Based on your current task board progress.' : 'Add tasks to start tracking completion rhythm.'
-            },
-            {
-                title: 'Course Mix',
-                value: `${ceItems} | ${eeItems}`,
-                detail: 'CE items first, EE items second, for a quick balance check.'
-            },
-            {
-                title: 'Active Days',
+                title: 'Active days',
                 value: String(activeDays),
-                detail: 'Counts the number of days with saved activity in this workspace.'
-            },
-            {
-                title: 'Next Deadline',
-                value: nextTodo ? formatDate(nextTodo.dueDate) : 'Clear',
-                detail: nextTodo ? escapeHtml(nextTodo.text) : 'No pending due dates right now.'
+                detail: activeDays ? 'Days with saved activity' : 'Nothing recorded yet',
+                icon: 'local_fire_department',
+                tone: 'is-amber'
             }
         ];
 
-        const cardMarkup = cards.map(function (card) {
+        const secondary = [
+            {
+                title: 'Flow score',
+                value: String(flowScore),
+                // The old copy never said how it was built, so the number was
+                // unfalsifiable. Now it shows its own arithmetic.
+                detail: `${tasks.length}x3 + ${uploadedFiles.length}x2 + ${completedTodos}`
+            },
+            {
+                title: 'Focus queue',
+                value: String(pendingTodos),
+                detail: `${completedTodos} closed out`
+            },
+            {
+                title: 'Completion rate',
+                value: `${completionRate}%`,
+                detail: homeTodos.length ? `${completedTodos} of ${homeTodos.length} tasks` : 'No tasks yet'
+            },
+            {
+                title: 'Next deadline',
+                value: nextTodo ? formatDate(nextTodo.dueDate) : 'Clear',
+                detail: nextTodo ? nextTodo.text : 'Nothing due'
+            }
+        ];
+
+        const headlineMarkup = headline.map(function (card) {
             return `
-                <article class="insight-card">
-                    <span class="insight-label">${escapeHtml(card.title)}</span>
-                    <strong class="insight-value">${escapeHtml(card.value)}</strong>
-                    <p class="insight-detail">${escapeHtml(card.detail)}</p>
+                <article class="contrib-stat ${card.tone}">
+                    <span class="contrib-stat-icon"><span class="material-icons">${escapeHtml(card.icon)}</span></span>
+                    <div class="contrib-stat-body">
+                        <strong class="contrib-stat-value">${escapeHtml(card.value)}</strong>
+                        <span class="contrib-stat-title">${escapeHtml(card.title)}</span>
+                        <small class="contrib-stat-detail">${escapeHtml(card.detail)}</small>
+                    </div>
+                </article>
+            `;
+        }).join('');
+
+        const secondaryMarkup = secondary.map(function (card) {
+            return `
+                <article class="contrib-mini">
+                    <span class="contrib-mini-title">${escapeHtml(card.title)}</span>
+                    <strong class="contrib-mini-value">${escapeHtml(card.value)}</strong>
+                    <small class="contrib-mini-detail">${escapeHtml(card.detail)}</small>
                 </article>
             `;
         }).join('');
 
         const recentMarkup = recentActivity.length
             ? recentActivity.map(function (item) {
-                const timeLabel = item.time instanceof Date
-                    ? item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const when = item.time instanceof Date ? item.time : new Date(item.time);
+                const valid = !Number.isNaN(when.getTime());
                 return `
-                    <div class="insight-list-item">
-                        <span>${escapeHtml(item.message)}</span>
-                        <small>${escapeHtml(timeLabel)}</small>
-                    </div>
+                    <li class="contrib-feed-item">
+                        <span class="contrib-feed-dot" aria-hidden="true"></span>
+                        <span class="contrib-feed-text">${escapeHtml(item.message)}</span>
+                        <time class="contrib-feed-time">${escapeHtml(valid
+                            ? when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : '')}</time>
+                    </li>
                 `;
             }).join('')
-            : '<p class="insight-empty">No recent activity yet. Start by adding a task or uploading a file.</p>';
+            : '<li class="contrib-empty">Nothing yet. Add a task or upload a material to start the feed.</li>';
 
-        const contributionBreakdown = [
-            {
-                label: 'Problem Entries',
-                count: tasks.length,
-                percent: problemPercent,
-                accentClass: 'accent-problem'
-            },
-            {
-                label: 'Library Uploads',
-                count: uploadedFiles.length,
-                percent: uploadPercent,
-                accentClass: 'accent-upload'
-            },
-            {
-                label: 'CE Contribution',
-                count: ceItems,
-                percent: cePercent,
-                accentClass: 'accent-ce'
-            },
-            {
-                label: 'EE Contribution',
-                count: eeItems,
-                percent: eePercent,
-                accentClass: 'accent-ee'
-            }
-        ].map(function (item) {
+        /*
+         * Two separate mixes, not four bars in one list.
+         *
+         * "Problem entries 40% / Library uploads 60% / CE 55% / EE 45%" was
+         * four bars in a column implying one shared total, when it is two
+         * independent splits that each add to 100. Reading them as one made
+         * the percentages look wrong.
+         */
+        const mixRow = function (label, count, percent, tone) {
             return `
-                <div class="contribution-row">
-                    <div class="contribution-meta">
-                        <span>${escapeHtml(item.label)}</span>
-                        <strong>${escapeHtml(String(item.count))}</strong>
+                <div class="contrib-mix-row">
+                    <div class="contrib-mix-head">
+                        <span class="contrib-mix-label">${escapeHtml(label)}</span>
+                        <span class="contrib-mix-figures">
+                            <strong>${escapeHtml(String(count))}</strong>
+                            <small>${escapeHtml(String(percent))}%</small>
+                        </span>
                     </div>
-                    <div class="contribution-bar">
-                        <span class="contribution-fill ${item.accentClass}" style="width:${item.percent}%"></span>
+                    <div class="contrib-mix-track">
+                        <span class="contrib-mix-fill ${tone}" style="width:${Math.max(percent, count ? 2 : 0)}%"></span>
                     </div>
-                    <small class="contribution-caption">${escapeHtml(String(item.percent))}% of the current mix</small>
                 </div>
             `;
-        }).join('');
+        };
+
+        const byType = mixRow('Problem entries', tasks.length, problemPercent, 'is-problem') +
+            mixRow('Library uploads', uploadedFiles.length, uploadPercent, 'is-upload');
+
+        const byCourse = mixRow('Civil Engineering', ceItems, cePercent, 'is-ce') +
+            mixRow('Electrical Engineering', eeItems, eePercent, 'is-ee');
+
+        const emptyMix = '<p class="contrib-empty">No contributions recorded yet.</p>';
 
         contributorsGrid.innerHTML = `
-            ${cardMarkup}
-            <article class="insight-card insight-card-wide">
-                <span class="insight-label">Contribution Breakdown</span>
-                <strong class="insight-value">Class Output Mix</strong>
-                <div class="contribution-stack">
-                    ${contributionBreakdown}
-                </div>
-            </article>
-            <article class="insight-card insight-card-wide">
-                <span class="insight-label">Recent Momentum</span>
-                <strong class="insight-value">Live Activity</strong>
-                <div class="insight-list">
-                    ${recentMarkup}
-                </div>
-            </article>
+            <section class="contrib-stats" aria-label="Headline figures">
+                ${headlineMarkup}
+            </section>
+
+            <div class="contrib-columns">
+                <section class="contrib-card contrib-mix-card">
+                    <header class="contrib-card-head">
+                        <h2>What the class is producing</h2>
+                        <p>Two independent splits: by kind of work, and by course.</p>
+                    </header>
+
+                    <div class="contrib-mix-group">
+                        <h3 class="contrib-mix-title">By kind of work</h3>
+                        ${totalContributions ? byType : emptyMix}
+                    </div>
+
+                    <div class="contrib-mix-group">
+                        <h3 class="contrib-mix-title">By course</h3>
+                        ${courseTotal ? byCourse : emptyMix}
+                    </div>
+                </section>
+
+                <section class="contrib-card contrib-feed-card">
+                    <header class="contrib-card-head">
+                        <h2>Recent activity</h2>
+                        <p>The last few things saved in this workspace.</p>
+                    </header>
+                    <ul class="contrib-feed">${recentMarkup}</ul>
+                </section>
+            </div>
+
+            <section class="contrib-minis" aria-label="Secondary figures">
+                ${secondaryMarkup}
+            </section>
         `;
     }
 

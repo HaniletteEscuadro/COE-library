@@ -36,6 +36,7 @@
     <link rel="stylesheet" href="coe-calendar.css?v=calendar-2026-08a">
     <link rel="stylesheet" href="coe-voice.css?v=voice-2026-08a">
     <link rel="stylesheet" href="coe-security.css?v=sec-2026-08a">
+    <link rel="stylesheet" href="coe-contribution.css?v=contrib-2026-08a">
     <!-- Last: the mobile rules for the live features have to outrank the
          !important layout guards those features use on desktop. -->
     <link rel="stylesheet" href="coe-mobile.css?v=embed-links-2026-08a">
@@ -773,14 +774,20 @@
             </div>
         </section>
 
+        <!-- Class Contribution.
+             The whole panel is drawn by displayMembers() in scripts.js into
+             #contributors-grid; the wrapper below only sets the page width and
+             the heading. Its own `contrib-*` class names live in
+             coe-contribution.css. -->
         <section id="members-panel" class="members-panel page-panel hidden" data-page="members">
-            <div class="members-header insights-header">
-                <div>
+            <div class="contrib-page">
+                <header class="contrib-pagehead">
+                    <span class="contrib-eyebrow">Workspace insights</span>
                     <h1>Class Contribution</h1>
-                    <p>Track overall class activity, study output, and contribution momentum without showing account details anywhere in the interface.</p>
-                </div>
+                    <p>Study output and activity across the whole class. No account details are shown anywhere on this page.</p>
+                </header>
+                <div class="contributors-grid" id="contributors-grid"></div>
             </div>
-            <div class="contributors-grid insights-grid" id="contributors-grid"></div>
         </section>
 
         <!-- Folder Section -->
