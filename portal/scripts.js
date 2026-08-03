@@ -23182,6 +23182,31 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        /*
+         * Served by the app server, but the live layer never came up.
+         *
+         * The local path below writes into `coeLearningFiles`, which coe-live.js
+         * treats as a render cache and REPLACES wholesale from the database on
+         * every boot. On a served page that makes it a hole in the floor: the
+         * card appears, the toast says "uploaded", and the file is gone at the
+         * next refresh with nothing to say where it went. It is the right answer
+         * only for index.html opened straight off the filesystem, where there is
+         * no server to reach.
+         *
+         * So say so instead. A refusal the uploader can act on beats a success
+         * that quietly loses their file.
+         */
+        if (window.CoeApi?.isServed?.()) {
+            const message = 'Not signed in to the library server, so this could not be saved. Reload the page and sign in, then try again.';
+
+            if (!quiet) {
+                window.showLibraryToast?.('Upload not saved', message, 'error');
+            }
+            if (typeof onComplete === 'function') {
+                onComplete({ ok: false, name: file.name, message });
+            }
+            return;
+        }
 
         // THE FOLDER WINS.
         //

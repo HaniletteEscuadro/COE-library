@@ -626,16 +626,44 @@
                 if (!user) return false;
                 currentUser = user;
 
+                /*
+                 * `ready` is set HERE, on the session — not after the first sync.
+                 *
+                 * Everything that reads this flag is asking one question: "does
+                 * my upload go to the server, or into this browser?" A confirmed
+                 * session on a served page is the complete answer to that. It
+                 * used to be set only after the opening `syncLibrary()` resolved,
+                 * which tied the answer to something unrelated: one 500, one
+                 * dropped request, one reload during a server restart, and it
+                 * stayed false for the rest of the session. Every upload after
+                 * that took the local-only fallback in scripts.js — the card
+                 * appeared, the toast said "uploaded", nothing was ever sent, and
+                 * the next sync replaced the cache and took it away again. Files
+                 * were lost to a failure that had nothing to do with uploading.
+                 *
+                 * A failed sync means the list on screen may be stale. It does
+                 * not mean the server is unreachable, and it must never be the
+                 * reason a file is written somewhere it cannot survive a refresh.
+                 */
+                ready = true;
+
+                listen();
+                applyUploadPermissions();
+
                 return Promise.all([
-                    syncLibrary(),
+                    // Handled, not propagated: a stale list is recoverable and
+                    // the next sync fixes it. syncLibrary has already logged the
+                    // reason and cleared the cache if the session was rejected.
+                    syncLibrary().catch(function (error) {
+                        global.showLibraryToast?.(
+                            'Could not load the library',
+                            'The list may be out of date. Uploads still go to the server.',
+                            'error'
+                        );
+                        console.error('[coe-live] initial sync failed', error && (error.message || error));
+                    }),
                     global.CoeApi.connect()
                 ]).then(function () {
-                    listen();
-                    ready = true;
-
-                    // After `ready`, so a failure here can never stop the
-                    // library itself from working.
-                    applyUploadPermissions();
                     renderApprovalQueue();
                     return true;
                 });

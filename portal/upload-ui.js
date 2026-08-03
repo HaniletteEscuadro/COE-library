@@ -393,6 +393,22 @@
         return;
       }
 
+      // Served by the app server, but the live layer never came up. The local
+      // branch below writes into the render cache, which coe-live.js replaces
+      // from the database on the next boot -- so the link would look added and
+      // be gone after a refresh. Say so rather than losing it quietly. See the
+      // matching guard in scripts.js uploadMaterialToLibrary().
+      if (window.CoeApi && window.CoeApi.isServed && window.CoeApi.isServed()) {
+        if (window.showLibraryToast) {
+          window.showLibraryToast(
+            'Link not saved',
+            'Not signed in to the library server. Reload the page and sign in, then try again.',
+            'error'
+          );
+        }
+        return;
+      }
+
       var record = {
         id: 'link-' + Date.now() + '-' + Math.random().toString(16).slice(2, 8),
         folderId: folder.folderId || '',
