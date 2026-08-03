@@ -336,6 +336,46 @@
             const status = (error && error.status) || 0;
             const fatal = status === 401 || status === 403;
 
+            /*
+             * A 401 here means the session is not usable, whatever the page
+             * thinks.
+             *
+             * The portal decides it is signed in from `/api/auth/session`,
+             * which is NextAuth's own endpoint: it reports what the JWT says
+             * and asks the database nothing. Every `/api/*` route goes through
+             * getCurrentAuth() instead, which re-reads the ActiveSession row
+             * and the user on every request and refuses the moment either is
+             * gone — a revoked session, an expired one, a reseeded database.
+             *
+             * The two therefore disagree, and the gap is a signed-in-looking
+             * app where nothing works: the dashboard renders the name out of
+             * the token, the library answers 401 and empties itself, and
+             * uploads go to a server that refuses every one of them. That is
+             * the state this was reported in.
+             *
+             * So the API's answer wins. Sign out properly — that clears the
+             * stale cookie and the cached library, chat and Q&A with it — and
+             * go to the login page, which is the one thing that can fix it.
+             */
+            if (status === 401) {
+                // Nothing may take the server path on a session the server has
+                // already refused — least of all an upload.
+                ready = false;
+
+                console.warn('[coe-live] the API rejected this session; signing out');
+                global.showLibraryToast?.(
+                    'Session expired',
+                    'Taking you back to the sign-in page.',
+                    'error'
+                );
+
+                return global.CoeApi.logout()
+                    .catch(function () { /* going to login either way */ })
+                    .then(function () {
+                        global.location.href = 'login.html';
+                    });
+            }
+
             if (!fatal && tries < MAX_TRIES) {
                 return new Promise(function (resolve) {
                     global.setTimeout(resolve, tries * 1200);
@@ -369,8 +409,10 @@
     function describeSyncFailure(status, error) {
         const message = (error && error.message) || '';
 
-        if (status === 401 || status === 403) {
-            return 'Your session has ended. Reload the page and sign in again.';
+        // 401 never reaches here — it signs out and redirects. 403 is the
+        // account being refused rather than unrecognised.
+        if (status === 403) {
+            return 'This account is not allowed to read the library. Ask an administrator.';
         }
         if (status === 0) {
             return 'Could not reach the server. Check that it is still running, then reload.';
