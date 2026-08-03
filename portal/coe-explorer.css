@@ -504,15 +504,60 @@ body.dark-theme .up-destination-note,
    dialog out correctly.
    ========================================================================== */
 
+/* --- 0. The host the viewer is moved into -------------------------------- */
+
+/*
+ * `openMaterialDetail` moves the dialog into #coe-modal-host, a direct child of
+ * <body>, so no wrapper in the page can be its containing block or clip it.
+ *
+ * `display: contents` is the whole point: the host generates no box, so it
+ * cannot be a containing block, cannot clip, and cannot open a stacking context
+ * of its own — the dialog behaves exactly as if it were a direct child of
+ * <body>. The class it carries is only there so the dialog's stylesheet rules,
+ * which are scoped to `.enhanced-library-section`, keep matching after the move.
+ * !important because that class also carries a page background, a min-height
+ * and a max-width meant for the library panel, none of which belong on a host
+ * that is supposed to be invisible.
+ */
+.coe-modal-host {
+  display: contents !important;
+}
+
 /* --- 1. Centring and backdrop -------------------------------------------- */
 
+/*
+ * z-index: styles.css forces `position: relative; z-index: 20000 !important`
+ * onto `.main-content`, `.library-wrapper`, `.folder-tree`, `.sidebar` and
+ * `.library-cards-container` (an old blanket fix for clicks landing on the
+ * wrong element), and 20001 onto the nav links and tabs. At 10000 this dialog
+ * lost to every one of them and opened *behind* the library — the folder panel,
+ * the toolbar and the card grid all painted over the top of it. It has to sit
+ * above that band. 55000 clears it and the 50000 classroom picker, and stays
+ * under the 60000 toasts so a "Bookmarked" or "Comment posted" message is still
+ * readable while the viewer is open.
+ */
 #material-detail-modal.is-open {
   display: flex !important;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  z-index: 10000;
+  z-index: 55000;
   background: rgba(15, 18, 24, 0.72);
+}
+
+/*
+ * And the other half of the same problem: while a dialog is open, the page
+ * regions behind it have no business being in the stacking race at all. This
+ * takes them out of it rather than leaving every future dialog to out-bid a
+ * z-index of 20000. `body.coe-modal-open` is set only for as long as a modal
+ * is up, so the blanket rule is untouched the rest of the time.
+ */
+body.coe-modal-open .main-content,
+body.coe-modal-open .library-wrapper,
+body.coe-modal-open .folder-tree,
+body.coe-modal-open .library-cards-container,
+body.coe-modal-open .sidebar {
+  z-index: auto !important;
 }
 
 /* --- 2. Size ------------------------------------------------------------- */
@@ -676,7 +721,8 @@ body.coe-modal-open {
 #material-detail-modal.is-open .detail-preview.is-cssfull {
   position: fixed;
   inset: 0;
-  z-index: 10001;
+  /* One above the dialog itself, which is 55000 — see the note there. */
+  z-index: 55001;
   width: 100vw;
   height: 100vh;
   max-height: none !important;

@@ -2483,9 +2483,28 @@ function openMaterialDetail(materialId) {
      * Moved once and left there: `appendChild` on an element already in place
      * would still detach and re-insert it, which restarts CSS transitions and
      * reloads any iframe inside.
+     *
+     * WHY A HOST ELEMENT AND NOT <body> DIRECTLY
+     * ------------------------------------------
+     * Moving it straight to <body> also moved it out of `.enhanced-library-section`,
+     * and roughly a dozen rules in styles.css that dress this dialog are scoped
+     * to that class — the white panel, the 940px width, the icon tile, the
+     * two-column details grid, the buttons, and `.enhanced-library-section .modal
+     * { z-index: 40000 }`. All of them stopped matching the moment the dialog
+     * was reparented, so it opened unstyled AND fell back to a z-index below the
+     * `z-index: 20000 !important` that styles.css forces onto `.main-content`,
+     * `.library-wrapper`, `.folder-tree` and `.library-cards-container`. That is
+     * why the viewer appeared behind the library instead of over it.
+     *
+     * The host is a child of <body> carrying that same class, so every scoped
+     * rule keeps matching. It is `display: contents`, so it generates no box of
+     * its own: it cannot be a containing block, cannot clip, and cannot open a
+     * stacking context — the dialog still anchors to the viewport exactly as it
+     * would as a direct child of <body>.
      */
-    if (detailModal.parentElement !== document.body) {
-        document.body.appendChild(detailModal);
+    const modalHost = getModalHost();
+    if (detailModal.parentElement !== modalHost) {
+        modalHost.appendChild(detailModal);
     }
 
     detailModal.style.display = 'flex';
@@ -2502,6 +2521,26 @@ function openMaterialDetail(materialId) {
         // Start at the top: a reopened modal keeps its old scroll position.
         dialog.scrollTop = 0;
     }
+}
+
+/**
+ * The element the material viewer is moved into, created on first use.
+ *
+ * A direct child of <body>, so nothing in the page can be its containing block,
+ * clip it, or bury it in a stacking context. It carries `enhanced-library-section`
+ * only so the dialog's own stylesheet rules — which are all scoped to that class
+ * — go on matching after the move, and `display: contents` so the host itself
+ * lays out as if it were not there at all.
+ */
+function getModalHost() {
+    let host = document.getElementById('coe-modal-host');
+    if (host) return host;
+
+    host = document.createElement('div');
+    host.id = 'coe-modal-host';
+    host.className = 'enhanced-library-section coe-modal-host';
+    document.body.appendChild(host);
+    return host;
 }
 
 /**
