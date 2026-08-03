@@ -315,6 +315,73 @@
             });
     }
 
+    /**
+     * The opening sync, with the retries a page load deserves.
+     *
+     * `start()` fires this while the server may still be compiling the route,
+     * while the network is still waking up, or a second after a restart. One
+     * attempt turned any of those into a library that stayed empty until the
+     * next reload — and, before `ready` was moved off it, into a session whose
+     * uploads all went into the browser instead of the database.
+     *
+     * Three attempts, backing off, then it says so. A 401 or 403 is not retried:
+     * that is a real answer about the session, not a hiccup, and syncLibrary has
+     * already emptied the cache for it.
+     */
+    function syncWithRetry(attempt) {
+        const tries = attempt || 1;
+        const MAX_TRIES = 3;
+
+        return syncLibrary().catch(function (error) {
+            const status = (error && error.status) || 0;
+            const fatal = status === 401 || status === 403;
+
+            if (!fatal && tries < MAX_TRIES) {
+                return new Promise(function (resolve) {
+                    global.setTimeout(resolve, tries * 1200);
+                }).then(function () {
+                    return syncWithRetry(tries + 1);
+                });
+            }
+
+            /*
+             * Say what actually went wrong.
+             *
+             * "Could not load the library" on its own is a dead end for anyone
+             * trying to fix it — a 401, a 500 and a dropped connection all look
+             * identical, and they need three different answers. The status and
+             * the server's own message are the difference between guessing and
+             * knowing.
+             */
+            const detail = describeSyncFailure(status, error);
+
+            console.error(
+                '[coe-live] initial sync failed after ' + tries + ' attempt(s):',
+                'status=' + status,
+                error && (error.message || error)
+            );
+
+            global.showLibraryToast?.('Could not load the library', detail, 'error');
+        });
+    }
+
+    /** Plain-language cause, with the status kept for whoever has to fix it. */
+    function describeSyncFailure(status, error) {
+        const message = (error && error.message) || '';
+
+        if (status === 401 || status === 403) {
+            return 'Your session has ended. Reload the page and sign in again.';
+        }
+        if (status === 0) {
+            return 'Could not reach the server. Check that it is still running, then reload.';
+        }
+        if (status >= 500) {
+            return 'The server answered ' + status + '. ' + (message || 'Try reloading in a moment.');
+        }
+
+        return 'The server answered ' + status + '. ' + (message || 'The list may be out of date.');
+    }
+
     // -----------------------------------------------------------------------
     // Upload
     // -----------------------------------------------------------------------
@@ -654,14 +721,7 @@
                     // Handled, not propagated: a stale list is recoverable and
                     // the next sync fixes it. syncLibrary has already logged the
                     // reason and cleared the cache if the session was rejected.
-                    syncLibrary().catch(function (error) {
-                        global.showLibraryToast?.(
-                            'Could not load the library',
-                            'The list may be out of date. Uploads still go to the server.',
-                            'error'
-                        );
-                        console.error('[coe-live] initial sync failed', error && (error.message || error));
-                    }),
+                    syncWithRetry(),
                     global.CoeApi.connect()
                 ]).then(function () {
                     renderApprovalQueue();
