@@ -6,8 +6,8 @@
 body:not(.auth-body) #upload-file-modal {
   --gd-ink: #0f172a;
   --gd-muted: #64748b;
-  --gd-line: #e4ecf4;
-  --gd-brand: #0f766e;
+  --gd-line: #f0e6e2;
+  --gd-brand: #7a1522;
   --gd-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Hidden is the default and it must be unconditional.
@@ -104,9 +104,9 @@ body:not(.auth-body) #upload-file-modal .gd-head-icon {
   height: 46px !important;
   flex: 0 0 auto !important;
   border-radius: 13px !important;
-  background: linear-gradient(135deg, #0f766e, #0891b2) !important;
+  background: linear-gradient(135deg, #7a1522, #a97f16) !important;
   color: #fff !important;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.26) !important;
+  box-shadow: 0 4px 12px rgba(122, 21, 34, 0.26) !important;
 }
 
 body:not(.auth-body) #upload-file-modal .gd-head-icon .material-icons {
@@ -143,7 +143,7 @@ body:not(.auth-body) #upload-file-modal .gd-drop {
   justify-content: center !important;
   gap: 3px !important;
   padding: 30px 18px !important;
-  border: 2px dashed #cddcea !important;
+  border: 2px dashed #e3d3cd !important;
   border-radius: 14px !important;
   background: #f8fafc !important;
   text-align: center !important;
@@ -154,7 +154,7 @@ body:not(.auth-body) #upload-file-modal .gd-drop {
 
 body:not(.auth-body) #upload-file-modal .gd-drop:hover {
   border-color: var(--gd-brand) !important;
-  background: #f0fdfa !important;
+  background: #fdf3f4 !important;
 }
 
 /* Applied by upload-ui.js while a file is over the zone. */
@@ -172,7 +172,7 @@ body:not(.auth-body) #upload-file-modal .gd-drop .material-icons {
   height: 52px !important;
   margin-bottom: 6px !important;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, #ecfdf5, #e0f2fe) !important;
+  background: linear-gradient(135deg, #ecfdf5, #faedcb) !important;
   color: var(--gd-brand) !important;
   font-size: 25px !important;
 }
@@ -325,7 +325,7 @@ body:not(.auth-body) #upload-file-modal .gd-field input:focus,
 body:not(.auth-body) #upload-file-modal .gd-field select:focus {
   border-color: var(--gd-brand) !important;
   background: #fff !important;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11) !important;
+  box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.11) !important;
 }
 
 /* --- Progress ------------------------------------------------------------ */
@@ -333,7 +333,7 @@ body:not(.auth-body) #upload-file-modal .gd-progress {
   position: relative !important;
   height: 24px !important;
   border-radius: 999px !important;
-  background: #eef2f7 !important;
+  background: #f6efec !important;
   overflow: hidden !important;
 }
 
@@ -344,7 +344,7 @@ body:not(.auth-body) #upload-file-modal .gd-progress > span {
   width: 0%;
   height: 100% !important;
   border-radius: 999px !important;
-  background: linear-gradient(90deg, #0f766e, #0891b2) !important;
+  background: linear-gradient(90deg, #7a1522, #a97f16) !important;
   transition: width 220ms var(--gd-ease) !important;
 }
 
@@ -369,7 +369,7 @@ body:not(.auth-body) #upload-file-modal .gd-actions {
 
 body:not(.auth-body) #upload-file-modal .gd-cancel {
   padding: 11px 18px !important;
-  border: 1px solid #cddcea !important;
+  border: 1px solid #e3d3cd !important;
   border-radius: 10px !important;
   background: #fff !important;
   color: var(--gd-ink) !important;
@@ -387,12 +387,12 @@ body:not(.auth-body) #upload-file-modal .gd-submit {
   padding: 11px 22px !important;
   border: 0 !important;
   border-radius: 10px !important;
-  background: linear-gradient(135deg, #0f766e, #0891b2) !important;
+  background: linear-gradient(135deg, #7a1522, #a97f16) !important;
   color: #fff !important;
   font-size: 0.875rem !important;
   font-weight: 700 !important;
   cursor: pointer !important;
-  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.26) !important;
+  box-shadow: 0 3px 10px rgba(122, 21, 34, 0.26) !important;
   transition: transform 160ms var(--gd-ease), filter 160ms var(--gd-ease) !important;
 }
 
@@ -477,7 +477,7 @@ body:not(.auth-body) #upload-file-modal .gd-link-row {
 body:not(.auth-body) #upload-file-modal .gd-link-row:focus-within {
   border-color: var(--gd-brand) !important;
   background: #fff !important;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11) !important;
+  box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.11) !important;
 }
 
 body:not(.auth-body) #upload-file-modal .gd-link-row > .material-icons {
@@ -548,6 +548,6 @@ body:not(.auth-body) #upload-file-modal .gd-link-preview small {
 /* Per-provider tint, so the source is obvious at a glance. */
 body:not(.auth-body) #upload-file-modal .gd-link-preview.is-youtube .material-icons { color: #dc2626 !important; background: #fef2f2 !important; }
 body:not(.auth-body) #upload-file-modal .gd-link-preview.is-drive .material-icons   { color: #059669 !important; background: #ecfdf5 !important; }
-body:not(.auth-body) #upload-file-modal .gd-link-preview.is-other .material-icons   { color: #0891b2 !important; background: #ecfeff !important; }
+body:not(.auth-body) #upload-file-modal .gd-link-preview.is-other .material-icons   { color: #a97f16 !important; background: #fdf8ec !important; }
 body:not(.auth-body) #upload-file-modal .gd-link-preview.is-bad .material-icons     { color: #dc2626 !important; background: #fef2f2 !important; }
 body:not(.auth-body) #upload-file-modal .gd-link-preview.is-bad strong { color: #b91c1c !important; }

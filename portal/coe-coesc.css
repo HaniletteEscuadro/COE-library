@@ -24,15 +24,15 @@
  */
 
 .coesc-panel {
-    --coesc-accent: #4f46e5;
-    --coesc-accent-soft: #eef2ff;
-    --coesc-accent-line: #c7d2fe;
+    --coesc-accent: #7a1522;
+    --coesc-accent-soft: #fdf3f4;
+    --coesc-accent-line: #efc9cf;
     --coesc-ink: #0f172a;
     --coesc-muted: #64748b;
     --coesc-line: #e2e8f0;
     --coesc-surface: #ffffff;
     --coesc-canvas: #f8fafc;
-    --coesc-ce: #0ea5e9;
+    --coesc-ce: #c8991f;
     --coesc-ee: #f59e0b;
     --coesc-ok: #059669;
     --coesc-warn: #d97706;
@@ -53,7 +53,7 @@
     overflow: hidden;
     border-radius: 24px;
     padding: 2.25rem 2.5rem;
-    background: linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #6366f1 100%);
+    background: linear-gradient(135deg, #4f0d16 0%, #7a1522 55%, #8f1d2c 100%);
     color: #fff;
     display: flex;
     flex-wrap: wrap;
@@ -346,7 +346,7 @@
 .coesc-officer:hover {
     border-color: var(--coesc-accent-line);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px -12px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 8px 24px -12px rgba(122, 21, 34, 0.4);
 }
 
 .coesc-officer--adviser {
@@ -412,8 +412,8 @@
 }
 
 .coesc-officer--ce .coesc-officer-tag {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: #faedcb;
+    color: #8f6a12;
 }
 
 .coesc-officer--ce .coesc-officer-photo {
@@ -471,7 +471,7 @@
     border-radius: 12px;
     background: var(--coesc-accent-soft);
     border: 1px solid var(--coesc-accent-line);
-    color: #3730a3;
+    color: #63121d;
     font-size: 0.83rem;
 }
 
@@ -655,7 +655,7 @@
 .coesc-field textarea:focus {
     outline: none;
     border-color: var(--coesc-accent);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+    box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.14);
 }
 
 .coesc-submit {
@@ -675,7 +675,7 @@
 }
 
 .coesc-submit:hover:not(:disabled) {
-    background: #4338ca;
+    background: #7a1522;
     transform: translateY(-1px);
 }
 
@@ -703,7 +703,7 @@
 
 .coesc-note.is-busy {
     background: var(--coesc-accent-soft);
-    color: #3730a3;
+    color: #63121d;
 }
 
 /* --------------------------------------------------------------------------
@@ -821,8 +821,8 @@
 }
 
 .coesc-approval-tag.is-question {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: #faedcb;
+    color: #8f6a12;
 }
 
 .coesc-approval-tag.is-material {
@@ -922,8 +922,8 @@ body.dark-mode .coesc-panel,
     --coesc-line: #334155;
     --coesc-surface: #1e293b;
     --coesc-canvas: #0f172a;
-    --coesc-accent-soft: #312e81;
-    --coesc-accent-line: #4338ca;
+    --coesc-accent-soft: #4f0d16;
+    --coesc-accent-line: #7a1522;
 }
 
 body.dark-mode .coesc-notice p,

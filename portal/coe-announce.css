@@ -28,7 +28,7 @@
    ========================================================================== */
 
 .ann-panel {
-    --ann-accent: #4f46e5;
+    --ann-accent: #7a1522;
     --ann-line: rgba(148, 163, 184, 0.3);
     --ann-muted: #64748b;
 
@@ -44,7 +44,7 @@
     padding: 1rem 1.1rem 1.1rem;
     border: 1px solid var(--ann-line);
     border-radius: 14px;
-    background: rgba(79, 70, 229, 0.04);
+    background: rgba(122, 21, 34, 0.04);
 }
 
 .ann-composer-head {
@@ -92,7 +92,7 @@
 .ann-composer select:focus {
     outline: none;
     border-color: var(--ann-accent);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
+    box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.16);
 }
 
 .ann-composer-row {
@@ -126,7 +126,7 @@
 }
 
 .ann-composer-row button:hover:not(:disabled) {
-    background: #4338ca;
+    background: #7a1522;
 }
 
 .ann-composer-row button:disabled {
@@ -147,7 +147,7 @@
 
 .ann-note.is-ok    { background: #d1fae5; color: #065f46; }
 .ann-note.is-error { background: #fee2e2; color: #991b1b; }
-.ann-note.is-busy  { background: #e0e7ff; color: #3730a3; }
+.ann-note.is-busy  { background: #f8e4e7; color: #63121d; }
 
 /* --- The list ------------------------------------------------------------ */
 
@@ -190,7 +190,7 @@
 }
 
 .ann-from.is-org {
-    background: rgba(79, 70, 229, 0.16);
+    background: rgba(122, 21, 34, 0.16);
     color: var(--ann-accent);
 }
 
@@ -234,8 +234,8 @@
 .ann-course {
     padding: 0.08rem 0.45rem;
     border-radius: 999px;
-    background: rgba(14, 165, 233, 0.16);
-    color: #0284c7;
+    background: rgba(200, 153, 31, 0.16);
+    color: #a97f16;
     font-weight: 700;
 }
 
@@ -277,7 +277,7 @@ body.dark-mode .ann-note.is-ok,
 body.dark-mode .ann-note.is-error,
 [data-theme="dark"] .ann-note.is-error { background: #3f1414; color: #fca5a5; }
 body.dark-mode .ann-note.is-busy,
-[data-theme="dark"] .ann-note.is-busy  { background: #1e1b4b; color: #a5b4fc; }
+[data-theme="dark"] .ann-note.is-busy  { background: #2b0810; color: #c25a6b; }
 
 /* ==========================================================================
    Phones

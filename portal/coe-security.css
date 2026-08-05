@@ -50,8 +50,8 @@
   height: 42px;
   flex: 0 0 auto;
   border-radius: 12px;
-  background: rgba(29, 78, 216, 0.12);
-  color: #1d4ed8;
+  background: rgba(122, 21, 34, 0.12);
+  color: #7a1522;
 }
 
 .seclog-title h3 {
@@ -150,7 +150,7 @@
 .seclog-stat.is-warn { border-color: rgba(180, 83, 9, 0.28); background: rgba(180, 83, 9, 0.06); }
 .seclog-stat.is-warn .material-icons { color: #b45309; }
 
-.seclog-stat.is-info .material-icons { color: #1d4ed8; }
+.seclog-stat.is-info .material-icons { color: #7a1522; }
 
 /* Nothing has happened, so the red tile stops shouting about a zero. */
 .seclog-stat.is-danger.is-quiet {
@@ -205,8 +205,8 @@
 }
 
 .seclog-filter.is-on {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: #7a1522;
+  background: #7a1522;
   color: #fff;
 }
 
@@ -365,7 +365,7 @@
 
 .seclog-row.is-danger .seclog-mark { background: rgba(185, 28, 28, 0.13); color: #b91c1c; }
 .seclog-row.is-warn .seclog-mark { background: rgba(180, 83, 9, 0.13); color: #b45309; }
-.seclog-row.is-info .seclog-mark { background: rgba(29, 78, 216, 0.12); color: #1d4ed8; }
+.seclog-row.is-info .seclog-mark { background: rgba(122, 21, 34, 0.12); color: #7a1522; }
 
 .seclog-mark .material-icons {
   font-size: 20px;
@@ -452,19 +452,19 @@
 
 body.dark-theme .seclog-title-icon,
 :root[data-theme="dark"] .seclog-title-icon {
-  background: rgba(96, 165, 250, 0.16);
-  color: #93c5fd;
+  background: rgba(194, 90, 107, 0.16);
+  color: #dc98a3;
 }
 
 body.dark-theme .seclog-line em,
 :root[data-theme="dark"] .seclog-line em {
-  color: #e8eef6;
+  color: #f0e6e2;
 }
 
 body.dark-theme :is(.seclog-filter.is-on),
 :root[data-theme="dark"] :is(.seclog-filter.is-on) {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #8f1d2c;
+  border-color: #8f1d2c;
 }
 
 body.dark-theme :is(.seclog-stat.is-danger .material-icons, .seclog-stat.is-danger strong,
@@ -476,7 +476,7 @@ body.dark-theme :is(.seclog-stat.is-danger .material-icons, .seclog-stat.is-dang
 
 body.dark-theme .seclog-stat.is-info .material-icons,
 :root[data-theme="dark"] .seclog-stat.is-info .material-icons {
-  color: #93c5fd;
+  color: #dc98a3;
 }
 
 /* ---------------------------------------------------------------------------

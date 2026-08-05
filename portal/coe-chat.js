@@ -70,6 +70,58 @@
     }
 
     /** Initials for the avatar, so a thread is scannable by who is talking. */
+    /**
+     * Turn a plain-text message body into the HTML shown in the thread.
+     *
+     * Everything here is built on top of escapeHtml, never instead of it: the
+     * body is escaped first and the markup below is added to text that can no
+     * longer contain any of its own. A message is written by another student,
+     * so it is untrusted input in the ordinary sense.
+     *
+     * WHAT IT UNDERSTANDS
+     *   https://…      becomes a link. Shared Drive folders, forms and past
+     *                  papers were arriving as text you had to select and
+     *                  paste, which is most of what this room is used for.
+     *   > quoted line  becomes a quote block. This is what the Reply button
+     *                  writes, so a reply carries what it is replying to
+     *                  without needing a threads column in the database.
+     *   @Name          becomes a mention chip, and a mention of you is marked
+     *                  so your own name stands out in a busy room.
+     *
+     * Deliberately not Markdown. Half-implemented emphasis in a chat means
+     * asterisks vanishing out of formulas — and this room carries formulas.
+     */
+    function formatBody(text, myName) {
+        const safe = escapeHtml(text);
+        const mine = String(myName || '').trim().toLowerCase();
+
+        return safe.split('\n').map(function (line) {
+            const quoted = /^&gt;\s?/.test(line);
+            let body = quoted ? line.replace(/^&gt;\s?/, '') : line;
+
+            // Links. The pattern stops at whitespace and at the characters that
+            // are almost always sentence punctuation rather than part of a URL.
+            body = body.replace(/https?:\/\/[^\s<>"']+/g, function (raw) {
+                const trimmed = raw.replace(/[.,;:!?]+$/, '');
+                const tail = raw.slice(trimmed.length);
+                let label = trimmed.replace(/^https?:\/\//, '');
+                if (label.length > 48) label = label.slice(0, 45) + '…';
+                return '<a class="coe-msg-link" href="' + trimmed +
+                    '" target="_blank" rel="noopener noreferrer">' + label + '</a>' + tail;
+            });
+
+            // Mentions. Names can have a space in them ("@Ana Santos"), so a
+            // second capitalised word is taken when there is one.
+            body = body.replace(/@([A-Za-z][\w.'-]*(?:\s+[A-Z][\w.'-]*)?)/g, function (all, name) {
+                const isMe = mine && name.trim().toLowerCase() === mine;
+                return '<span class="coe-mention' + (isMe ? ' is-me' : '') + '">@' + name + '</span>';
+            });
+
+            if (!body) return quoted ? '' : '<br>';
+            return quoted ? '<span class="coe-msg-quote">' + body + '</span>' : body;
+        }).join('\n');
+    }
+
     function initials(name) {
         return String(name || '?')
             .trim()
@@ -81,7 +133,7 @@
 
     /** A stable colour per person, so the same name is the same colour. */
     function tintFor(key) {
-        const palette = ['#1a73e8', '#a142f4', '#1e8e3e', '#e37400', '#d93025', '#0b8043', '#7627bb'];
+        const palette = ['#8f1d2c', '#a63347', '#1e8e3e', '#e37400', '#d93025', '#0b8043', '#63121d'];
         let hash = 0;
         String(key || '').split('').forEach(ch => { hash = (hash * 31 + ch.charCodeAt(0)) >>> 0; });
         return palette[hash % palette.length];
@@ -105,6 +157,9 @@
         if (!thread) return;
 
         const messages = cache.get(activeChannel) || [];
+
+        // Measured before the thread is rewritten; see the note where it is used.
+        const wasAtBottom = threadAtBottom(thread);
 
         if (!messages.length) {
             thread.innerHTML =
@@ -151,12 +206,18 @@
                                 (isStaff ? '<span class="coe-msg-role">Staff</span>' : '') +
                                 '<time>' + escapeHtml(formatWhen(message.createdAt)) + '</time>' +
                             '</div>') +
-                        '<div class="coe-msg-body">' + escapeHtml(message.body) + '</div>' +
+                        '<div class="coe-msg-body">' + formatBody(message.body, mine && mine.name) + '</div>' +
                     '</div>' +
-                    (canRemove
-                        ? '<button type="button" class="coe-msg-del" title="Remove message" aria-label="Remove message">' +
-                              '<span class="material-icons">close</span></button>'
-                        : '') +
+                    '<div class="coe-msg-tools">' +
+                        '<button type="button" class="coe-msg-reply" title="Reply" aria-label="Reply to this message"' +
+                            ' data-reply-name="' + escapeHtml(message.senderName) + '"' +
+                            ' data-reply-body="' + escapeHtml(String(message.body || '').replace(/\s+/g, ' ').slice(0, 120)) + '">' +
+                            '<span class="material-icons">reply</span></button>' +
+                        (canRemove
+                            ? '<button type="button" class="coe-msg-del" title="Remove message" aria-label="Remove message">' +
+                                  '<span class="material-icons">close</span></button>'
+                            : '') +
+                    '</div>' +
                 '</div>';
 
             lastSender = message.senderId;
@@ -165,10 +226,56 @@
 
         thread.innerHTML = html;
 
-        // Newest message in view. Only jump if the reader was already at the
-        // bottom, so an arriving message never yanks them out of the history
-        // they are scrolled up reading.
-        thread.scrollTop = thread.scrollHeight;
+        /*
+         * Newest message in view — but only if the reader was already at the
+         * bottom. The comment here said exactly that and the line under it did
+         * the opposite: it jumped unconditionally, so scrolling up to re-read
+         * something threw you back to the newest message the moment anyone
+         * typed. `atBottom` has to be measured BEFORE innerHTML is replaced,
+         * which is why it is captured at the top of this function.
+         *
+         * When it does not jump, the "new messages" button appears instead —
+         * see refreshJumpButton(). Nothing arrives silently either way.
+         */
+        if (wasAtBottom) {
+            thread.scrollTop = thread.scrollHeight;
+        }
+        refreshJumpButton();
+    }
+
+    /** How close to the bottom still counts as "reading the newest". */
+    const BOTTOM_SLACK = 60;
+
+    function threadAtBottom(thread) {
+        if (!thread) return true;
+        return thread.scrollHeight - thread.scrollTop - thread.clientHeight <= BOTTOM_SLACK;
+    }
+
+    /**
+     * Show or hide the "jump to newest" button.
+     *
+     * It lives outside the scrolling element — inside it, the button would
+     * scroll away with the messages and be unreachable exactly when it is
+     * needed. It is created once and then only toggled.
+     */
+    function refreshJumpButton() {
+        const thread = global.document.getElementById('comm-chat-thread');
+        if (!thread || !thread.parentNode) return;
+
+        let button = global.document.getElementById('coe-chat-jump');
+        if (!button) {
+            button = global.document.createElement('button');
+            button.type = 'button';
+            button.id = 'coe-chat-jump';
+            button.className = 'coe-chat-jump';
+            button.innerHTML = '<span class="material-icons">arrow_downward</span> Newest messages';
+            button.addEventListener('click', function () {
+                thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+            });
+            thread.parentNode.insertBefore(button, thread.nextSibling);
+        }
+
+        button.hidden = threadAtBottom(thread);
     }
 
     /**
@@ -395,7 +502,31 @@
         if (thread && thread.dataset.coeBound !== 'true') {
             thread.dataset.coeBound = 'true';
 
+            /*
+             * Reply.
+             *
+             * Writes the quoted line into the composer rather than opening a
+             * side thread. The quote travels in the message body, so it needs
+             * no reply column on the server, it survives a reload, and someone
+             * reading on a phone sees the same context as everyone else.
+             */
             thread.addEventListener('click', function (event) {
+                const reply = event.target.closest('.coe-msg-reply');
+                if (reply) {
+                    const input = global.document.getElementById('comm-chat-input');
+                    if (!input) return;
+
+                    const quote = '> ' + reply.dataset.replyName + ': ' + reply.dataset.replyBody + '\n';
+                    // Kept if there is already a half-written message — losing
+                    // what somebody has typed to insert a quote is worse than
+                    // no reply button at all.
+                    input.value = quote + (input.value ? input.value.replace(/^(> .*\n)+/, '') : '');
+                    input.focus();
+                    input.setSelectionRange(input.value.length, input.value.length);
+                    input.dispatchEvent(new global.Event('input', { bubbles: true }));
+                    return;
+                }
+
                 const button = event.target.closest('.coe-msg-del');
                 if (!button) return;
 
@@ -405,6 +536,36 @@
                 removeMessage(id).catch(function (error) {
                     global.showLibraryToast?.('Could not remove', error.message || 'Try again.', 'error');
                 });
+            });
+
+            thread.addEventListener('scroll', refreshJumpButton, { passive: true });
+        }
+
+        /*
+         * Click a name in the members rail to address them.
+         *
+         * The cheap half of @mentions: typing one already highlights, but only
+         * if you spell the name the way its owner did. Taking it from the list
+         * means the highlight is reliable, which is the whole point of a
+         * mention in a room where three courses are talking at once.
+         */
+        const memberList = global.document.getElementById('comm-member-list');
+        if (memberList && memberList.dataset.coeBound !== 'true') {
+            memberList.dataset.coeBound = 'true';
+
+            memberList.addEventListener('click', function (event) {
+                const row = event.target.closest('[data-member-name], .discord-member');
+                if (!row) return;
+
+                const name = row.dataset.memberName || row.querySelector('strong')?.textContent.trim();
+                const input = global.document.getElementById('comm-chat-input');
+                if (!name || !input) return;
+
+                const spacer = input.value && !/\s$/.test(input.value) ? ' ' : '';
+                input.value += spacer + '@' + name + ' ';
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+                input.dispatchEvent(new global.Event('input', { bubbles: true }));
             });
         }
 
@@ -532,6 +693,10 @@
         removeMessage,
         loadChannel,
         render,
+        // Exported so the message rendering can be checked on its own: it is a
+        // pure string->string function, and it is the one part of this file
+        // that turns another student's text into markup.
+        formatBody,
         get channels() { return channels; },
         get activeChannel() { return activeChannel; },
         get messages() { return cache.get(activeChannel) || []; },

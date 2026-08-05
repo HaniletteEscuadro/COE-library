@@ -1,0 +1,116 @@
+/**
+ * COE Studio — legibility corrections.
+ *
+ * Every rule here fixes a text or icon colour that was measured, in the running
+ * page, below the contrast it needs to be read. The number in each comment is
+ * the ratio before the fix, taken by walking the DOM and resolving the colour
+ * actually painted behind each element — not an estimate.
+ *
+ * The thresholds are the WCAG AA ones: 4.5:1 for body text, 3:1 for large text
+ * (24px, or 18.7px at weight 700+) and for icons that carry meaning.
+ *
+ * WHY A SEPARATE FILE
+ * These are corrections to rules spread across styles.css (878 KB) and six
+ * other sheets, most of them `!important` and several duplicated three or four
+ * times over. Editing each origin would mean finding every copy and would leave
+ * no record of what was wrong. Here the whole set is in one place with its
+ * measurements, so the next audit can check the same list.
+ *
+ * THE BIG ONE IS NOT HERE
+ * The worst offender — every panel heading rendering at 1.23:1 — was not a
+ * colour that needed nudging. `body.dark-theme` was applied by default while
+ * the launch styles painted the panels white, so ~60 dark-theme rules across
+ * ten stylesheets were setting near-white text on white cards. That is fixed at
+ * the source, in loadSavedTheme() in scripts.js.
+ */
+
+/* -------------------------------------------------------------------------
+   Priority nav — the row of tabs under the search bar
+
+   The active tab is a maroon pill, and the rule that makes it maroon sets
+   `color: #ffffff` on the pill itself. The label and sublabel inside it carry
+   their own slate colours, which win over inheritance, so the selected tab was
+   showing #334155 on #7a1522 (1.04:1) and #475569 on #7a1522 (1.42:1) — the
+   text of the tab you are actually on was the least readable on the page. The
+   icon was #8f1d2c on #7a1522, which is maroon on maroon at 1.19:1.
+   ------------------------------------------------------------------------- */
+
+/*
+ * An item that is NOT the current page must not be painted like one.
+ *
+ * Belt and braces next to the rule below. On Communication and Settings —
+ * pages with no tab of their own — the Home tab keeps its "primary" state and
+ * stays maroon, which the rule below now handles by colouring its label white.
+ * This one covers the other half: if an item ever loses that state while some
+ * other rule still paints it, it goes back to being a plain white tab rather
+ * than a maroon one with slate text on it.
+ */
+body:not(.auth-body) .student-priority-nav .priority-nav-item:not(.primary):not(.active) {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #334155 !important;
+}
+
+/*
+ * The active tab states its fill and its text together, in one rule.
+ *
+ * They were split before — the maroon came from styles.css and the white text
+ * from here — and on the Organizations page they disagreed: the tab painted
+ * white while the label was told to be white too, so the current tab's name
+ * vanished completely. Whichever rule paints the background, these two
+ * declarations now travel with it, so white text can never end up on white.
+ */
+body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) {
+    background: #7a1522 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+}
+
+body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) strong,
+body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) .material-icons {
+    color: #ffffff !important;
+}
+
+body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) small {
+    /* Held back from pure white so the sublabel still reads as secondary —
+       8.0:1 on the maroon, which is well clear of the 4.5 it needs. */
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* -------------------------------------------------------------------------
+   "New" badge on announcements
+
+   #f97316 on #ffedd5 measured 2.45:1 at 11px/900. Orange on pale orange is the
+   right idea; it just has to be the dark end of the ramp. #9a3412 on the same
+   background is 6.4:1.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-new-badge {
+    color: #9a3412 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Folder tree disclosure chevron
+
+   #94a3b8 at `opacity: 0.55` — 2.56:1 before the opacity is even applied, so
+   nearer 1.8:1 as painted. It is the control that tells you a folder has
+   children, so it has to clear 3:1. #64748b at full opacity is 4.76:1.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) .enhanced-library-section .expand-icon {
+    color: #64748b !important;
+    opacity: 1 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Room status icons in Communication
+
+   #16a34a on #f8fafc was 3.15:1 and on #ffffff 3.30:1. Both scrape past the
+   icon threshold and fail it the moment the surface behind them is tinted at
+   all. #15803d is 5.0:1 and still unmistakably the "connected" green.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #messages-panel .msgr-status .material-icons,
+body:not(.auth-body) #messages-panel #comm-clear-search .material-icons {
+    color: #15803d !important;
+}

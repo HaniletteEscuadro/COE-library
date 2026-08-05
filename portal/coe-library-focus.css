@@ -1,0 +1,170 @@
+/**
+ * COE Studio — library folder view.
+ *
+ * The library has two states, and this file is the second one. Browsing "All
+ * Materials" keeps the three-column page it always had: folder tree, material
+ * grid, suggestion rail. The moment a subject — or a Reference Books folder, or
+ * a lesson inside one — is opened, the grid takes the whole width beside the
+ * tree and everything that is not about that folder gets out of the way.
+ *
+ * WHAT LEAVES, AND WHY EACH ONE
+ *   * The suggestion rail (Related Materials, Quick Questions, Bookmarks) is
+ *     about the library at large. Inside a folder it is a column of unrelated
+ *     links sitting where the files should be.
+ *   * The five counters across the top count the WHOLE library, so in a folder
+ *     they contradict the folder's own count directly underneath them — "84
+ *     Total Materials" above "6 materials".
+ *   * The Year and Subject dropdowns are set by the folder itself. Changing one
+ *     would put the toolbar and the highlighted folder into disagreement about
+ *     what is on screen.
+ *
+ * A file loaded after every other stylesheet, on purpose. The library's layout
+ * is decided across seven competing `.library-wrapper` rules in styles.css and
+ * coe-requested-polish.css, all of them `!important`; a rule that only differs
+ * by one class cannot win from inside that pile.
+ *
+ * Nothing here applies below 1025px. The responsive sheets already collapse the
+ * library to a single column there, so the tree, the header and the grid are
+ * stacked and there is no second column to reclaim.
+ */
+
+@media (min-width: 1025px) {
+
+    /* The suggestion rail's own column is given back to the grid. Without this
+       the 300px track stays reserved at >=1560px and the folder view has a
+       column-shaped hole down its right-hand side. */
+    body:not(.auth-body) #library-panel .library-wrapper.is-folder-view {
+        grid-template-columns: minmax(272px, 310px) minmax(0, 1fr) !important;
+    }
+
+    /*
+     * `#library-panel` and not `.enhanced-library-section`, even though they
+     * are the same element. The counter strip is held open by
+     * `body:not(.auth-body) #library-panel .lib-stats { display: grid !important }`
+     * in coe-requested-polish.css, and one id outweighs any number of classes —
+     * the class-based version of this rule matched, was `!important`, and still
+     * lost. The id here is what makes it stick.
+     */
+    body:not(.auth-body) #library-panel .library-wrapper.is-folder-view :is(
+        .library-sidebar-right,
+        .library-summary-enhanced,
+        .lib-stats,
+        #library-filter-year,
+        #library-filter-subject
+    ) {
+        display: none !important;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Folder header
+
+   Styled in both states so the bar does not jump when the view switches; the
+   focused state only adds the back button and a larger title.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel .library-folder-context {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 10px 14px !important;
+}
+
+body:not(.auth-body) #library-panel .folder-context-heading {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    /* Takes the slack so the actions stay pinned right and the counts line
+       stays on the same row as the title while there is room for it. */
+    flex: 1 1 240px !important;
+    min-width: 0 !important;
+}
+
+body:not(.auth-body) #library-panel .folder-context-label {
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: #8f6a12 !important;
+
+    /* A deep trail — course / year / subject / category — is context, not the
+       heading. One line, clipped, rather than three lines pushing the folder's
+       own name down the page. */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+body:not(.auth-body) #library-panel .folder-context-heading strong {
+    font-size: clamp(1.1rem, 1.6vw, 1.45rem) !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    color: #0f172a !important;
+    overflow-wrap: anywhere !important;
+}
+
+body:not(.auth-body) #library-panel .library-folder-context > p {
+    margin: 0 !important;
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+}
+
+body:not(.auth-body) #library-panel .folder-context-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: auto !important;
+}
+
+/* -------------------------------------------------------------------------
+   Back button
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel .library-folder-context .folder-back-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 0 0 auto !important;
+    padding: 8px 14px 8px 10px !important;
+    border: 1px solid #e3d3cd !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    color: #7a1522 !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: border-color 0.15s ease, background 0.15s ease !important;
+}
+
+body:not(.auth-body) #library-panel .library-folder-context .folder-back-btn:hover {
+    border-color: #7a1522 !important;
+    background: #fdf3f4 !important;
+}
+
+body:not(.auth-body) #library-panel .library-folder-context .folder-back-btn:focus-visible {
+    outline: 2px solid #7a1522 !important;
+    outline-offset: 2px !important;
+}
+
+body:not(.auth-body) #library-panel .library-folder-context .folder-back-btn .material-icons {
+    font-size: 18px !important;
+}
+
+/* -------------------------------------------------------------------------
+   Grid
+
+   `.library-cards-container` is a `repeat(auto-fill, minmax(...))` card grid,
+   which is right when it holds material cards. In list mode it does not: the
+   renderer emits ONE `.lib-explorer` element containing every row, and a single
+   child of a three-track grid takes one track. Every filename in the folder was
+   being squeezed into a ~260px column and clipped mid-word, with two empty
+   tracks beside it.
+
+   This is not caused by the folder view — it was true in the three-column
+   layout too, just less obvious because there was less width to waste. Making
+   the explorer span the full row fixes both.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel #library-cards-container > .lib-explorer {
+    grid-column: 1 / -1 !important;
+}

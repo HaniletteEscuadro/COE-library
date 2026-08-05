@@ -119,7 +119,7 @@ body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidd
 
 body.dark-theme:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden),
 :root[data-theme="dark"] body:not(.auth-body) .page-panel:not(#home-panel):not(#messages-panel):not(.hidden) {
-  color: var(--text-primary, #e8eef6) !important;
+  color: var(--text-primary, #f0e6e2) !important;
 }
 
 body.dark-theme:not(.auth-body) .page-panel :is(h1, h2, h3, h4, h5, h6),
@@ -128,7 +128,7 @@ body.dark-theme:not(.auth-body) .page-panel :is(td, th, dt, dd),
 :root[data-theme="dark"] body:not(.auth-body) .page-panel :is(h1, h2, h3, h4, h5, h6),
 :root[data-theme="dark"] body:not(.auth-body) .page-panel :is(input, select, textarea),
 :root[data-theme="dark"] body:not(.auth-body) .page-panel :is(td, th, dt, dd) {
-  color: var(--text-primary, #e8eef6) !important;
+  color: var(--text-primary, #f0e6e2) !important;
 }
 
 body.dark-theme:not(.auth-body) .page-panel
@@ -139,7 +139,7 @@ body.dark-theme:not(.auth-body) .page-panel
   :is(.empty-state, .empty-tasks, .empty-concerns, .empty-library, .empty-home-section,
       .file-details, .detail-metadata, .file-preview-text, .section-subtitle,
       .card-label, .stat-label, .insight-detail, .muted, .hint, .form-hint) {
-  color: var(--text-secondary, #a9b6c9) !important;
+  color: var(--text-secondary, #c6b6ac) !important;
 }
 
 /* ===========================================================================
@@ -160,7 +160,7 @@ body.dark-theme:not(.auth-body) .page-panel
        declared by a different rule;
      * anything whose classes are given a dark background ANYWHERE in the
        stylesheets. `.command-action-card.primary` is the example that matters:
-       it declares light text here and its #2563eb -> #0f766e gradient three
+       it declares light text here and its #8f1d2c -> #7a1522 gradient three
        hundred lines away, so it looks like a bug and is not one.
 
    Every rule is prefixed with the white-panel scope, so it can only take

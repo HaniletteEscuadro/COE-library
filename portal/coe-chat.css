@@ -117,8 +117,8 @@
   text-transform: uppercase;
   padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(26, 115, 232, 0.15);
-  color: #1257b8;
+  background: rgba(143, 29, 44, 0.15);
+  color: #8f1d2c;
 }
 
 /*
@@ -259,8 +259,8 @@ body:not(.auth-body) #messages-panel .msgr-input-pill {
 }
 
 body:not(.auth-body) #messages-panel .msgr-input-pill:focus-within {
-  border-color: #0f766e !important;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12) !important;
+  border-color: #7a1522 !important;
+  box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.12) !important;
 }
 
 body:not(.auth-body) #messages-panel #comm-chat-input,
@@ -288,7 +288,7 @@ body:not(.auth-body) #messages-panel.comm-clean-tab .discord-composer #comm-chat
   line-height: 1.55 !important;
   color: #0f172a !important;
   -webkit-text-fill-color: #0f172a !important;
-  caret-color: #0f766e !important;
+  caret-color: #7a1522 !important;
   /* Without this a textarea shows a scrollbar gutter at one row on some
      builds, which makes the empty composer look broken. */
   scrollbar-width: thin !important;
@@ -318,14 +318,14 @@ body:not(.auth-body) #messages-panel .msgr-send {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background: #0f766e !important;
+  background: #7a1522 !important;
   color: #fff !important;
   cursor: pointer !important;
   transition: background 140ms ease, transform 100ms ease !important;
 }
 
 body:not(.auth-body) #messages-panel .msgr-send:hover {
-  background: #0b5f59 !important;
+  background: #63121d !important;
 }
 
 body:not(.auth-body) #messages-panel .msgr-send:active {
@@ -406,14 +406,14 @@ body.dark-theme .msgr-hint kbd,
 
 body.dark-theme #messages-panel .msgr-input-pill,
 :root[data-theme="dark"] #messages-panel .msgr-input-pill {
-  background: #16202e !important;
+  background: #2c181b !important;
   border-color: rgba(148, 163, 184, 0.24) !important;
 }
 
 body.dark-theme #messages-panel #comm-chat-input,
 :root[data-theme="dark"] #messages-panel #comm-chat-input {
-  color: #e8eef6 !important;
-  -webkit-text-fill-color: #e8eef6 !important;
+  color: #f0e6e2 !important;
+  -webkit-text-fill-color: #f0e6e2 !important;
 }
 
 /* --- Day separator ------------------------------------------------------- */
@@ -489,7 +489,7 @@ body.dark-theme #messages-panel #comm-chat-input,
 }
 
 .coe-chat-room.active {
-  background: var(--accent-surface, rgba(26, 115, 232, 0.12));
+  background: var(--accent-surface, rgba(143, 29, 44, 0.12));
 }
 
 .coe-chat-room .material-icons {
@@ -527,7 +527,7 @@ body.dark-theme #messages-panel #comm-chat-input,
   height: 7px;
   margin-left: 7px;
   border-radius: 50%;
-  background: var(--accent, #1a73e8);
+  background: var(--accent, #8f1d2c);
   vertical-align: middle;
 }
 
@@ -552,7 +552,7 @@ body.dark-theme #messages-panel #comm-chat-input,
 
 .org-notice-head > .material-icons {
   font-size: 24px;
-  color: var(--accent, #1a73e8);
+  color: var(--accent, #8f1d2c);
   flex-shrink: 0;
 }
 
@@ -602,7 +602,7 @@ body.dark-theme #messages-panel #comm-chat-input,
 
 .org-notice.is-urgent { border-left-color: #d93025; }
 .org-notice.is-event { border-left-color: #1e8e3e; }
-.org-notice.is-academic { border-left-color: #1a73e8; }
+.org-notice.is-academic { border-left-color: #8f1d2c; }
 
 .org-notice-top {
   display: flex;
@@ -704,6 +704,6 @@ body.dark-theme #messages-panel #comm-chat-input,
 
 body.dark-theme .coe-msg-role,
 :root[data-theme="dark"] .coe-msg-role {
-  background: rgba(138, 180, 248, 0.18);
-  color: #a8c7fa;
+  background: rgba(220, 152, 163, 0.18);
+  color: #f2b0ba;
 }

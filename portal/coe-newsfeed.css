@@ -1,0 +1,567 @@
+/**
+ * COE Studio — home newsfeed carousel.
+ *
+ * Paired with coe-newsfeed.js. The behaviour notes live there; this file is
+ * only the look.
+ *
+ * ABOUT THE `!important` AND THE LONG SELECTORS BELOW
+ * --------------------------------------------------
+ * styles.css carries blanket clamps on every launch surface — `border-radius`
+ * and `letter-spacing: 0` on any `button`, all `!important` — and a slide here
+ * IS a button whenever the notice has no link in it. Without matching that
+ * weight the carousel renders with 10px corners on a full-bleed hero and round
+ * controls that come out as squares, which reads as a rendering fault rather
+ * than a style.
+ *
+ * `!important` alone is not enough. The clamp is
+ * `body:not(.auth-body) :is(… button, .setting-btn …)`, and `:is()` takes the
+ * specificity of its heaviest argument — a class — so the rule weighs (0,2,1).
+ * That is why the controls below are selected through their container rather
+ * than on their own: `.nf-dot` would lose the tie, `.nf-dots .nf-dot` wins it.
+ * The extra class in those selectors is load-bearing, not tidiness.
+ *
+ * THE TONES
+ * ---------
+ * A slide's gradient comes from the notice's tag. This is not decoration for
+ * its own sake: consecutive slides that share a background look like the page
+ * failed to advance, and the tag is the one field that reliably differs. Every
+ * tone stays dark enough for white text at the sizes used here — the accent
+ * moves, the contrast does not.
+ */
+
+.coe-newsfeed {
+    /* No bottom margin: .home-dashboard is a grid with an 18px gap, and a
+       margin here would be added to it rather than replacing it. */
+    margin: 0;
+
+    /* The home dashboard is a grid, and a grid item's default `min-width: auto`
+       is its min-content width. Without this the carousel — six slides wide
+       before the track is clipped — would set the width of the column it sits
+       in and drag the whole page sideways. (styles.css happens to set this on
+       `.home-dashboard > *` already; it is repeated here so the component does
+       not depend on that to stay in its box.) */
+    min-width: 0;
+}
+
+.coe-newsfeed[hidden] {
+    display: none !important;
+}
+
+/* -------------------------------------------------------------------------
+   Heading
+   ------------------------------------------------------------------------- */
+
+.nf-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.nf-head-copy {
+    min-width: 0;
+}
+
+.nf-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--maroon, #7a1522);
+}
+
+/* The live dot. Purely a status light — it says the board is connected, so it
+   is small, and it is the one thing on the page allowed to blink. */
+.nf-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #7a1522;
+    box-shadow: 0 0 0 0 rgba(122, 21, 34, 0.5);
+    animation: nf-pulse 2.4s ease-out infinite;
+}
+
+@keyframes nf-pulse {
+    70% { box-shadow: 0 0 0 9px rgba(122, 21, 34, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(122, 21, 34, 0); }
+}
+
+.nf-head h2 {
+    margin: 4px 0 0;
+    font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.nf-head p {
+    margin: 2px 0 0;
+    font-size: 0.88rem;
+    color: #64748b;
+}
+
+.coe-newsfeed .nf-head .nf-viewall {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 15px;
+    border: 1px solid #e3d3cd;
+    border-radius: 999px !important;
+    background: #ffffff;
+    color: #7a1522;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.coe-newsfeed .nf-head .nf-viewall:hover {
+    border-color: #7a1522;
+    background: #fdf3f4;
+}
+
+.coe-newsfeed .nf-head .nf-viewall .material-icons {
+    font-size: 17px;
+}
+
+/* -------------------------------------------------------------------------
+   Viewport and track
+   ------------------------------------------------------------------------- */
+
+.nf-viewport {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px !important;
+    background: #2b0810;
+    box-shadow: 0 22px 50px rgba(60, 12, 20, 0.22);
+
+    /* The slides are links, and a drag across one would otherwise start the
+       browser's native image/link drag instead of a swipe. */
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: pan-y;
+}
+
+.nf-track {
+    display: flex;
+    will-change: transform;
+    transition: transform 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nf-track {
+        transition: none;
+    }
+
+    .nf-pulse {
+        animation: none;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Slide
+   ------------------------------------------------------------------------- */
+
+.coe-newsfeed .nf-track .nf-slide {
+    /* `0 0 100%` and not `1 1 100%`: with flex-shrink on, six slides in a row
+       are squeezed to a sixth of the width each and the whole track shows at
+       once. */
+    flex: 0 0 100%;
+    /* `min-width: auto` is the flex default, and it lets an item grow past its
+       flex-basis to fit its min-content. One long headline on a phone was
+       therefore enough to make a slide wider than the viewport and push the
+       whole page sideways. */
+    min-width: 0;
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: clamp(230px, 30vw, 320px);
+    margin: 0;
+    padding: clamp(22px, 3.4vw, 42px);
+    border: 0;
+    border-radius: 0 !important;
+    overflow: hidden;
+    text-align: left;
+    text-decoration: none;
+    color: #ffffff;
+    font-family: inherit;
+    cursor: pointer;
+    background: linear-gradient(135deg, #5f1119 0%, #7a1522 46%, #a63347 100%);
+}
+
+.coe-newsfeed .nf-track .nf-slide.tone-emergency {
+    background: linear-gradient(135deg, #4f0d16 0%, #8f1d2c 48%, #c2413f 100%);
+}
+
+.coe-newsfeed .nf-track .nf-slide.tone-urgent {
+    background: linear-gradient(135deg, #4f0d16 0%, #8f1d2c 50%, #b8551f 100%);
+}
+
+.coe-newsfeed .nf-track .nf-slide.tone-exam {
+    background: linear-gradient(135deg, #2b0810 0%, #63121d 52%, #8f6a12 100%);
+}
+
+.coe-newsfeed .nf-track .nf-slide.tone-event {
+    background: linear-gradient(135deg, #3d0a10 0%, #7a1522 44%, #b8891a 100%);
+}
+
+.coe-newsfeed .nf-track .nf-slide.tone-academic {
+    background: linear-gradient(135deg, #24090e 0%, #5f1119 52%, #a97f16 100%);
+}
+
+.coe-newsfeed .nf-track .nf-slide.tone-org {
+    background: linear-gradient(135deg, #2b0810 0%, #7a1522 55%, #c25a6b 100%);
+}
+
+/* One diagonal light source, same on every tone, so the slides read as one
+   surface being lit rather than six unrelated pictures. */
+.nf-slide-glow {
+    position: absolute;
+    top: -45%;
+    right: -12%;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(230, 194, 95, 0.24), transparent 62%);
+    pointer-events: none;
+}
+
+/* The oversized tag icon. Sits behind the text as a watermark and is the fast,
+   pre-reading signal that the slide changed. */
+.nf-slide-mark {
+    position: absolute;
+    top: 50%;
+    right: clamp(-18px, -1vw, 6px);
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.09);
+
+    /* Boxed and clipped because the icon is a ligature: until the Material
+       Icons font arrives — or if it never does, on a bad connection — the
+       browser renders the literal string "event_available" at this font size,
+       which is several hundred pixels of text. Sized like this it is contained
+       whatever the font does. */
+    display: grid;
+    place-items: center;
+    width: clamp(150px, 22vw, 250px);
+    height: clamp(150px, 22vw, 250px);
+    overflow: hidden;
+}
+
+.nf-slide-mark .material-icons {
+    font-size: clamp(150px, 22vw, 250px);
+    line-height: 1;
+}
+
+.nf-slide-body {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    /* `min()` and not a bare 62ch: on a phone 62ch is wider than the screen,
+       and the text column would set the slide's min-content width. */
+    max-width: min(62ch, 100%);
+}
+
+.nf-slide-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.nf-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(240, 214, 138, 0.55);
+    background: rgba(217, 171, 46, 0.16);
+    color: #f6e3ad;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+}
+
+.nf-chip.is-quiet {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.nf-slide-title {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: clamp(1.35rem, 3.1vw, 2.35rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em !important;
+    color: #ffffff;
+}
+
+.nf-slide-text {
+    display: block;
+    font-size: clamp(0.9rem, 1.3vw, 1.02rem);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.nf-slide-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 6px;
+    padding: 9px 17px;
+    border-radius: 999px;
+    background: #f0d68a;
+    color: #2b0810;
+    font-size: 0.86rem;
+    font-weight: 800;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.nf-slide-cta .material-icons {
+    font-size: 17px;
+}
+
+.coe-newsfeed .nf-track .nf-slide:hover .nf-slide-cta,
+.coe-newsfeed .nf-track .nf-slide:focus-visible .nf-slide-cta {
+    background: #ffffff;
+    transform: translateX(3px);
+}
+
+/* The slide is the click target, so the ring goes on the slide — but inset,
+   because an outline on a full-bleed element is clipped by the viewport and
+   only the corners of it ever show. */
+.coe-newsfeed .nf-track .nf-slide:focus-visible {
+    outline: 3px solid #f0d68a;
+    outline-offset: -6px;
+}
+
+/* -------------------------------------------------------------------------
+   Timing bar and controls
+   ------------------------------------------------------------------------- */
+
+.nf-progress {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.nf-progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #d9ab2e, #f0d68a);
+}
+
+/* Duration matches SLIDE_MS in coe-newsfeed.js. If one changes, change both —
+   a bar that finishes early looks broken, and one that finishes late looks
+   stuck. */
+.nf-progress span.is-running {
+    animation: nf-fill 6.5s linear forwards;
+}
+
+@keyframes nf-fill {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+.nf-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.nf-dots {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.coe-newsfeed .nf-dots .nf-dot {
+    /* 22px of hit area around a 7px dot. The dots are the smallest control on
+       the home page and the one most often aimed at with a thumb. */
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50% !important;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+}
+
+.coe-newsfeed .nf-dots .nf-dot::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #c0a49c;
+    transition: width 0.2s ease, background 0.2s ease;
+}
+
+.coe-newsfeed .nf-dots .nf-dot.is-on::after {
+    width: 22px;
+    background: #7a1522;
+}
+
+.coe-newsfeed .nf-dots .nf-dot:focus-visible {
+    outline: 2px solid #7a1522;
+    outline-offset: 2px;
+}
+
+.nf-nav {
+    display: flex;
+    gap: 8px;
+}
+
+.coe-newsfeed .nf-controls .nf-nav button {
+    display: grid;
+    place-items: center;
+    /* flex-basis and padding are both pinned because styles.css gives buttons
+       a generous default padding — with it, these come out wider than they are
+       tall and `border-radius: 50%` draws an ellipse rather than a circle. */
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #e3d3cd;
+    border-radius: 50% !important;
+    background: #ffffff;
+    color: #7a1522;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.coe-newsfeed .nf-controls .nf-nav button:hover {
+    border-color: #7a1522;
+    background: #fdf3f4;
+}
+
+.coe-newsfeed .nf-controls .nf-nav button:focus-visible {
+    outline: 2px solid #7a1522;
+    outline-offset: 2px;
+}
+
+.nf-nav .material-icons {
+    font-size: 20px;
+}
+
+/* One notice on the board: the controls would be three dead buttons. */
+.coe-newsfeed.is-single .nf-controls,
+.coe-newsfeed.is-single .nf-progress {
+    display: none;
+}
+
+/* Announces the slide change to a screen reader without putting anything on
+   screen. `clip` rather than `display:none` — hidden text is not announced. */
+.nf-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Dark theme
+
+   Hooked to :root[data-theme="dark"], the same switch the other coe-*.css
+   modules use.
+
+   NOT to body.dark-theme, which looks like the obvious choice: scripts.js does
+   toggle that class, and it defaults to "dark", so it is on for every visitor
+   on their first load. But the launch styles at the end of styles.css paint the
+   workspace light with !important regardless, so the class is on while the page
+   is light. Styling against it would have put pale heading text on a white
+   background for everybody.
+   ------------------------------------------------------------------------- */
+
+:root[data-theme="dark"] .nf-head h2 {
+    color: #f0e6e2;
+}
+
+:root[data-theme="dark"] .nf-head p {
+    color: #b9a6a6;
+}
+
+:root[data-theme="dark"] .nf-eyebrow {
+    color: #d9808d;
+}
+
+:root[data-theme="dark"] .nf-pulse {
+    background: #d9808d;
+}
+
+:root[data-theme="dark"] .coe-newsfeed :is(.nf-head .nf-viewall, .nf-controls .nf-nav button) {
+    border-color: #3a1a20;
+    background: #24090e;
+    color: #f0d68a;
+}
+
+:root[data-theme="dark"] .coe-newsfeed :is(.nf-head .nf-viewall, .nf-controls .nf-nav button):hover {
+    border-color: #d9808d;
+    background: #2c0f15;
+}
+
+:root[data-theme="dark"] .coe-newsfeed .nf-dots .nf-dot::after {
+    background: #5a3238;
+}
+
+:root[data-theme="dark"] .coe-newsfeed .nf-dots .nf-dot.is-on::after {
+    background: #f0d68a;
+}
+
+/* -------------------------------------------------------------------------
+   Small screens
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+    .coe-newsfeed .nf-track .nf-slide {
+        min-height: 250px;
+    }
+
+    .nf-slide-mark .material-icons {
+        font-size: 132px;
+    }
+
+    /* The watermark would sit under the headline at this width and turn the
+       first line into a smear. */
+    .nf-slide-mark {
+        top: auto;
+        bottom: -26px;
+        right: -14px;
+        transform: none;
+        opacity: 0.7;
+    }
+
+    .nf-head {
+        align-items: flex-start;
+    }
+
+    .coe-newsfeed .nf-head .nf-viewall {
+        padding: 8px 13px;
+        font-size: 0.8rem;
+    }
+}

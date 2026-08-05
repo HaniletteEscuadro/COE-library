@@ -1,0 +1,501 @@
+/**
+ * COE Studio — live chat, layout and surface.
+ *
+ * WHAT WAS WRONG
+ * --------------
+ * The workspace was declared as a two-column grid while the markup has three
+ * panes plus a mobile nav. Grid auto-placement put the members rail on a second
+ * row underneath the conversation, where the panel's own height clipped it — so
+ * "Online Now", the student/faculty/officer counts and the member list were in
+ * the page and simply never visible. The mobile nav landed beside it.
+ *
+ * Inside the room rail, the rooms group was given `1fr` of a fixed three-row
+ * template with four children in it. The leftover height went into the group
+ * rather than into the list inside it, which is why the rail opened with a
+ * blank band roughly two hundred pixels tall between the search box and the
+ * "Live Chat Rooms" heading.
+ *
+ * And nothing pinned the shell's height, so the thread grew with its content
+ * and pushed the composer off the bottom of the screen. In a chat, the box you
+ * type into is the one element that must never require scrolling to reach.
+ *
+ * THE SHAPE NOW
+ * -------------
+ *   >=1280px   rooms | conversation | members
+ *   1024-1280  rooms | conversation          (members fold into the header
+ *                                             button, which already exists)
+ *   <1024px    one column, driven by the mobile nav that was already there
+ *
+ * Every pane is `minmax(0, 1fr)` in its own axis and scrolls internally, so the
+ * page itself never scrolls sideways and the composer never moves.
+ */
+
+/* -------------------------------------------------------------------------
+   Workspace shell
+   ------------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .comm-product-workspace {
+        display: grid !important;
+        grid-template-columns: 286px minmax(0, 1fr) !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+
+        /* A fixed viewport-relative height, not a min-height. The composer sits
+           in the last row of the conversation column; if the shell can grow,
+           the thread grows with it and takes the composer off screen.
+
+           The 350px subtracted is what sits above this panel — the search bar
+           and the priority-nav row — measured, not guessed. Leave less and the
+           composer lands just past the fold, which is the failure this whole
+           rule exists to prevent. */
+        height: clamp(460px, calc(100vh - 350px), 820px) !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+
+        border: 1px solid #e9dcd7 !important;
+        border-radius: 16px !important;
+        background: #ffffff !important;
+        box-shadow: 0 18px 44px rgba(60, 12, 20, 0.09) !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .comm-product-workspace {
+        grid-template-columns: 286px minmax(0, 1fr) 264px !important;
+    }
+}
+
+/* The members rail only earns its column when there is room for it. Below
+   1280px the header's "Members" button is the way to it. */
+@media (max-width: 1279.98px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .discord-member-rail.msgr-people {
+        display: none !important;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Rooms rail
+   ------------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .discord-channel-rail {
+        display: grid !important;
+        /* head, search, list, footer — the LIST takes the slack, not the group
+           that contains it. This is the blank band fix. */
+        grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+        gap: 12px !important;
+        padding: 14px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        background: #fdfaf8 !important;
+        border-right: 1px solid #f0e6e2 !important;
+    }
+
+    body:not(.auth-body) #messages-panel .msgr-rooms {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        gap: 8px !important;
+        min-height: 0 !important;
+    }
+
+    body:not(.auth-body) #messages-panel .msgr-room-list {
+        overflow-y: auto !important;
+        min-height: 0 !important;
+        align-content: start !important;
+    }
+}
+
+body:not(.auth-body) #messages-panel .msgr-rail-head {
+    padding: 12px 14px !important;
+    border: 1px solid #f0e6e2 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-rail-head h2 {
+    margin: 2px 0 0 !important;
+    font-size: 1.02rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-rail-head p {
+    margin: 3px 0 0 !important;
+    font-size: 0.78rem !important;
+    line-height: 1.45 !important;
+    color: #6b5b57 !important;
+}
+
+body:not(.auth-body) #messages-panel .discord-kicker {
+    font-size: 0.66rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    color: #8f6a12 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-group-title {
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: #6b5b57 !important;
+}
+
+/* Room rows: one line of identity, one of purpose. The old cards were ~95px
+   tall with a large dot on the right that carried no meaning — three rooms
+   filled the rail and pushed everything else out of view. */
+body:not(.auth-body) #messages-panel .msgr-room-list > * {
+    min-height: 0 !important;
+    padding: 9px 11px !important;
+    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-room-list > *:hover {
+    background: #f8ecec !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-room-list > .active {
+    border-color: #e3d3cd !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(60, 12, 20, 0.06) !important;
+}
+
+/* -------------------------------------------------------------------------
+   Conversation column
+   ------------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+    body:not(.auth-body) #messages-panel .msgr-chat {
+        display: grid !important;
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+    }
+
+    body:not(.auth-body) #messages-panel .msgr-thread {
+        overflow-y: auto !important;
+        min-height: 0 !important;
+        padding: 14px 18px !important;
+        background:
+            linear-gradient(180deg, #fdfaf8 0%, #ffffff 120px) !important;
+    }
+}
+
+body:not(.auth-body) #messages-panel .msgr-chat-head {
+    padding: 12px 18px !important;
+    border-bottom: 1px solid #f0e6e2 !important;
+    background: #ffffff !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-chat-head h1 {
+    margin: 0 !important;
+    font-size: 1.08rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-chat-head p {
+    margin: 2px 0 0 !important;
+    font-size: 0.8rem !important;
+    color: #6b5b57 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-status {
+    padding: 8px 18px !important;
+    border-bottom: 1px solid #f6efec !important;
+    background: #fdfaf8 !important;
+    font-size: 0.8rem !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-status strong {
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-status small {
+    color: #6b5b57 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Composer
+
+   Pinned to the last row of the grid above, so it stays put whatever the
+   thread does.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #messages-panel .msgr-composer {
+    padding: 12px 18px 14px !important;
+    border-top: 1px solid #f0e6e2 !important;
+    background: #ffffff !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-input-pill {
+    border: 1px solid #e3d3cd !important;
+    border-radius: 14px !important;
+    background: #fdfaf8 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-input-pill:focus-within {
+    border-color: #7a1522 !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.12) !important;
+}
+
+body:not(.auth-body) #messages-panel #comm-chat-input {
+    color: #0f172a !important;
+    background: transparent !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-send {
+    background: #7a1522 !important;
+    color: #ffffff !important;
+    border: 0 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-send:hover {
+    background: #5f1119 !important;
+}
+
+/* #64748b on the composer's tinted foot measured 4.48:1 — a hair under. */
+body:not(.auth-body) #messages-panel .msgr-hint,
+body:not(.auth-body) #messages-panel .msgr-hint kbd,
+body:not(.auth-body) #messages-panel .msgr-count {
+    color: #57534e !important;
+}
+
+/* -------------------------------------------------------------------------
+   Members rail
+   ------------------------------------------------------------------------- */
+
+@media (min-width: 1280px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .discord-member-rail.msgr-people {
+        display: grid !important;
+        grid-template-rows: auto auto minmax(0, 1fr) !important;
+        gap: 10px !important;
+        padding: 14px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        background: #fdfaf8 !important;
+        border-left: 1px solid #f0e6e2 !important;
+    }
+
+    body:not(.auth-body) #messages-panel .msgr-people-list {
+        overflow-y: auto !important;
+        min-height: 0 !important;
+        align-content: start !important;
+    }
+}
+
+body:not(.auth-body) #messages-panel .msgr-people-head h2 {
+    margin: 2px 0 0 !important;
+    font-size: 0.98rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-people-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-people-stats > span {
+    display: grid !important;
+    gap: 1px !important;
+    padding: 8px 6px !important;
+    border: 1px solid #f0e6e2 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    text-align: center !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-people-stats strong {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    color: #7a1522 !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-people-stats small {
+    font-size: 0.66rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #6b5b57 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Small screens
+
+   The mobile nav in the markup already switches which pane is on screen; this
+   only makes sure exactly one of them occupies the column at a time.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 1023.98px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .comm-product-workspace {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        height: calc(100dvh - 170px) !important;
+        min-height: 420px !important;
+        overflow: hidden !important;
+    }
+
+    body:not(.auth-body) #messages-panel .msgr-chat {
+        display: grid !important;
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body:not(.auth-body) #messages-panel .msgr-thread {
+        overflow-y: auto !important;
+        min-height: 0 !important;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Message body — links, quotes, mentions
+
+   These come from formatBody() in coe-chat.js, which builds them on top of an
+   escaped body. Nothing here is styling raw user input.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #messages-panel .coe-msg-body {
+    /* The body is written with real newlines and the quote spans are inline,
+       so the line structure has to survive into the rendering. */
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    color: #1f2937 !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-msg-link {
+    color: #7a1522 !important;
+    font-weight: 600 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-msg-link:hover {
+    color: #5f1119 !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-msg-quote {
+    display: block !important;
+    margin: 0 0 4px !important;
+    padding: 4px 10px !important;
+    border-left: 3px solid #d9ab2e !important;
+    border-radius: 0 6px 6px 0 !important;
+    background: #fdf8ef !important;
+    color: #6b5b57 !important;
+    font-size: 0.86rem !important;
+    line-height: 1.45 !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-mention {
+    padding: 1px 5px !important;
+    border-radius: 5px !important;
+    background: #f3e8ea !important;
+    color: #7a1522 !important;
+    font-weight: 700 !important;
+}
+
+/* Being mentioned has to be findable while scrolling past, not just readable
+   once you stop. Gold on maroon is the loudest pairing in the palette. */
+body:not(.auth-body) #messages-panel .coe-mention.is-me {
+    background: #7a1522 !important;
+    color: #f0d68a !important;
+}
+
+/* -------------------------------------------------------------------------
+   Per-message actions
+
+   Hidden until the row is hovered or something inside it has focus. A reply
+   and a delete button on every message at rest turns the thread into a column
+   of icons; keyboard users still reach them because :focus-within counts.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #messages-panel .coe-msg-tools {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    opacity: 0 !important;
+    transition: opacity 0.12s ease !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-msg:hover .coe-msg-tools,
+body:not(.auth-body) #messages-panel .coe-msg:focus-within .coe-msg-tools {
+    opacity: 1 !important;
+}
+
+body:not(.auth-body) #messages-panel :is(.coe-msg-reply, .coe-msg-del) {
+    display: grid !important;
+    place-items: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: #6b5b57 !important;
+    cursor: pointer !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-msg-reply:hover {
+    background: #f3e8ea !important;
+    color: #7a1522 !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-msg-del:hover {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+}
+
+body:not(.auth-body) #messages-panel :is(.coe-msg-reply, .coe-msg-del) .material-icons {
+    font-size: 16px !important;
+}
+
+/* -------------------------------------------------------------------------
+   Jump to newest
+
+   Sits between the thread and the composer — outside the scroller, so it
+   cannot scroll away from the person who needs it.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #messages-panel .coe-chat-jump {
+    justify-self: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin: 0 auto 6px !important;
+    padding: 6px 14px !important;
+    border: 1px solid #e3d3cd !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    color: #7a1522 !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    box-shadow: 0 6px 16px rgba(60, 12, 20, 0.12) !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-chat-jump[hidden] {
+    display: none !important;
+}
+
+body:not(.auth-body) #messages-panel .coe-chat-jump .material-icons {
+    font-size: 16px !important;
+}
+
+/* Members are clickable now (click inserts an @mention), so they have to look
+   it and have a real hit area. */
+body:not(.auth-body) #messages-panel .msgr-people-list .discord-member {
+    padding: 7px 8px !important;
+    border-radius: 9px !important;
+    cursor: pointer !important;
+}
+
+body:not(.auth-body) #messages-panel .msgr-people-list .discord-member:hover {
+    background: #f8ecec !important;
+}

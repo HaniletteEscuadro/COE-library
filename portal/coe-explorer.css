@@ -92,7 +92,7 @@
 
 /* Keyboard focus must be as obvious as hover — the row is tabbable. */
 .lib-row:focus-visible {
-  outline: 2px solid var(--accent, #1a73e8);
+  outline: 2px solid var(--accent, #8f1d2c);
   outline-offset: -2px;
   background: var(--surface-hover, rgba(0, 0, 0, 0.035));
 }
@@ -125,8 +125,8 @@
 /* The icon carries the file kind, so the row is scannable by shape as well as
    by text. Tints only — a fully coloured row would fight the content. */
 .lib-row.file-tone-pdf .lib-icon { color: #d93025; }
-.lib-row.file-tone-video .lib-icon { color: #a142f4; }
-.lib-row.file-tone-reference .lib-icon { color: #1a73e8; }
+.lib-row.file-tone-video .lib-icon { color: #a63347; }
+.lib-row.file-tone-reference .lib-icon { color: #8f1d2c; }
 .lib-row.file-tone-link .lib-icon { color: #1e8e3e; }
 .lib-row.file-tone-lesson .lib-icon { color: #e37400; }
 
@@ -176,8 +176,8 @@
 }
 
 .lib-badge.is-new {
-  background: rgba(26, 115, 232, 0.14);
-  color: #1257b8;
+  background: rgba(143, 29, 44, 0.14);
+  color: #8f1d2c;
 }
 
 /* A queued upload is visibly not live yet. Only reachable from the moderator
@@ -268,7 +268,7 @@
 }
 
 .lib-act.is-on {
-  color: var(--accent, #1a73e8);
+  color: var(--accent, #8f1d2c);
 }
 
 .lib-act.is-danger:hover {
@@ -407,13 +407,13 @@ body.dark-theme .lib-col-actions,
   margin: 0 0 18px;
   padding: 13px 16px;
   border-radius: 12px;
-  border: 1px solid var(--accent-border, rgba(26, 115, 232, 0.28));
-  background: var(--accent-surface, rgba(26, 115, 232, 0.06));
+  border: 1px solid var(--accent-border, rgba(143, 29, 44, 0.28));
+  background: var(--accent-surface, rgba(143, 29, 44, 0.06));
 }
 
 .up-destination > .material-icons {
   font-size: 24px;
-  color: var(--accent, #1a73e8);
+  color: var(--accent, #8f1d2c);
   flex-shrink: 0;
 }
 
@@ -467,8 +467,8 @@ body.dark-theme .lib-col-actions,
 
 body.dark-theme .up-destination,
 :root[data-theme="dark"] .up-destination {
-  background: rgba(138, 180, 248, 0.10);
-  border-color: rgba(138, 180, 248, 0.30);
+  background: rgba(220, 152, 163, 0.10);
+  border-color: rgba(220, 152, 163, 0.30);
 }
 
 body.dark-theme .up-destination-note,

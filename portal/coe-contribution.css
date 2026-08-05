@@ -63,7 +63,7 @@
   padding: 26px 28px;
   border-radius: 20px;
   border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.2));
-  background: linear-gradient(135deg, rgba(29, 78, 216, 0.13), rgba(29, 78, 216, 0.02));
+  background: linear-gradient(135deg, rgba(122, 21, 34, 0.13), rgba(122, 21, 34, 0.02));
 }
 
 .contrib-eyebrow {
@@ -73,7 +73,7 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #1d4ed8;
+  color: #7a1522;
 }
 
 .contrib-pagehead h1 {
@@ -197,9 +197,9 @@
 
 /* One accent per tile, so the four are distinguishable at a glance without
    any of them being louder than the others. */
-.contrib-stat.is-primary .contrib-stat-icon { background: rgba(29, 78, 216, 0.13); color: #1d4ed8; }
-.contrib-stat.is-blue .contrib-stat-icon { background: rgba(2, 132, 199, 0.13); color: #0284c7; }
-.contrib-stat.is-violet .contrib-stat-icon { background: rgba(126, 34, 206, 0.13); color: #7e22ce; }
+.contrib-stat.is-primary .contrib-stat-icon { background: rgba(122, 21, 34, 0.13); color: #7a1522; }
+.contrib-stat.is-blue .contrib-stat-icon { background: rgba(169, 127, 22, 0.13); color: #a97f16; }
+.contrib-stat.is-violet .contrib-stat-icon { background: rgba(143, 29, 44, 0.13); color: #8f1d2c; }
 .contrib-stat.is-amber .contrib-stat-icon { background: rgba(180, 83, 9, 0.14); color: #b45309; }
 
 /* ---------------------------------------------------------------------------
@@ -325,13 +325,13 @@
   border-radius: inherit;
   /* A flat colour, not a gradient. Four gradients in one card was the reason
      it read as a chart nobody could compare bars in. */
-  background: #1d4ed8;
+  background: #7a1522;
   transition: width 260ms ease;
 }
 
-.contrib-mix-fill.is-problem { background: #7e22ce; }
-.contrib-mix-fill.is-upload { background: #0284c7; }
-.contrib-mix-fill.is-ce { background: #1d4ed8; }
+.contrib-mix-fill.is-problem { background: #8f1d2c; }
+.contrib-mix-fill.is-upload { background: #a97f16; }
+.contrib-mix-fill.is-ce { background: #7a1522; }
 .contrib-mix-fill.is-ee { background: #b45309; }
 
 /* --- The activity feed --- */
@@ -361,7 +361,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #1d4ed8;
+  background: #7a1522;
   transform: translateY(-2px);
 }
 
@@ -443,21 +443,21 @@
 
 body.dark-theme .contrib-pagehead,
 :root[data-theme="dark"] .contrib-pagehead {
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(96, 165, 250, 0.02));
+  background: linear-gradient(135deg, rgba(194, 90, 107, 0.15), rgba(194, 90, 107, 0.02));
 }
 
 body.dark-theme .contrib-eyebrow,
 body.dark-theme .contrib-stat.is-primary .contrib-stat-icon,
 :root[data-theme="dark"] .contrib-eyebrow,
 :root[data-theme="dark"] .contrib-stat.is-primary .contrib-stat-icon {
-  color: #93c5fd;
+  color: #dc98a3;
 }
 
 body.dark-theme .contrib-stat.is-blue .contrib-stat-icon,
-:root[data-theme="dark"] .contrib-stat.is-blue .contrib-stat-icon { color: #7dd3fc; }
+:root[data-theme="dark"] .contrib-stat.is-blue .contrib-stat-icon { color: #e6c25f; }
 
 body.dark-theme .contrib-stat.is-violet .contrib-stat-icon,
-:root[data-theme="dark"] .contrib-stat.is-violet .contrib-stat-icon { color: #d8b4fe; }
+:root[data-theme="dark"] .contrib-stat.is-violet .contrib-stat-icon { color: #dc98a3; }
 
 body.dark-theme .contrib-stat.is-amber .contrib-stat-icon,
 :root[data-theme="dark"] .contrib-stat.is-amber .contrib-stat-icon { color: #fbbf24; }
@@ -465,13 +465,13 @@ body.dark-theme .contrib-stat.is-amber .contrib-stat-icon,
 body.dark-theme .contrib-mix-fill.is-ce,
 body.dark-theme .contrib-feed-dot,
 :root[data-theme="dark"] .contrib-mix-fill.is-ce,
-:root[data-theme="dark"] .contrib-feed-dot { background: #60a5fa; }
+:root[data-theme="dark"] .contrib-feed-dot { background: #c25a6b; }
 
 body.dark-theme .contrib-mix-fill.is-problem,
-:root[data-theme="dark"] .contrib-mix-fill.is-problem { background: #c084fc; }
+:root[data-theme="dark"] .contrib-mix-fill.is-problem { background: #c25a6b; }
 
 body.dark-theme .contrib-mix-fill.is-upload,
-:root[data-theme="dark"] .contrib-mix-fill.is-upload { background: #38bdf8; }
+:root[data-theme="dark"] .contrib-mix-fill.is-upload { background: #d9ab2e; }
 
 body.dark-theme .contrib-mix-fill.is-ee,
 :root[data-theme="dark"] .contrib-mix-fill.is-ee { background: #fbbf24; }

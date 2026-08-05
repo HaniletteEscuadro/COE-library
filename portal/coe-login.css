@@ -20,7 +20,11 @@
  *     and "Fast local access" chips. They were ornaments, and "Encrypted /
  *     Local access" was not true of the served portal. A login screen that
  *     advertises its own safety is doing the opposite of reassuring.
- *   * One accent, deep blue, used only for the primary action and focus rings.
+ *   * One accent, engineering maroon, used only for the primary action and
+ *     focus rings. Gold is the second brand colour, but it is trim only — the
+ *     seam hairline, the crest, the small uppercase eyebrow. Gold never fills
+ *     a button here: gold is light, so a gold button needs dark text, and next
+ *     to a maroon button that pairing reads as a warning rather than a choice.
  *   * Type does the hierarchy: one large heading, one supporting line, labels
  *     small and quiet.
  *   * Focus is always visible. This is the one page in the app that must be
@@ -52,8 +56,13 @@
 }
 
 :root {
-    --lg-accent: #1d4ed8;
-    --lg-accent-strong: #1e40af;
+    --lg-accent: #7a1522;
+    --lg-accent-strong: #63121d;
+    /* Text painted ON the accent. It is a token because the two themes need
+       opposite answers: white on light-mode maroon, near-black on the pale
+       maroon the dark theme has to use. Hardcoding #fff broke the dark one. */
+    --lg-on-accent: #ffffff;
+    --lg-gold: #8f6a12;
     --lg-ink: #0f172a;
     --lg-muted: #64748b;
     --lg-line: #e2e8f0;
@@ -68,14 +77,19 @@
 }
 
 body.lg-dark {
-    --lg-accent: #3b82f6;
-    --lg-accent-strong: #60a5fa;
-    --lg-ink: #e2e8f0;
-    --lg-muted: #94a3b8;
-    --lg-line: #1e293b;
-    --lg-surface: #0f172a;
-    --lg-canvas: #020617;
-    --lg-field: #111c33;
+    /* Maroon is a dark colour, so on a dark canvas the accent has to climb the
+       ramp until it separates from the surface behind it — #a63347 is the
+       lightest maroon that still reads as maroon and not as an error red. */
+    --lg-accent: #d9808d;
+    --lg-accent-strong: #e79ba6;
+    --lg-on-accent: #2b0810;
+    --lg-gold: #e6c25f;
+    --lg-ink: #f0e6e2;
+    --lg-muted: #b9a6a6;
+    --lg-line: #3a1a20;
+    --lg-surface: #24090e;
+    --lg-canvas: #12060a;
+    --lg-field: #2c0f15;
     --lg-ok: #34d399;
     --lg-ok-bg: #052e26;
     --lg-bad: #fca5a5;
@@ -138,8 +152,21 @@ body {
     display: flex;
     align-items: center;
     padding: 3rem;
-    background: linear-gradient(160deg, #0b1220 0%, #16255c 55%, #1d4ed8 140%);
+    background: linear-gradient(160deg, #2b0810 0%, #5f1119 52%, #8f1d2c 100%);
     color: #fff;
+}
+
+/* The gold hairline down the seam between the two panels. This is the only
+   place gold is allowed to be a large shape — everywhere else it is a 1px
+   line or small type, because a gold fill next to maroon at any real size
+   reads as a warning banner rather than a crest. */
+.lg-brand::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 3px;
+    background: linear-gradient(180deg, transparent, #d9ab2e 22%, #e6c25f 50%, #d9ab2e 78%, transparent);
+    pointer-events: none;
 }
 
 /* One soft light source. Decorative only. */
@@ -151,7 +178,7 @@ body {
     width: 34rem;
     height: 34rem;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(96, 165, 250, 0.22), transparent 62%);
+    background: radial-gradient(circle, rgba(217, 171, 46, 0.2), transparent 62%);
     pointer-events: none;
 }
 
@@ -174,8 +201,9 @@ body {
     width: 3rem;
     height: 3rem;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(217, 171, 46, 0.14);
+    border: 1px solid rgba(230, 194, 95, 0.55);
+    color: #f0d68a;
     font-weight: 800;
     font-size: 1.05rem;
     letter-spacing: 0.04em;
@@ -201,7 +229,10 @@ body {
     font-weight: 600;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.62);
+    /* Gold, not white-at-62%. Small uppercase type is the one place gold reads
+       as a crest rather than as a warning, and #f0d68a clears 4.5:1 on the
+       maroon behind it — the old 62% white did not carry the brand at all. */
+    color: #f0d68a;
 }
 
 .lg-title h1 {
@@ -557,7 +588,7 @@ body {
     border: 0;
     border-radius: var(--lg-radius);
     background: var(--lg-accent);
-    color: #fff;
+    color: var(--lg-on-accent);
     font: 700 0.95rem/1 inherit;
     cursor: pointer;
     transition: background 0.15s ease, transform 0.12s ease;
@@ -705,6 +736,15 @@ body.is-offline .lg-form {
         align-items: flex-start;
     }
 
+    /* Stacked: the seam between the panels is now horizontal, so the gold
+       hairline has to run along the bottom edge instead of the right one. */
+    .lg-brand::before {
+        inset: auto 0 0 0;
+        width: auto;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #d9ab2e 22%, #e6c25f 50%, #d9ab2e 78%, transparent);
+    }
+
     .lg-brand-inner {
         max-width: none;
     }
@@ -829,5 +869,67 @@ body.is-offline .lg-form {
 
     .lg-submit.is-busy .material-icons {
         animation: none;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Built-by credit
+
+   The council's mark at the foot of the brand panel. Deliberately quiet: the
+   panel already carries the university lockup and the page's whole job is to
+   let somebody sign in, so the credit sits at the bottom, small, on the same
+   gold trim as the eyebrow above it.
+
+   `object-fit: contain` on a transparent PNG, not a background-image: the mark
+   is content — it is the credit — so it has to be a real <img> with alt text
+   that says so. If the file is missing, the alt text reads as the line it was
+   always going to be part of instead of leaving a gap.
+   -------------------------------------------------------------------------- */
+
+.lg-builtby {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 3rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid rgba(240, 214, 138, 0.28);
+    max-width: 26rem;
+}
+
+.lg-builtby img {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    object-fit: contain;
+    /* The badge is a dark-on-transparent crest; on the maroon panel it needs a
+       light disc behind it or it disappears into the gradient. */
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 3px;
+    color: #f0d68a;
+    font-size: 0.62rem;
+}
+
+.lg-builtby strong {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.lg-builtby span {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: #f0d68a;
+}
+
+@media (max-width: 900px) {
+    /* The brand panel becomes a short header on a phone; the credit would push
+       the sign-in form further down for no benefit, and it is repeated under
+       the form in the credits block anyway. */
+    .lg-builtby {
+        display: none;
     }
 }

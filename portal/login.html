@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Sign in to COE Studio — the Araullo University College of Engineering student portal.">
-    <meta name="theme-color" content="#0b1220">
+    <meta name="theme-color" content="#1a090d">
     <title>Sign in | COE Studio</title>
     <link rel="icon" href="assets/coe-engineering.jpg">
 
@@ -21,7 +21,7 @@
         that did fought each other — which is why the hero paragraph rendered
         dark-on-dark. This page owns its own styles and inherits nothing.
     -->
-    <link rel="stylesheet" href="coe-login.css?v=login-2026-08a">
+    <link rel="stylesheet" href="coe-login.css?v=maroon-gold-2026-08a">
 </head>
 <body class="auth-body portal-auth-body">
 
@@ -49,6 +49,24 @@
                 <span>College of</span>
                 <h1>Engineering</h1>
                 <p>Course materials, tasks, announcements and student support — in one place.</p>
+            </div>
+
+            <!-- Built-by credit.
+                 Sits at the foot of the brand panel rather than beside the
+                 university lockup at the top: the council built the site, it
+                 does not own the college, and putting the two marks side by
+                 side would read as though it did.
+
+                 The <img> has no dimensions of its own in the markup on
+                 purpose — coe-login.css boxes it — and its alt text is the
+                 credit itself, so the line still makes sense to a screen
+                 reader and to anyone whose image never loads. -->
+            <div class="lg-builtby">
+                <img src="assets/coesc-logo.png" alt="COE Student Council" loading="lazy" decoding="async">
+                <div>
+                    <strong>Built by the COE Student Council</strong>
+                    <span>COESC · A.Y. 2025–2026</span>
+                </div>
             </div>
         </div>
     </section>

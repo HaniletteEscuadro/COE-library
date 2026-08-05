@@ -135,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const shortcutQaBtn = document.getElementById('shortcut-qa');
     const shortcutVoiceBtn = document.getElementById('shortcut-voice');
     const shortcutAnnouncementsBtn = document.getElementById('shortcut-announcements');
-    const shortcutAnalyticsBtn = document.getElementById('shortcut-analytics');
     const recentActivityList = document.getElementById('recent-activity-list');
     const notificationButtons = document.querySelectorAll('.nav-icon-btn[title="Notifications"]');
     const messagesButtons = document.querySelectorAll('.nav-icon-btn[title="Messages"]');
@@ -298,6 +297,14 @@ document.addEventListener('DOMContentLoaded', function () {
         displayAccountList();
         displayAdminLogs();
         renderAdminAnalytics();
+        /*
+         * The Library Overview card lives on this page now, not at the top of
+         * the Library tab. Its counts used to be refreshed as a side effect of
+         * drawing the library, which no longer happens if an admin opens this
+         * page and never visits the library — the card would show whatever the
+         * numbers were at page load, or zeros.
+         */
+        window.updateLibraryDashboard?.();
         renderOrgAdminInterests();
         renderModuleSecurityLogs();
         applyOrgOfficerAdminView();
@@ -1605,6 +1612,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderAnnouncements() {
         const filtered = getFilteredAnnouncements();
+
+        /*
+         * The home newsfeed carousel.
+         *
+         * Fed the whole board, not `filtered` — the search box and the tag and
+         * course dropdowns belong to the Announcements page, and a student who
+         * left a filter set there would otherwise come back to Home and find
+         * the top of the page showing one notice, or none, for no visible
+         * reason. The feed does its own pinned-first ordering and its own cap.
+         *
+         * Optional call: coe-newsfeed.js is a separate file, and the board must
+         * keep rendering if it fails to load.
+         */
+        window.CoeNewsfeed?.setItems(announcements);
         if (homeAnnouncementsList) {
             const homeItems = announcements
                 .slice()
@@ -4359,9 +4380,16 @@ document.addEventListener('DOMContentLoaded', function () {
     shortcutAnnouncementsBtn?.addEventListener('click', function () {
         showPage('announcements');
     });
-    shortcutAnalyticsBtn?.addEventListener('click', function () {
-        showPage('analytics');
-    });
+    /*
+     * The Analytics tab is gone — it was three placeholder tiles reading
+     * "Focus / Library / Output" off the same numbers the home dashboard and
+     * the admin page already show. The admin page keeps its own Platform
+     * Analytics card, which is the one with real per-upload breakdowns.
+     *
+     * showPage('analytics') would now fall through to Home, so nothing is
+     * broken by a stale link; the listener is removed rather than left to
+     * short-circuit so the next person does not go looking for the panel.
+     */
 
     refreshDashboardBtn?.addEventListener('click', refreshDashboard);
     smartRefreshBtn?.addEventListener('click', refreshDashboard);
@@ -20104,28 +20132,28 @@ document.addEventListener('DOMContentLoaded', function () {
         adminAnalyticsGrid.innerHTML = `
             <div class="analytics-row-top">
                 <div class="stat-bubble">
-                    <span class="material-icons" style="color:#2563eb">cloud_upload</span>
+                    <span class="material-icons" style="color:#8f1d2c">cloud_upload</span>
                     <div>
                         <strong>${totalUploads}</strong>
                         <small>Total Uploads</small>
                     </div>
                 </div>
                 <div class="stat-bubble">
-                    <span class="material-icons" style="color:#9333ea">people</span>
+                    <span class="material-icons" style="color:#8f1d2c">people</span>
                     <div>
                         <strong>${topUploaders.length}</strong>
                         <small>Active Uploaders</small>
                     </div>
                 </div>
                 <div class="stat-bubble">
-                    <span class="material-icons" style="color:#0ea5e9">schedule</span>
+                    <span class="material-icons" style="color:#8f6a12">schedule</span>
                     <div>
                         <strong>${monthlyTrend.reduce((sum, month) => sum + month.count, 0)}</strong>
                         <small>Last 6 Months</small>
                     </div>
                 </div>
                 <div class="stat-bubble">
-                    <span class="material-icons" style="color:#14b8a6">folder</span>
+                    <span class="material-icons" style="color:#a63347">folder</span>
                     <div>
                         <strong>${Object.keys(uploadsByType).length}</strong>
                         <small>Material Categories</small>
@@ -20744,8 +20772,27 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAdminMetrics(accounts);
     }
 
+    /*
+     * Default LIGHT, not dark.
+     *
+     * This was the cause of the unreadable text across the workspace, and it is
+     * worth spelling out because the symptom looks nothing like the cause.
+     *
+     * `body.dark-theme` was applied to every visitor on their first load. But
+     * the launch styles at the end of styles.css paint every panel white with
+     * `!important` regardless of the theme, so the class said dark while the
+     * page rendered light. Around sixty rules across ten stylesheets key off
+     * that class and set near-white text for a dark surface that is not there —
+     * `coe-contrast.css` alone forces every h1..h6 inside a panel to #f0e6e2,
+     * which is why announcement titles were showing at a contrast ratio of 1.23
+     * against the white card behind them. Effectively invisible.
+     *
+     * The class now matches what is actually on screen. The toggle still works;
+     * only the starting value changed, and a visitor who has already chosen a
+     * theme keeps their choice.
+     */
     function loadSavedTheme() {
-        applyTheme(localStorage.getItem('coeTheme') || 'dark');
+        applyTheme(localStorage.getItem('coeTheme') || 'light');
     }
 
     function applyTheme(theme) {

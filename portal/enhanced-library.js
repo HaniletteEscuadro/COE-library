@@ -413,6 +413,19 @@ function initializeEnhancedLibrary() {
                 return;
             }
 
+            /*
+             * Leave the folder view. Routed through selectFolder rather than
+             * just dropping the class, because the folder view is not only a
+             * layout — it also left the Year, Subject and Type dropdowns set to
+             * this folder. Clearing the class alone would show every material
+             * again under a toolbar still claiming to be filtered.
+             */
+            const backButton = event.target.closest('[data-action="library-back"]');
+            if (backButton) {
+                selectFolder('all', document.getElementById('btn-all-materials'));
+                return;
+            }
+
             const createProfessorButton = event.target.closest('[data-action="create-professor-library"]');
             if (createProfessorButton) {
                 createProfessorLibraryForFolder(currentFolderId);
@@ -1627,8 +1640,33 @@ function parseFolderParts(folderId) {
     return parsed;
 }
 
+/**
+ * Switch the library between its two layouts.
+ *
+ * BROWSE (folder = "all")
+ *   Three columns: folder tree, material grid, and the suggestion rail
+ *   (Related Materials, Quick Questions, Bookmarks). Library-wide counters
+ *   across the top. This is the "what is in here" view.
+ *
+ * FOLDER (any other folder)
+ *   The material grid takes the whole width beside the tree. The suggestion
+ *   rail is gone, the library-wide counters are gone, and the Year and Subject
+ *   dropdowns are gone — the folder already answers all three, and leaving
+ *   them on screen while they cannot change anything is what made the page
+ *   feel busy. What is left is the folder's own header and its files.
+ *
+ * The class goes on `.library-wrapper` rather than each element so the whole
+ * switch is one line of state, and CSS decides what it means.
+ */
+function applyLibraryFolderView(folderId) {
+    const wrapper = document.querySelector('#library-panel .library-wrapper');
+    if (!wrapper) return;
+    wrapper.classList.toggle('is-folder-view', Boolean(folderId) && folderId !== 'all');
+}
+
 function updateFolderContext(folderId) {
     const context = document.getElementById('library-folder-context');
+    applyLibraryFolderView(folderId);
     if (!context) return;
     const parts = parseFolderParts(folderId);
     const files = getMaterialsByFolder(folderId);
@@ -1638,6 +1676,18 @@ function updateFolderContext(folderId) {
     if (parts.professorName) labels.push(parts.professorName);
     labels.push(parts.category, parts.lesson);
     const folderLabel = labels.join(' / ') || 'All Materials';
+
+    /*
+     * The header reads as a trail plus a name — "CE / 1st Year / MAT 171" over
+     * "Reference Books" — instead of one long slash-separated string in bold.
+     * At four or five levels deep that string wrapped to three lines and the
+     * part that mattered, the folder you are actually in, was the hardest to
+     * find in it.
+     */
+    const trail = labels.filter(Boolean);
+    const folderName = trail.length ? trail[trail.length - 1] : 'All Materials';
+    const parentTrail = trail.slice(0, -1).join(' / ');
+    const isFocused = Boolean(folderId) && folderId !== 'all';
     const videos = files.filter(file => getDisplayType(file) === 'Video').length;
     const pdfs = files.filter(file => getDisplayType(file) === 'PDF').length;
     const updated = files.filter(isRecentlyUpdated).length;
@@ -1655,12 +1705,17 @@ function updateFolderContext(folderId) {
         : '';
 
     context.innerHTML = `
-        <div>
-            <span class="folder-context-label">Folder Focus</span>
-            <strong>${escapeHtml(folderLabel)}</strong>
+        ${isFocused ? `
+        <button type="button" class="folder-back-btn" data-action="library-back">
+            <span class="material-icons" aria-hidden="true">arrow_back</span>
+            All Materials
+        </button>` : ''}
+        <div class="folder-context-heading">
+            <span class="folder-context-label">${escapeHtml(isFocused ? (parentTrail || 'Library') : 'Folder Focus')}</span>
+            <strong title="${escapeHtml(folderLabel)}">${escapeHtml(folderName)}</strong>
         </div>
         <p>${files.length} material${files.length === 1 ? '' : 's'} | ${videos} video${videos === 1 ? '' : 's'} | ${pdfs} PDF${pdfs === 1 ? '' : 's'} | ${updated} new or updated${professorMeta}</p>
-        <div class="folder-context-actions">            
+        <div class="folder-context-actions">
             ${professorButton}
             ${canUpload ? `<button type="button" class="setting-btn folder-upload-btn">Upload Material</button>` : ''}
             <button type="button" class="folder-bookmark-btn ${bookmarked ? 'active' : ''}" data-action="bookmark-folder" title="Bookmark folder">

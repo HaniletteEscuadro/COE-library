@@ -97,9 +97,9 @@
   margin-left: 8px;
   padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(29, 78, 216, 0.35);
-  background: rgba(29, 78, 216, 0.10);
-  color: #1d4ed8;
+  border: 1px solid rgba(122, 21, 34, 0.35);
+  background: rgba(122, 21, 34, 0.10);
+  color: #7a1522;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -212,9 +212,9 @@
 
 body.dark-theme .calendar-mine-badge,
 :root[data-theme="dark"] .calendar-mine-badge {
-  border-color: rgba(96, 165, 250, 0.4);
-  background: rgba(96, 165, 250, 0.14);
-  color: #93c5fd;
+  border-color: rgba(194, 90, 107, 0.4);
+  background: rgba(194, 90, 107, 0.14);
+  color: #dc98a3;
 }
 
 body.dark-theme .calendar-mine-clear,
@@ -235,7 +235,7 @@ body.dark-theme .announcement-sweep button:hover:not(:disabled),
 body.dark-theme .calendar-mine-actions button,
 :root[data-theme="dark"] .calendar-mine-actions button {
   border-color: rgba(148, 163, 184, 0.24);
-  color: #cbd5f5;
+  color: #f2ced4;
 }
 
 body.dark-theme .calendar-mine-delete:hover,

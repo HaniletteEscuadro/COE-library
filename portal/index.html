@@ -11,7 +11,7 @@
          of those rules computed to 0px and the controls sat under the notch. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="COE Studio is a College of Engineering workspace for tasks, library materials, announcements, Q&A, and student support.">
-    <meta name="theme-color" content="#07111f">
+    <meta name="theme-color" content="#1a090d">
     <title>COE Studio | College of Engineering Workspace</title>
     <link rel="icon" href="assets/coe-engineering.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,32 +25,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-    <link rel="stylesheet" href="styles.css?v=coe-smart-refresh-2026">
-    <link rel="stylesheet" href="coe-requested-polish.css?v=upload-fix-2026-08f">
-    <link rel="stylesheet" href="mobile.css?v=embed-links-2026-08a">
-    <link rel="stylesheet" href="upload-ui.css?v=upload-fix-2026-08f">
-    <link rel="stylesheet" href="coe-live.css?v=embed-links-2026-08a">
-    <link rel="stylesheet" href="coe-explorer.css?v=live-2026-08a">
-    <link rel="stylesheet" href="coe-chat.css?v=live-2026-08a">
-    <link rel="stylesheet" href="coe-pdf.css?v=live-2026-08a">
-    <link rel="stylesheet" href="coe-calendar.css?v=calendar-2026-08a">
-    <link rel="stylesheet" href="coe-voice.css?v=voice-2026-08a">
-    <link rel="stylesheet" href="coe-security.css?v=sec-2026-08a">
-    <link rel="stylesheet" href="coe-contribution.css?v=contrib-2026-08a">
+    <link rel="stylesheet" href="styles.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-requested-polish.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="mobile.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="upload-ui.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-live.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-explorer.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-chat.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-pdf.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-calendar.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-voice.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-security.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-contribution.css?v=maroon-gold-2026-08a">
     <!-- Last: the mobile rules for the live features have to outrank the
          !important layout guards those features use on desktop. -->
-    <link rel="stylesheet" href="coe-mobile.css?v=embed-links-2026-08a">
+    <link rel="stylesheet" href="coe-mobile.css?v=maroon-gold-2026-08a">
     <!-- After coe-mobile.css: the tablet range sits above the phone
          breakpoint, so its rules must not be overwritten by the phone layer's
          !important guards. -->
-    <link rel="stylesheet" href="coe-tablet.css?v=tablet-2026-08a">
+    <link rel="stylesheet" href="coe-tablet.css?v=maroon-gold-2026-08a">
     <!-- Last of all: it corrects text colour on the white page panels, and has
          to outrank every rule that set a near-white colour back when the whole
          portal was dark. -->
-    <link rel="stylesheet" href="coe-contrast.css?v=contrast-2026-08a">
-    <link rel="stylesheet" href="coe-coesc.css?v=coesc-2026-08a">
-    <link rel="stylesheet" href="coe-announce.css?v=announce-2026-08a">
-    <link rel="stylesheet" href="coe-dashboard.css?v=dash-2026-08a">
+    <link rel="stylesheet" href="coe-contrast.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-coesc.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-announce.css?v=maroon-gold-2026-08a">
+    <link rel="stylesheet" href="coe-dashboard.css?v=maroon-gold-2026-08a">
+    <!-- Last, on purpose: the carousel has to out-weigh the blanket
+         `border-radius`/`letter-spacing` clamps at the end of styles.css. -->
+    <link rel="stylesheet" href="coe-newsfeed.css?v=newsfeed-2026-08a">
+    <!-- Also last: the folder view has to out-weigh seven competing
+         `.library-wrapper` layout rules, every one of them !important. -->
+    <link rel="stylesheet" href="coe-library-focus.css?v=libfocus-2026-08a">
+    <!-- Last of all: contrast corrections have to beat whatever set the
+         unreadable colour, wherever it lives. -->
+    <link rel="stylesheet" href="coe-chat-refresh.css?v=chat-2026-08a">
+    <link rel="stylesheet" href="coe-org-identity.css?v=orgid-2026-08a">
+    <link rel="stylesheet" href="coe-legibility.css?v=legibility-2026-08a">
 </head>
 
 <body>
@@ -81,7 +92,6 @@
                 <li><a href="#" data-page="calendar"><span class="material-icons">calendar_month</span> Calendar</a></li>
                 <li><a href="#" data-page="messages"><span class="material-icons">forum</span> Communication</a></li>
                 <li class="sidebar-section-title">System</li>
-                <li><a href="#" data-page="analytics"><span class="material-icons">leaderboard</span> Analytics</a></li>
                 <li><a href="#" data-page="settings"><span class="material-icons">settings</span> Settings</a></li>
                 <li class="admin-nav-item"><a href="#" data-page="admin"><span class="material-icons">admin_panel_settings</span> Admin Panel</a></li>
             </ul>
@@ -263,116 +273,41 @@
                 </div>
             </header>
             <div class="home-dashboard">
-                <section class="student-today-board" aria-label="Student dashboard priority board">
-                    <div class="today-board-main">
-                        <span class="today-board-kicker">Student command center</span>
-                        <h2>Start with what matters today.</h2>
-                        <p>Tasks, study materials, questions, and official updates are grouped by student priority so you can move faster.</p>
-                        <div class="today-board-actions">
-                            <button type="button" data-page="tasks"><span class="material-icons">check_circle</span> Open Tasks</button>
-                            <button type="button" data-page="library"><span class="material-icons">menu_book</span> Study Materials</button>
-                            <button type="button" data-page="qa-hub"><span class="material-icons">help</span> Ask a Question</button>
+                <!-- COE Newsfeed.
+                     Empty on purpose — coe-newsfeed.js fills .nf-track and
+                     .nf-dots from the announcement board, and keeps the whole
+                     section `hidden` until there is something to show. The
+                     shell is here rather than injected so the carousel has a
+                     fixed place in the layout and the page does not jump when
+                     the board finishes loading. -->
+                <section class="coe-newsfeed" id="coe-newsfeed" aria-roledescription="carousel" aria-label="COE newsfeed" hidden>
+                    <div class="nf-head">
+                        <div class="nf-head-copy">
+                            <span class="nf-eyebrow"><span class="nf-pulse" aria-hidden="true"></span> COE Newsfeed</span>
+                            <h2>Latest events and announcements</h2>
+                            <p>Open a card to read the full notice or go straight to its link.</p>
+                        </div>
+                        <button type="button" class="nf-viewall" data-page="announcements">
+                            View all notices
+                            <span class="material-icons" aria-hidden="true">east</span>
+                        </button>
+                    </div>
+                    <div class="nf-viewport">
+                        <div class="nf-progress" aria-hidden="true"><span></span></div>
+                        <div class="nf-track"></div>
+                    </div>
+                    <div class="nf-controls">
+                        <div class="nf-dots"></div>
+                        <div class="nf-nav">
+                            <button type="button" data-nf-step="-1" aria-label="Previous newsfeed item">
+                                <span class="material-icons" aria-hidden="true">chevron_left</span>
+                            </button>
+                            <button type="button" data-nf-step="1" aria-label="Next newsfeed item">
+                                <span class="material-icons" aria-hidden="true">chevron_right</span>
+                            </button>
                         </div>
                     </div>
-                    <div class="today-board-stack" aria-label="Priority summary">
-                        <article>
-                            <span class="material-icons" aria-hidden="true">priority_high</span>
-                            <div>
-                                <strong>Urgent focus</strong>
-                                <small id="student-focus-copy">Review tasks and announcements first.</small>
-                            </div>
-                        </article>
-                        <article>
-                            <span class="material-icons" aria-hidden="true">school</span>
-                            <div>
-                                <strong>Study flow</strong>
-                                <small>Open lessons, files, videos, and references from the library.</small>
-                            </div>
-                        </article>
-                        <article>
-                            <span class="material-icons" aria-hidden="true">groups</span>
-                            <div>
-                                <strong>Support loop</strong>
-                                <small>Use Q&A and Student Voice when you need help.</small>
-                            </div>
-                        </article>
-                    </div>
-                </section>
-
-                <section class="dashboard-pulse-strip" aria-label="Workspace quick status">
-                    <div class="pulse-strip-copy">
-                        <span class="pulse-kicker">Live workspace</span>
-                        <strong>Everything COE needs, one clean control center.</strong>
-                    </div>
-                    <div class="pulse-strip-metrics">
-                        <span><span class="material-icons" aria-hidden="true">hub</span> Connected</span>
-                        <span><span class="material-icons" aria-hidden="true">save</span> Browser saved</span>
-                        <span><span class="material-icons" aria-hidden="true">school</span> CE + EE ready</span>
-                    </div>
-                </section>
-
-                <div class="overview-metrics-grid">
-                    <article class="metric-card metric-users">
-                        <div class="metric-card-header">
-                            <span class="material-icons">people</span>
-                            <span class="metric-label">Active Users</span>
-                        </div>
-                        <strong id="home-active-users-count">0</strong>
-                        <span class="metric-progress">Current students + faculty active</span>
-                    </article>
-                    <article class="metric-card metric-submissions">
-                        <div class="metric-card-header">
-                            <span class="material-icons">send</span>
-                            <span class="metric-label">Submissions</span>
-                        </div>
-                        <strong id="home-submissions-count">0</strong>
-                        <span class="metric-progress">New uploads and review items</span>
-                    </article>
-                    <article class="metric-card metric-materials">
-                        <div class="metric-card-header">
-                            <span class="material-icons">folder_shared</span>
-                            <span class="metric-label">Materials Uploaded</span>
-                        </div>
-                        <strong id="home-material-count">0</strong>
-                        <span class="metric-progress">Total library uploads</span>
-                    </article>
-                    <article class="metric-card metric-announcements">
-                        <div class="metric-card-header">
-                            <span class="material-icons">campaign</span>
-                            <span class="metric-label">Announcements</span>
-                        </div>
-                        <strong id="home-announcements-count">0</strong>
-                        <span class="metric-progress">Live updates and news</span>
-                    </article>
-                </div>
-
-                <section class="home-coe-spotlight" aria-label="COE spotlight">
-                    <div class="home-spotlight-media">
-                        <img src="assets/coe-engineering.jpg" alt="College of Engineering students and workspace" loading="lazy">
-                    </div>
-                    <div class="home-spotlight-copy">
-                        <span class="home-spotlight-kicker"><span class="material-icons">bolt</span> COE Spotlight</span>
-                        <h2>Building ideas that move from classroom to community.</h2>
-                        <p>Use this space for official college highlights, student wins, board exam milestones, research moments, and engineering events worth remembering.</p>
-                        <div class="home-spotlight-points">
-                            <span><span class="material-icons">emoji_events</span> Achievements</span>
-                            <span><span class="material-icons">campaign</span> Announcements</span>
-                            <span><span class="material-icons">groups</span> Active COE community</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="dashboard-command-strip" aria-label="Dashboard overview">
-                    <div class="command-strip-copy">
-                        <span class="command-eyebrow">Today in COE Studio</span>
-                        <h2>Check what needs attention today.</h2>
-                        <p>Review uploads, open class materials, and keep track of official COE updates in one place.</p>
-                    </div>
-                    <div class="command-strip-actions">
-                        <button type="button" data-page="library"><span class="material-icons">library_books</span> Browse Library</button>
-                        <button type="button" data-page="library-upload"><span class="material-icons">upload_file</span> Upload Material</button>
-                        <button type="button" data-page="announcements"><span class="material-icons">campaign</span> View Notices</button>
-                    </div>
+                    <p class="nf-live" aria-live="polite"></p>
                 </section>
 
                 <section class="coe-command-center" aria-label="COE dashboard">
@@ -413,234 +348,6 @@
                             <strong>Check Updates</strong>
                             <small id="command-announcement-meta">0 announcements</small>
                         </button>
-                    </div>
-                </section>
-
-                <section class="home-smart-today" aria-label="Smart today planner">
-                    <div class="home-smart-copy">
-                        <span class="command-eyebrow">Smart Today</span>
-                        <h2 id="home-smart-title">Your next best move is ready.</h2>
-                        <p id="home-smart-description">COE Studio checks your tasks, materials, questions, and updates to suggest what to open first.</p>
-                    </div>
-                    <div class="home-smart-focus-card">
-                        <div>
-                            <small>Recommended action</small>
-                            <strong id="home-smart-action">Open Tasks</strong>
-                            <p id="home-smart-reason">Start with pending academic work, then move to study resources.</p>
-                        </div>
-                        <button type="button" id="home-smart-action-btn" data-page="tasks" title="Open recommended page">
-                            <span class="material-icons">arrow_forward</span>
-                        </button>
-                    </div>
-                    <div class="home-smart-list" id="home-smart-list">
-                        <article>
-                            <span class="material-icons">task_alt</span>
-                            <div>
-                                <strong>Tasks first</strong>
-                                <small>Pending work and deadlines are checked before anything else.</small>
-                            </div>
-                        </article>
-                        <article>
-                            <span class="material-icons">auto_stories</span>
-                            <div>
-                                <strong>Study support</strong>
-                                <small>Library and Q&A stay nearby when task pressure is low.</small>
-                            </div>
-                        </article>
-                        <article>
-                            <span class="material-icons">campaign</span>
-                            <div>
-                                <strong>Official updates</strong>
-                                <small>Announcements and schedules are surfaced when available.</small>
-                            </div>
-                        </article>
-                    </div>
-                </section>
-
-                <section id="role-workspace-panel" class="role-workspace-panel panel-card" aria-live="polite">
-                    <div class="role-workspace-copy">
-                        <span id="role-workspace-kicker" class="role-workspace-kicker">Student View</span>
-                        <h2 id="role-workspace-title">Your engineering workspace is ready.</h2>
-                        <p id="role-workspace-description">Keep tasks, materials, questions, and announcements together in one COE dashboard.</p>
-                    </div>
-                    <div class="role-workspace-actions">
-                        <button type="button" id="role-action-primary" class="role-action-btn primary" data-page="library">
-                            <span class="material-icons">library_books</span>
-                            <span>Open Library</span>
-                        </button>
-                        <button type="button" id="role-action-secondary" class="role-action-btn" data-page="qa-hub">
-                            <span class="material-icons">quiz</span>
-                            <span>Q&A Hub</span>
-                        </button>
-                        <button type="button" id="role-action-tertiary" class="role-action-btn" data-page="student-voice">
-                            <span class="material-icons">campaign</span>
-                            <span>Student Voice</span>
-                        </button>
-                    </div>
-                </section>
-
-                <section class="smart-dashboard-grid" aria-label="Workspace shortcuts">
-                    <article class="smart-card smart-library-card">
-                        <div class="smart-card-icon">
-                            <span class="material-icons">auto_stories</span>
-                        </div>
-                        <div>
-                            <span class="smart-card-label">ENGIdocs Library</span>
-                            <strong id="smart-library-title">Engineering materials at a glance</strong>
-                            <p id="smart-library-detail">Upload or browse references, handouts, videos, and lessons for CE and EE.</p>
-                        </div>
-                        <button type="button" data-page="library" title="Open library"><span class="material-icons">east</span></button>
-                    </article>
-                    <article class="smart-card smart-announcement-card">
-                        <div class="smart-card-icon">
-                            <span class="material-icons">notifications_active</span>
-                        </div>
-                        <div>
-                            <span class="smart-card-label">Announcements</span>
-                            <strong id="smart-announcement-title">No urgent notices</strong>
-                            <p id="smart-announcement-detail">Official updates will appear here as soon as they are posted.</p>
-                        </div>
-                        <button type="button" data-page="announcements" title="Open announcements"><span class="material-icons">east</span></button>
-                    </article>
-                    <article class="smart-card smart-state-card">
-                        <div class="smart-card-icon">
-                            <span class="material-icons">verified</span>
-                        </div>
-                        <div>
-                            <span class="smart-card-label">Workspace Status</span>
-                            <strong id="smart-state-title">Saved data loaded</strong>
-                            <p id="smart-state-detail">Your latest records are ready in this browser.</p>
-                        </div>
-                        <button type="button" id="smart-refresh-btn" title="Refresh workspace"><span class="material-icons">refresh</span></button>
-                    </article>
-                </section>
-
-                <section class="home-cockpit-grid" aria-label="Home dashboard cockpit">
-                    <article class="home-cockpit-card primary">
-                        <div>
-                            <span class="home-cockpit-label">Focus Score</span>
-                            <strong id="home-focus-score">0%</strong>
-                            <p id="home-deadline-summary">No upcoming deadlines</p>
-                        </div>
-                        <span class="material-icons">speed</span>
-                    </article>
-                    <article class="home-cockpit-card">
-                        <span class="material-icons">task_alt</span>
-                        <div>
-                            <span class="home-cockpit-label">Task Board</span>
-                            <strong><span id="home-pending-count">0</span> pending</strong>
-                            <p><span id="home-completed-count">0</span> completed tasks</p>
-                        </div>
-                    </article>
-                    <article class="home-cockpit-card">
-                        <span class="material-icons">library_books</span>
-                        <div>
-                            <span class="home-cockpit-label">Library Depth</span>
-                            <strong id="home-library-summary">0 materials</strong>
-                            <p id="home-contribution-summary">CE 0 | EE 0</p>
-                        </div>
-                    </article>
-                    <article class="home-cockpit-card">
-                        <span class="material-icons">event_available</span>
-                        <div>
-                            <span class="home-cockpit-label">Active Days</span>
-                            <strong id="home-active-days-count">0</strong>
-                            <p>Days with saved activity</p>
-                        </div>
-                    </article>
-                </section>
-
-                <section class="home-systems-grid" aria-label="Workspace systems">
-                    <button type="button" class="home-system-card" data-page="library">
-                        <span class="material-icons">inventory_2</span>
-                        <small>ENGIdocs Library</small>
-                        <strong id="home-system-library-count">0</strong>
-                        <em>Uploaded materials</em>
-                    </button>
-                    <button type="button" class="home-system-card" data-page="qa-hub">
-                        <span class="material-icons">forum</span>
-                        <small>Tanong Mo, Sagot Ko</small>
-                        <strong id="home-system-qa-count">0</strong>
-                        <em>Questions posted</em>
-                    </button>
-                    <button type="button" class="home-system-card" data-page="student-voice">
-                        <span class="material-icons">record_voice_over</span>
-                        <small>Your Voice Matters</small>
-                        <strong id="home-system-voice-count">0</strong>
-                        <em>Concerns submitted</em>
-                    </button>
-                    <button type="button" class="home-system-card" data-page="organizations">
-                        <span class="material-icons">diversity_3</span>
-                        <small>Student Organizations</small>
-                        <strong>2</strong>
-                        <em>PICE and IIEE tabs</em>
-                    </button>
-                    <button type="button" class="home-system-card" data-page="tasks">
-                        <span class="material-icons">assignment</span>
-                        <small>Problem Workspace</small>
-                        <strong id="home-system-task-count">0</strong>
-                        <em>Saved problems</em>
-                    </button>
-                </section>
-
-                <section class="feature-suite-section" aria-label="Core workspace features">
-                    <div class="feature-suite-heading">
-                        <div>
-                            <span class="command-eyebrow">Core Features</span>
-                            <h2>Everything important, organized around student work.</h2>
-                            <p>Designed for quick scanning, fast action, and cleaner academic collaboration across CE and EE.</p>
-                        </div>
-                        <button type="button" class="feature-suite-cta" data-page="analytics">
-                            <span class="material-icons">leaderboard</span>
-                            View Analytics
-                        </button>
-                    </div>
-                    <div class="feature-suite-grid">
-                        <article class="feature-suite-card feature-library" data-page="library">
-                            <span class="material-icons">library_books</span>
-                            <div>
-                                <small>ENGIdocs Library</small>
-                                <h3>Centralized engineering materials</h3>
-                                <p>Handouts, PDFs, references, videos, and Drive links stay easy to browse.</p>
-                            </div>
-                            <strong id="feature-library-count">0</strong>
-                        </article>
-                        <article class="feature-suite-card feature-support" data-page="qa-hub">
-                            <span class="material-icons">quiz</span>
-                            <div>
-                                <small>Q&A Hub</small>
-                                <h3>Course questions and peer support</h3>
-                                <p>Students can ask, faculty can guide, and admins can keep the space healthy.</p>
-                            </div>
-                            <strong id="feature-qa-count">0</strong>
-                        </article>
-                        <article class="feature-suite-card feature-voice" data-page="student-voice">
-                            <span class="material-icons">record_voice_over</span>
-                            <div>
-                                <small>Your Voice Matters</small>
-                                <h3>Feedback with moderation</h3>
-                                <p>Concerns and suggestions are collected, reviewed, and tracked with status.</p>
-                            </div>
-                            <strong id="feature-voice-count">0</strong>
-                        </article>
-                        <article class="feature-suite-card feature-orgs" data-page="organizations">
-                            <span class="material-icons">diversity_3</span>
-                            <div>
-                                <small>Professional Organizations</small>
-                                <h3>PICE and IIEE student connection</h3>
-                                <p>Course-based org spaces for civil and electrical engineering identity, events, and leadership.</p>
-                            </div>
-                            <strong>2</strong>
-                        </article>
-                        <article class="feature-suite-card feature-security" data-page="settings">
-                            <span class="material-icons">verified_user</span>
-                            <div>
-                                <small>Account System</small>
-                                <h3>Saved profiles and role access</h3>
-                                <p>Local accounts, Google sign-in setup, profile photos, and admin controls.</p>
-                            </div>
-                            <strong id="feature-account-count">0</strong>
-                        </article>
                     </div>
                 </section>
 
@@ -753,10 +460,6 @@
                                     <span class="material-icons">campaign</span>
                                     Announcements
                                 </button>
-                                <button id="shortcut-analytics" class="shortcut-btn" type="button">
-                                    <span class="material-icons">leaderboard</span>
-                                    Analytics
-                                </button>
                             </div>
                         </section>
 
@@ -842,121 +545,6 @@
 
         <!-- Enhanced Library Section - Google Classroom Style -->
         <section id="library-panel" class="enhanced-library-section page-panel hidden" data-page="library">
-            <div class="library-dashboard">
-                <div class="library-dashboard-hero">
-                    <div class="library-hero-copy">
-                        <span class="library-dashboard-eyebrow"><span class="material-icons">auto_stories</span> ENGIdocs Library</span>
-                        <h1>COE materials shelf</h1>
-                        <p>Browse shared references, handouts, video lectures, and lessons uploaded by CE and EE users.</p>
-                        <div class="library-hero-meta" aria-label="Library coverage">
-                            <span><span class="material-icons">groups</span> Shared uploads</span>
-                            <span><span class="material-icons">school</span> EE + CE</span>
-                            <span><span class="material-icons">folder_special</span> Course folders</span>
-                        </div>
-                    </div>
-                    <div class="library-dashboard-actions">
-                        <button type="button" id="library-dashboard-upload-btn">
-                            <span class="material-icons">upload_file</span>
-                            Upload Material
-                        </button>
-                        <button type="button" id="library-dashboard-browse-btn">
-                            <span class="material-icons">folder_open</span>
-                            Browse Folders
-                        </button>
-                    </div>
-                    <div class="library-hero-visual" aria-hidden="true">
-                        <img src="assets/coe-engineering.jpg" alt="" loading="lazy" decoding="async">
-                        <div class="library-visual-shelf">
-                            <span class="material-icons">engineering</span>
-                            <div>
-                                <strong>COE Materials Shelf</strong>
-                                <small>Organized by course, year, subject, professor, and lesson</small>
-                            </div>
-                        </div>
-                        <div class="library-visual-index">
-                            <span>PDF</span>
-                            <span>VIDEO</span>
-                            <span>LESSON</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="library-dashboard-grid" aria-label="Library overview">
-                    <article class="library-dashboard-card tone-blue">
-                        <span class="material-icons">inventory_2</span>
-                        <div>
-                            <small>Total Materials</small>
-                            <strong id="library-dashboard-total">0</strong>
-                            <em id="library-dashboard-this-week">0 added this week</em>
-                        </div>
-                    </article>
-                    <article class="library-dashboard-card tone-red">
-                        <span class="material-icons">picture_as_pdf</span>
-                        <div>
-                            <small>PDF / Handouts</small>
-                            <strong id="library-dashboard-pdf">0</strong>
-                            <em>For quizzes and reviews</em>
-                        </div>
-                    </article>
-                    <article class="library-dashboard-card tone-green">
-                        <span class="material-icons">video_library</span>
-                        <div>
-                            <small>Videos</small>
-                            <strong id="library-dashboard-video">0</strong>
-                            <em>Lectures and walkthroughs</em>
-                        </div>
-                    </article>
-                    <article class="library-dashboard-card tone-amber">
-                        <span class="material-icons">cloud_done</span>
-                        <div>
-                            <small>Downloads / Opens</small>
-                            <strong id="library-dashboard-downloads">0</strong>
-                            <em>Tracked material activity</em>
-                        </div>
-                    </article>
-                </div>
-                <div class="library-dashboard-lower">
-                    <section class="library-quick-panel">
-                        <div class="library-dashboard-panel-heading">
-                            <div>
-                                <h3>Quick Filters</h3>
-                                <p>Jump into common material views.</p>
-                            </div>
-                        </div>
-                        <div class="library-quick-grid">
-                            <button type="button" data-library-quick-filter="PDF"><span class="material-icons">picture_as_pdf</span><strong>PDFs</strong><small>Modules and guides</small></button>
-                            <button type="button" data-library-quick-filter="Video"><span class="material-icons">smart_display</span><strong>Videos</strong><small>Lectures and lab clips</small></button>
-                            <button type="button" data-library-quick-filter="Handouts"><span class="material-icons">article</span><strong>Handouts</strong><small>Classroom files</small></button>
-                            <button type="button" data-library-quick-filter="Reference Books"><span class="material-icons">auto_stories</span><strong>References</strong><small>Book links and texts</small></button>
-                        </div>
-                    </section>
-                    <section class="library-insight-panel">
-                        <div class="library-dashboard-panel-heading">
-                            <div>
-                                <h3>Library Counts</h3>
-                                <p>Counts by course and material type.</p>
-                            </div>
-                        </div>
-                        <div class="library-insight-stack">
-                            <div class="library-insight-row">
-                                <span><i class="signal-dot signal-ce"></i> Civil Engineering</span>
-                                <strong id="library-dashboard-ce">0</strong>
-                            </div>
-                            <div class="library-insight-row">
-                                <span><i class="signal-dot signal-ee"></i> Electrical Engineering</span>
-                                <strong id="library-dashboard-ee">0</strong>
-                            </div>
-                            <div class="library-insight-row">
-                                <span><i class="signal-dot signal-link"></i> Drive / Link Materials</span>
-                                <strong id="library-dashboard-link">0</strong>
-                            </div>
-                            <div class="library-insight-row">
-                                <span><i class="signal-dot signal-done"></i> Completed by You</span>
-                                <strong id="library-dashboard-completed">0</strong>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
             <!-- Approval queue. Filled and shown by coe-live.js, and only for
                  accounts that may moderate. Student uploads wait here. -->
             <section id="coe-approval-queue" class="coe-approval-queue" hidden aria-label="Uploads waiting for approval"></section>
@@ -1842,6 +1430,9 @@
         <section id="coesc-panel" class="coesc-panel page-panel hidden" data-page="coesc">
             <!-- Hero -->
             <div class="coesc-hero">
+                <div class="coesc-hero-mark">
+                    <img src="assets/coesc-logo.png" alt="COE Student Council seal" loading="lazy" decoding="async">
+                </div>
                 <div>
                     <span class="coesc-eyebrow"><span class="material-icons">account_balance</span> Student Council</span>
                     <h1>COESC</h1>
@@ -1994,27 +1585,39 @@
                 </div>
             </div>
 
+            <!-- The tab carries the org's own mark instead of a stock Material
+                 icon. A compass and a lightning bolt say "civil" and "electrical";
+                 the crests say PICE and IIEE, which is what the tab is for.
+                 `alt=""` because the label beside it already names the org —
+                 a screen reader should hear "PICE", not "PICE PICE". -->
             <div class="org-tabs" aria-label="Professional organization tabs">
                 <button type="button" class="org-tab active" data-org-tab="pice">
-                    <span class="material-icons">architecture</span>
+                    <img class="org-tab-mark" src="assets/pice-logo.png" alt="" loading="lazy" decoding="async">
                     PICE
                 </button>
                 <button type="button" class="org-tab" data-org-tab="iiee">
-                    <span class="material-icons">bolt</span>
+                    <img class="org-tab-mark" src="assets/iiee-logo.png" alt="" loading="lazy" decoding="async">
                     IIEE
                 </button>
             </div>
 
             <div class="org-tab-content active" id="pice-org-tab" data-org-content="pice">
+                <!-- Crest first, then the copy. The mark leads on a page whose
+                     whole job is to introduce two organisations, and putting it
+                     in the reading order rather than floated in the corner is
+                     what makes the card read as that organisation's page. -->
                 <section class="org-profile-card org-profile-pice">
+                    <div class="org-profile-mark">
+                        <img src="assets/pice-logo.png" alt="Philippine Institute of Civil Engineers logo" loading="lazy" decoding="async">
+                    </div>
                     <div class="org-profile-copy">
                         <span class="org-label">Philippine Institute of Civil Engineers</span>
                         <h2>PICE Student Chapter</h2>
                         <p>PICE connects Civil Engineering students with professional standards, technical learning, service projects, and industry awareness beyond the classroom.</p>
-                    </div>
-                    <div class="org-profile-mark" aria-hidden="true">
-                        <span class="material-icons">foundation</span>
-                        <strong>CE</strong>
+                        <div class="org-profile-meta">
+                            <span>Founded 1937</span>
+                            <span>Civil Engineering</span>
+                        </div>
                     </div>
                 </section>
                 <div class="org-info-grid">
@@ -2082,14 +1685,17 @@
 
             <div class="org-tab-content" id="iiee-org-tab" data-org-content="iiee">
                 <section class="org-profile-card org-profile-iiee">
+                    <div class="org-profile-mark">
+                        <img src="assets/iiee-logo.png" alt="Institute of Integrated Electrical Engineers logo" loading="lazy" decoding="async">
+                    </div>
                     <div class="org-profile-copy">
                         <span class="org-label">Institute of Integrated Electrical Engineers of the Philippines</span>
                         <h2>IIEE Student Chapter</h2>
                         <p>IIEE supports Electrical Engineering students through professional formation, technical exposure, safety awareness, and connection to the EE community.</p>
-                    </div>
-                    <div class="org-profile-mark" aria-hidden="true">
-                        <span class="material-icons">electric_bolt</span>
-                        <strong>EE</strong>
+                        <div class="org-profile-meta">
+                            <span>Founded 1975</span>
+                            <span>Electrical Engineering</span>
+                        </div>
                     </div>
                 </section>
                 <div class="org-info-grid">
@@ -2598,36 +2204,6 @@
             </div>
         </section>
 
-        <section id="analytics-panel" class="page-panel hidden" data-page="analytics">
-            <div class="workspace-empty-page analytics-command-page">
-                <div class="workspace-empty-hero">
-                    <span class="material-icons">leaderboard</span>
-                    <div>
-                        <span class="workspace-empty-eyebrow">Student Analytics</span>
-                        <h2>Progress signals without the clutter.</h2>
-                        <p>As you add tasks, upload materials, ask questions, and complete work, this space becomes your academic performance summary.</p>
-                    </div>
-                </div>
-                <div class="workspace-state-grid analytics-preview-grid">
-                    <article class="workspace-state-card">
-                        <small>Focus</small>
-                        <strong id="analytics-preview-focus">0%</strong>
-                        <p>Completion rate from your task board.</p>
-                    </article>
-                    <article class="workspace-state-card">
-                        <small>Library</small>
-                        <strong id="analytics-preview-library">0</strong>
-                        <p>Saved materials in the workspace.</p>
-                    </article>
-                    <article class="workspace-state-card">
-                        <small>Output</small>
-                        <strong id="analytics-preview-output">0</strong>
-                        <p>Problems, uploads, and contributions.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
         <section id="settings-panel" class="page-panel hidden" data-page="settings">
             <div class="settings-panel-card">
                 <div class="settings-heading">
@@ -2969,6 +2545,87 @@
                 </div>
                 <div class="analytics-grid" id="admin-analytics-grid">
                     <!-- Dynamically populated stats -->
+                </div>
+            </div>
+
+            <!-- Library Overview.
+                 Moved here from the top of the Library tab, which opened on a
+                 wall of counts a student had to scroll past to reach the
+                 folders and the materials they came for. The numbers are an
+                 administrator's question — how many books are up, how much is
+                 CE vs EE — so they live on the administrator's page.
+
+                 The element ids are unchanged on purpose: updateLibraryDashboard()
+                 in enhanced-library.js finds these by id and is null-guarded
+                 throughout, so the counts keep filling with no JS change at all.
+                 Renaming them here would silently leave every figure at 0. -->
+            <div class="admin-card admin-panel-card admin-library-overview">
+                <div class="admin-card-header">
+                    <div class="admin-card-title-group">
+                        <h3><span class="material-icons">inventory_2</span> Library Overview</h3>
+                        <p>How many materials are in ENGIdocs, and what kind.</p>
+                    </div>
+                    <button type="button" class="icon-btn-small" onclick="refreshAdminDashboard()" title="Refresh library counts">
+                        <span class="material-icons">refresh</span>
+                    </button>
+                </div>
+                <div class="library-dashboard-grid" aria-label="Library totals">
+                    <article class="library-dashboard-card tone-blue">
+                        <span class="material-icons">inventory_2</span>
+                        <div>
+                            <small>Total Materials</small>
+                            <strong id="library-dashboard-total">0</strong>
+                            <em id="library-dashboard-this-week">0 added this week</em>
+                        </div>
+                    </article>
+                    <article class="library-dashboard-card tone-red">
+                        <span class="material-icons">picture_as_pdf</span>
+                        <div>
+                            <small>PDF / Handouts</small>
+                            <strong id="library-dashboard-pdf">0</strong>
+                            <em>For quizzes and reviews</em>
+                        </div>
+                    </article>
+                    <article class="library-dashboard-card tone-green">
+                        <span class="material-icons">video_library</span>
+                        <div>
+                            <small>Videos</small>
+                            <strong id="library-dashboard-video">0</strong>
+                            <em>Lectures and walkthroughs</em>
+                        </div>
+                    </article>
+                    <article class="library-dashboard-card tone-amber">
+                        <span class="material-icons">cloud_done</span>
+                        <div>
+                            <small>Downloads / Opens</small>
+                            <strong id="library-dashboard-downloads">0</strong>
+                            <em>Tracked material activity</em>
+                        </div>
+                    </article>
+                </div>
+                <div class="library-insight-stack">
+                    <div class="library-insight-row">
+                        <span><i class="signal-dot signal-ce"></i> Civil Engineering</span>
+                        <strong id="library-dashboard-ce">0</strong>
+                    </div>
+                    <div class="library-insight-row">
+                        <span><i class="signal-dot signal-ee"></i> Electrical Engineering</span>
+                        <strong id="library-dashboard-ee">0</strong>
+                    </div>
+                    <div class="library-insight-row">
+                        <span><i class="signal-dot signal-link"></i> Drive / Link Materials</span>
+                        <strong id="library-dashboard-link">0</strong>
+                    </div>
+                    <div class="library-insight-row">
+                        <span><i class="signal-dot signal-done"></i> Completed by You</span>
+                        <strong id="library-dashboard-completed">0</strong>
+                    </div>
+                </div>
+                <div class="admin-library-overview-actions">
+                    <button type="button" class="setting-btn" data-page="library">
+                        <span class="material-icons">library_books</span>
+                        Open Library
+                    </button>
                 </div>
             </div>
 
@@ -3458,6 +3115,11 @@
 
     <script src="library-storage.js?v=upload-fix-2026-08f"></script>
 
+    <!-- Ahead of scripts.js deliberately. Deferred scripts run in document
+         order, and scripts.js hands the carousel its slides from inside
+         renderAnnouncements() — so `window.CoeNewsfeed` has to already exist
+         by the time that first runs. -->
+    <script src="coe-newsfeed.js?v=newsfeed-2026-08a" defer></script>
     <script src="scripts.js?v=upload-fix-2026-08f" defer></script>
     <script src="student-voice.js?v=voice-2026-08a" defer></script>
     <script src="tanong-mo-sagot-ko.js?v=qa-ask-button-2026" defer></script>

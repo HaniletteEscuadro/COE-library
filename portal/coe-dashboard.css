@@ -55,7 +55,7 @@
 
     --coe-line: rgba(148, 163, 184, 0.28);
     --coe-line-strong: rgba(148, 163, 184, 0.45);
-    --coe-accent: #4f46e5;
+    --coe-accent: #7a1522;
     --coe-muted: #64748b;
 
     /* One shadow, used sparingly. A page where everything is raised has no
@@ -219,7 +219,7 @@ body.dark-mode,
 .main-content .page-panel textarea:focus {
     outline: none;
     border-color: var(--coe-accent);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.15);
 }
 
 /* ==========================================================================

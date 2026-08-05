@@ -1,0 +1,263 @@
+/**
+ * COE Studio — organisation identity.
+ *
+ * The Organizations tab and the COESC tab, and where each body's crest sits.
+ *
+ * THE RULE THE WHOLE FILE FOLLOWS
+ * -------------------------------
+ * These are three real organisations' registered marks. They are placed, never
+ * restyled: no tinting, no cropping to a circle, no drop shadow, nothing that
+ * would make PICE's diamond or IIEE's badge look like something the college
+ * drew. Each one sits on a plain white tile with even padding, at its own
+ * aspect ratio, which is also the only presentation that works for all three
+ * at once — PICE and IIEE are diamonds on a dark field, COESC is a hexagon,
+ * and a shared shape would clip two of the three.
+ *
+ * WHAT CHANGED IN THE LAYOUT
+ * --------------------------
+ * The profile card floated a stock Material icon and a two-letter tag ("CE",
+ * "EE") in its top-right corner. That is a placeholder, and it was the only
+ * mark on a page whose entire purpose is to introduce two named organisations.
+ * The crest now leads the card, in the reading order, with the copy beside it.
+ *
+ * The tab buttons were a maroon-to-gold gradient — the loudest treatment in
+ * the palette, spent on a control that only switches between two panes. They
+ * are a quiet segmented control now, and they carry the crests too, so you can
+ * see which organisation you are about to open rather than read it.
+ */
+
+/* -------------------------------------------------------------------------
+   Shared crest tile
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) :is(.org-profile-mark, .coesc-hero-mark) {
+    display: grid !important;
+    place-items: center !important;
+    flex: 0 0 auto !important;
+    padding: 10px !important;
+    border: 1px solid #e9dcd7 !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(60, 12, 20, 0.06) !important;
+}
+
+body:not(.auth-body) :is(.org-profile-mark, .coesc-hero-mark) img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    /* `contain`, so a diamond stays a diamond and a hexagon stays a hexagon.
+       `cover` would crop the lettering off the outside of all three. */
+    object-fit: contain !important;
+}
+
+/* -------------------------------------------------------------------------
+   Organisation profile card
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #organizations-panel .org-profile-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: clamp(14px, 2vw, 22px) !important;
+    padding: clamp(16px, 2vw, 24px) !important;
+    border: 1px solid #e9dcd7 !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 26px rgba(60, 12, 20, 0.06) !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-profile-mark {
+    width: clamp(84px, 9vw, 108px) !important;
+    height: clamp(84px, 9vw, 108px) !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-profile-copy {
+    min-width: 0 !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-label {
+    display: block !important;
+    font-size: 0.7rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.11em !important;
+    text-transform: uppercase !important;
+    color: #8f6a12 !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-profile-copy h2 {
+    margin: 4px 0 6px !important;
+    font-size: clamp(1.2rem, 2vw, 1.55rem) !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-profile-copy p {
+    margin: 0 !important;
+    max-width: 68ch !important;
+    font-size: 0.9rem !important;
+    line-height: 1.6 !important;
+    color: #57534e !important;
+}
+
+/* Two facts, not badges. Small, quiet, and factual — the hero above already
+   carries the "PICE / IIEE / CE + EE" pills, so repeating them here as
+   coloured chips would be the third time the same three words appear. */
+body:not(.auth-body) #organizations-panel .org-profile-meta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 14px !important;
+    margin-top: 10px !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-profile-meta span {
+    position: relative !important;
+    padding-left: 14px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    color: #6b5b57 !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-profile-meta span::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: #d9ab2e !important;
+}
+
+@media (max-width: 720px) {
+    body:not(.auth-body) #organizations-panel .org-profile-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Tabs
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #organizations-panel .org-tabs {
+    display: inline-flex !important;
+    gap: 4px !important;
+    padding: 4px !important;
+    border: 1px solid #e9dcd7 !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-tab {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 8px 18px 8px 10px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    color: #57534e !important;
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease, color 0.15s ease !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-tab:hover {
+    background: #f8ecec !important;
+    color: #7a1522 !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-tab.active {
+    background: #7a1522 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+}
+
+/* The crest keeps its white tile even on the selected maroon pill — both marks
+   are drawn for a light background and neither reads on maroon. */
+body:not(.auth-body) #organizations-panel .org-tab-mark {
+    width: 26px !important;
+    height: 26px !important;
+    flex: 0 0 26px !important;
+    object-fit: contain !important;
+    padding: 2px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+}
+
+/* -------------------------------------------------------------------------
+   COESC hero
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #coesc-panel .coesc-hero {
+    display: flex !important;
+    align-items: center !important;
+    gap: clamp(14px, 2vw, 22px) !important;
+    flex-wrap: wrap !important;
+}
+
+body:not(.auth-body) #coesc-panel .coesc-hero-mark {
+    width: clamp(88px, 9vw, 116px) !important;
+    height: clamp(88px, 9vw, 116px) !important;
+}
+
+/* The stats sit to the right of the copy, not under the seal. */
+body:not(.auth-body) #coesc-panel .coesc-hero > div:not(.coesc-hero-mark):not(.coesc-hero-stats) {
+    flex: 1 1 280px !important;
+    min-width: 0 !important;
+}
+
+body:not(.auth-body) #coesc-panel .coesc-hero-stats {
+    flex: 0 0 auto !important;
+}
+
+/* -------------------------------------------------------------------------
+   Missing-file behaviour
+
+   The three crests are binary assets that have to be dropped into assets/ by
+   hand. Until they are, a broken-image glyph in the middle of a profile card
+   looks like a fault in the page rather than a missing file, so the tile keeps
+   its shape and shows the alt text at a readable size instead.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) :is(.org-profile-mark, .coesc-hero-mark) img {
+    font-size: 0.66rem !important;
+    line-height: 1.35 !important;
+    text-align: center !important;
+    color: #8f6a12 !important;
+    overflow: hidden !important;
+}
+
+/* -------------------------------------------------------------------------
+   COESC hero text
+
+   The hero is a maroon gradient and its heading and body copy were inheriting
+   the page's dark ink — "COESC" was rendering as near-black on maroon, and the
+   sentence under it worse. Text on this panel has to be light, and it has to
+   be stated here because the panel's own colours come from a gradient, which
+   no automatic contrast rule can read.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #coesc-panel .coesc-hero :is(h1, p) {
+    color: #ffffff !important;
+}
+
+body:not(.auth-body) #coesc-panel .coesc-hero p {
+    /* Held just off white so the sentence reads as secondary to the title;
+       still 9:1 against the darkest part of the gradient behind it. */
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+body:not(.auth-body) #coesc-panel .coesc-eyebrow {
+    color: #f0d68a !important;
+}
+
+body:not(.auth-body) #coesc-panel .coesc-hero-stat strong {
+    color: #ffffff !important;
+}
+
+body:not(.auth-body) #coesc-panel .coesc-hero-stat span {
+    color: #f0d68a !important;
+}
