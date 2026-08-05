@@ -45,7 +45,7 @@
  * other rule still paints it, it goes back to being a plain white tab rather
  * than a maroon one with slate text on it.
  */
-body:not(.auth-body) .student-priority-nav .priority-nav-item:not(.primary):not(.active) {
+body:not(.auth-body) .priority-nav-item.priority-nav-item:not(.primary):not(.active) {
     background: #ffffff !important;
     background-image: none !important;
     color: #334155 !important;
@@ -60,18 +60,18 @@ body:not(.auth-body) .student-priority-nav .priority-nav-item:not(.primary):not(
  * vanished completely. Whichever rule paints the background, these two
  * declarations now travel with it, so white text can never end up on white.
  */
-body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) {
+body:not(.auth-body) .priority-nav-item.priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) {
     background: #7a1522 !important;
     background-image: none !important;
     color: #ffffff !important;
 }
 
-body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) strong,
-body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) .material-icons {
+body:not(.auth-body) .priority-nav-item.priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) strong,
+body:not(.auth-body) .priority-nav-item.priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) .material-icons {
     color: #ffffff !important;
 }
 
-body:not(.auth-body) .student-priority-nav .priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) small {
+body:not(.auth-body) .priority-nav-item.priority-nav-item.priority-nav-item:is(.active, .primary, [aria-current="page"]) small {
     /* Held back from pure white so the sublabel still reads as secondary —
        8.0:1 on the maroon, which is well clear of the 4.5 it needs. */
     color: rgba(255, 255, 255, 0.85) !important;
@@ -113,4 +113,55 @@ body:not(.auth-body) .enhanced-library-section .expand-icon {
 body:not(.auth-body) #messages-panel .msgr-status .material-icons,
 body:not(.auth-body) #messages-panel #comm-clear-search .material-icons {
     color: #15803d !important;
+}
+
+/* -------------------------------------------------------------------------
+   Phone
+
+   The nav rules above deliberately do NOT require a `.student-priority-nav`
+   ancestor. They used to, and on a phone the nav is rebuilt outside it, so
+   every rule in this file fell through and the labels went back to being
+   unreadable — the current tab showed as maroon-on-maroon and the one next to
+   it as white-on-white. That ancestor was the whole of the "text sabog sa
+   cellphone" report; the doubled class is what carries the weight instead.
+   ------------------------------------------------------------------------- */
+
+/* The compact toggle was near-white on the toolbar's own near-white tint. */
+body:not(.auth-body) .announcement-compact-toggle {
+    color: #57534e !important;
+    border-color: #e3d3cd !important;
+}
+
+body:not(.auth-body) .announcement-compact-toggle .material-icons {
+    color: #7a1522 !important;
+}
+
+@media (max-width: 760px) {
+    /*
+     * Anything still trying to hold two columns on a phone gets one.
+     *
+     * The COE Achievements block put its composer beside its empty state, so
+     * at this width "No COE achievements posted yet." broke across three lines
+     * in a box a third of the screen wide, next to a form whose labels were
+     * doing the same thing. Neither column had room to set a sentence.
+     */
+    body:not(.auth-body) #home-panel .home-achievements-card,
+    body:not(.auth-body) #home-panel .home-achievement-form,
+    body:not(.auth-body) #home-panel .home-achievement-form-row,
+    body:not(.auth-body) #home-panel .quick-access-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    /*
+     * No text on a phone may be cut off mid-word.
+     *
+     * Several labels are laid out with `white-space: nowrap` and an ellipsis so
+     * they hold one line in a desktop column. On a phone the column is the
+     * screen, and the ellipsis simply eats the end of the sentence.
+     */
+    body:not(.auth-body) .page-panel :is(p, small, strong, h1, h2, h3, h4, li, td, th, label, .folder-name) {
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        text-overflow: clip !important;
+    }
 }

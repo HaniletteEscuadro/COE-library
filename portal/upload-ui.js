@@ -314,9 +314,22 @@
         : {};
 
       var destination = folder.folderName || lesson;
-      // The folder decides the shelf. Only fall back to the link's own kind
-      // when the upload is not aimed at a category folder.
-      var category = folder.category || (info.type === 'Video' ? 'Video Lectures' : 'GDrive Links');
+      /*
+       * The folder decides the shelf. Only fall back to the link's own kind
+       * when the upload is not aimed at a category folder.
+       *
+       * The fallback MUST be one of FOLDER_MATERIAL_CATEGORIES — the three
+       * shelves the folder tree actually builds. It used to be 'GDrive Links',
+       * which is in MATERIAL_CATEGORIES but is not one of them, and that was
+       * the whole of the "the link never appeared in the folder I put it in"
+       * bug: the material saved fine, reached the server fine, came back fine,
+       * and then had no folder anywhere in the tree to be drawn in. Nobody
+       * could find it, including the person who uploaded it.
+       *
+       * 'Reference Books' for a shared Drive folder or document, 'Video
+       * Lectures' for anything the link describer recognised as a video.
+       */
+      var category = folder.category || (info.type === 'Video' ? 'Video Lectures' : 'Reference Books');
       var title = folder.subject ? folder.subject + ' - ' + info.kind : lesson;
 
       /** Clear the composer and refresh whichever library views are mounted. */

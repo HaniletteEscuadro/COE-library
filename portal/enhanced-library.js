@@ -1203,7 +1203,10 @@ function getMaterialCategory(material) {
     if (material.materialCategory) {
         return String(material.materialCategory).toLowerCase().includes('reviewer') ? 'Handouts' : material.materialCategory;
     }
-    if (material.type === 'Google Drive Link' || material.type === 'Link') return 'GDrive Links';
+    // Not 'GDrive Links'. That category has no folder in the tree — see
+    // FOLDER_MATERIAL_CATEGORIES above — so returning it here files a link
+    // where nothing can draw it. A shared Drive document is a reference.
+    if (material.type === 'Google Drive Link' || material.type === 'Link') return 'Reference Books';
     if (material.type === 'Video') return 'Video Lectures';
     if (material.type === 'PDF' || String(material.fileType || '').includes('pdf')) return 'Handouts';
     if (String(material.type || '').toLowerCase().includes('reviewer')) return 'Handouts';

@@ -324,6 +324,14 @@ export const AUTO_APPROVE_ROLES: readonly UserRole[] = [
   // that sat in a queue waiting for an administrator would defeat it. This is
   // the line that makes their uploads visible to every account immediately.
   "ACAD_COMMITTEE",
+  // Same reasoning for the three student-organisation officers: they are in
+  // UPLOADER_ROLES, and an uploader who is not here has their material saved
+  // as PENDING, which `listMaterials` filters out — so it would be invisible
+  // to the whole college INCLUDING the officer who uploaded it. Every role in
+  // UPLOADER_ROLES must appear here too, or uploading looks like losing.
+  "ORG_OFFICER_COESC",
+  "ORG_OFFICER_PICE",
+  "ORG_OFFICER_IIEE",
 ];
 
 /**
@@ -338,15 +346,24 @@ export const AUTO_APPROVE_ROLES: readonly UserRole[] = [
  * signed-in account queries the same rows with no role filter — so this
  * narrows who can add, never who can see.
  *
+ * Faculty and the three student-organisation officers were added on the
+ * college's instruction: the people who run COESC, PICE and IIEE are the ones
+ * with material to share, and routing them through an administrator meant it
+ * did not get shared. An ordinary student still cannot upload.
+ *
  * A side effect worth knowing: every uploader here is also in
  * AUTO_APPROVE_ROLES, so nothing lands in PENDING and the approval queue stays
  * empty. That is intentional for both, and it is the thing to revisit if a
  * role is ever added here without being added there.
- *
- * To let faculty upload again, add "FACULTY" here — nothing else needs to
- * change, because the approval path still exists.
  */
-export const UPLOADER_ROLES: readonly UserRole[] = ["ADMIN", "ACAD_COMMITTEE"];
+export const UPLOADER_ROLES: readonly UserRole[] = [
+  "ADMIN",
+  "ACAD_COMMITTEE",
+  "FACULTY",
+  "ORG_OFFICER_COESC",
+  "ORG_OFFICER_PICE",
+  "ORG_OFFICER_IIEE",
+];
 
 // ---------------------------------------------------------------------------
 // Display helpers

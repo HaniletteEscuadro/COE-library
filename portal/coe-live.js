@@ -50,7 +50,20 @@
         HANDOUT: 'Handouts',
         VIDEO: 'Video Lectures',
         LESSON: 'Lessons',
-        LINK: 'GDrive Links',
+        /*
+         * LINK comes back as a reference, not as 'GDrive Links'.
+         *
+         * 'GDrive Links' is a category with no folder: the tree only builds the
+         * three in FOLDER_MATERIAL_CATEGORIES, so anything mapped here was
+         * filed where nothing could draw it. Uploads no longer produce that
+         * category (see upload-ui.js), but every link already saved is stored
+         * as kind LINK, and this line is what brings those back into view
+         * instead of leaving them stranded in the database.
+         *
+         * A link uploaded INTO a shelf is unaffected — standing in Handouts
+         * stores it as HANDOUT, not LINK, so it returns to Handouts.
+         */
+        LINK: 'Reference Books',
         OTHER: 'Handouts'
     };
 
@@ -496,9 +509,24 @@
      * publishing study material is the reason the role exists, so their
      * uploads go straight onto the shelf where every account can see them.
      */
+    /*
+     * Kept as one list because the two questions below are answered from it and
+     * they must not drift apart: a role that may upload but is not auto-approved
+     * has its material saved as PENDING, which the library list filters out, so
+     * the upload disappears for everyone including the person who made it.
+     *
+     * Mirrors UPLOADER_ROLES and AUTO_APPROVE_ROLES in src/lib/enums.ts. The
+     * server re-checks both on every request, so a mismatch here shows the
+     * wrong button — it does not grant anything.
+     */
+    const UPLOADER_ROLES = [
+        'ADMIN', 'ACAD_COMMITTEE', 'FACULTY',
+        'ORG_OFFICER_COESC', 'ORG_OFFICER_PICE', 'ORG_OFFICER_IIEE'
+    ];
+
     function isModerated() {
         const role = String((currentUser && currentUser.role) || '').toUpperCase();
-        return ['ADMIN', 'FACULTY', 'LIBRARIAN', 'REGISTRAR', 'ACAD_COMMITTEE'].indexOf(role) === -1;
+        return ['LIBRARIAN', 'REGISTRAR'].concat(UPLOADER_ROLES).indexOf(role) === -1;
     }
 
     /** True when this account may approve or reject other people's uploads. */
@@ -516,7 +544,7 @@
      */
     function canUpload() {
         const role = String((currentUser && currentUser.role) || '').toUpperCase();
-        return role === 'ADMIN' || role === 'ACAD_COMMITTEE';
+        return UPLOADER_ROLES.indexOf(role) > -1;
     }
 
     /**
