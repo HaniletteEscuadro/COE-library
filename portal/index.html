@@ -1005,18 +1005,38 @@
                         </div>
                         <button type="button" id="library-link-picker-close" title="Close"><span class="material-icons">close</span></button>
                     </div>
-                    <div class="classroom-picker-tabs">
-                        <button type="button">Recent</button>
-                        <button type="button" class="active">Upload</button>
-                        <button type="button">My Drive</button>
-                        <button type="button">Starred</button>
-                        <button type="button">Shared with me</button>
+                    <!-- Two tabs, and both of them do something.
+                         There were five before — Recent, Upload, My Drive,
+                         Starred, Shared with me — copied from Google's own
+                         picker chrome. None had an id, a handler or anything
+                         behind it, and four of them never could: listing a
+                         person's Drive needs the Drive API and an OAuth grant
+                         this app does not have. They were pictures of buttons.
+                         These two are the choices the dialog can actually
+                         honour. -->
+                    <div class="classroom-picker-tabs" role="tablist">
+                        <button type="button" role="tab" data-picker-tab="file"
+                                class="active" aria-selected="true" aria-controls="picker-pane-file">
+                            <span class="material-icons" aria-hidden="true">upload_file</span>
+                            Upload a file
+                        </button>
+                        <button type="button" role="tab" data-picker-tab="link"
+                                aria-selected="false" aria-controls="picker-pane-link">
+                            <span class="material-icons" aria-hidden="true">link</span>
+                            Paste a link
+                        </button>
                     </div>
                     <div class="classroom-picker-body">
-                        <span class="material-icons picker-cloud">cloud_upload</span>
-                        <label class="picker-browse-btn" for="library-upload-file">Browse</label>
-                        <p id="library-link-picker-help">or drag files to upload to <strong>My Drive</strong> and select</p>
-                        <input type="url" id="library-link-picker-url" placeholder="Paste link here">
+                        <div class="picker-pane" id="picker-pane-file" data-picker-pane="file">
+                            <span class="material-icons picker-cloud">cloud_upload</span>
+                            <label class="picker-browse-btn" for="library-upload-file">Browse files</label>
+                            <p id="library-link-picker-help">Choose a file from this device, or drag one onto this box.</p>
+                        </div>
+                        <div class="picker-pane" id="picker-pane-link" data-picker-pane="link" hidden>
+                            <span class="material-icons picker-cloud">add_to_drive</span>
+                            <input type="url" id="library-link-picker-url" placeholder="https://drive.google.com/...">
+                            <p class="picker-pane-note">Paste a Google Drive, YouTube or web address. Anyone signed in will be able to open it.</p>
+                        </div>
                     </div>
                     <div class="classroom-picker-actions">
                         <button type="button" id="library-link-picker-cancel">Cancel</button>

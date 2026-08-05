@@ -484,3 +484,73 @@
     init();
   }
 })();
+
+/**
+ * The link picker's tabs.
+ *
+ * The dialog offers two ways to add material — a file from this device, or a
+ * pasted address — and until now the header showed five tabs for it, four of
+ * which were decoration copied from Google's picker and one of which was the
+ * only one that did anything. Nothing was wired: no ids, no listeners. Pressing
+ * "My Drive" could not have worked, because listing somebody's Drive needs the
+ * Drive API and an OAuth grant this app has never had.
+ *
+ * This wires the two that are real. It is deliberately separate from the rest
+ * of this file and guards on the elements existing, so the dialog still opens
+ * on a page that has not been updated.
+ */
+(function () {
+  'use strict';
+
+  function initPickerTabs() {
+    var tabs = document.querySelectorAll('[data-picker-tab]');
+    if (!tabs.length) return;
+
+    var panes = document.querySelectorAll('[data-picker-pane]');
+    var urlInput = document.getElementById('library-link-picker-url');
+    var fileInput = document.getElementById('library-upload-file');
+
+    function select(name) {
+      tabs.forEach(function (tab) {
+        var on = tab.dataset.pickerTab === name;
+        tab.classList.toggle('active', on);
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      panes.forEach(function (pane) {
+        pane.hidden = pane.dataset.pickerPane !== name;
+      });
+
+      /*
+       * Clear the side that is being left.
+       *
+       * Both inputs feed the same Attach button, so a stale address sitting in
+       * a hidden box would be attached instead of the file just chosen — the
+       * user would have no way of seeing why. Whichever pane is showing is the
+       * only one holding a value.
+       */
+      if (name === 'file' && urlInput) urlInput.value = '';
+      if (name === 'link' && fileInput) fileInput.value = '';
+
+      if (name === 'link' && urlInput) urlInput.focus();
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { select(tab.dataset.pickerTab); });
+    });
+
+    // Choosing a file from the other pane's Browse button should also move the
+    // dialog to that pane, so the two never disagree about what is selected.
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files.length) select('file');
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPickerTabs);
+  } else {
+    initPickerTabs();
+  }
+}());

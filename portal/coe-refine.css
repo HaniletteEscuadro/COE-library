@@ -218,3 +218,84 @@ body:not(.auth-body) #admin-panel .admin-hero-quickgrid button:hover {
     border-color: #7a1522 !important;
     background: #fdf3f4 !important;
 }
+
+/* -------------------------------------------------------------------------
+   Link picker tabs
+
+   Two real tabs where there were five decorative ones. Sized as controls
+   rather than as labels — the old row was unpressable, so anyone who tried
+   deserves a target that obviously is one.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) .classroom-picker-tabs {
+    display: flex !important;
+    gap: 6px !important;
+    padding: 8px 14px !important;
+    border-bottom: 1px solid #f0e6e2 !important;
+    background: #fdfaf8 !important;
+}
+
+body:not(.auth-body) .classroom-picker-tabs button {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 9px 16px !important;
+    border: 1px solid transparent !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    color: #57534e !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+}
+
+body:not(.auth-body) .classroom-picker-tabs button:hover {
+    background: #f8ecec !important;
+    color: #7a1522 !important;
+}
+
+body:not(.auth-body) .classroom-picker-tabs button.active {
+    background: #7a1522 !important;
+    border-color: #7a1522 !important;
+    color: #ffffff !important;
+}
+
+body:not(.auth-body) .classroom-picker-tabs button .material-icons {
+    font-size: 18px !important;
+}
+
+body:not(.auth-body) .picker-pane[hidden] {
+    display: none !important;
+}
+
+body:not(.auth-body) .picker-pane {
+    display: grid !important;
+    justify-items: center !important;
+    gap: 12px !important;
+    padding: 26px 18px !important;
+    text-align: center !important;
+}
+
+body:not(.auth-body) .picker-pane #library-link-picker-url {
+    width: min(460px, 100%) !important;
+    padding: 11px 14px !important;
+    border: 1px solid #e3d3cd !important;
+    border-radius: 10px !important;
+    font-size: 0.92rem !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) .picker-pane #library-link-picker-url:focus {
+    outline: none !important;
+    border-color: #7a1522 !important;
+    box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.12) !important;
+}
+
+body:not(.auth-body) .picker-pane-note,
+body:not(.auth-body) #library-link-picker-help {
+    margin: 0 !important;
+    max-width: 46ch !important;
+    font-size: 0.84rem !important;
+    line-height: 1.55 !important;
+    color: #6b5b57 !important;
+}
