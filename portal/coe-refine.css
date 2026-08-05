@@ -1,0 +1,220 @@
+/**
+ * COE Studio — layout refinements.
+ *
+ * Three areas, each reported as too cramped or too hard to read:
+ * the announcement card, the Q&A answer dialog, and the admin page.
+ */
+
+/* -------------------------------------------------------------------------
+   Announcement card
+
+   Two problems in one card. The title rendered as pale beige on white — it is
+   the first thing on the card and it was the hardest thing on it to read. And
+   the card itself was tight enough that the title, the meta line and the
+   summary ran together into one block with no hierarchy.
+
+   `-webkit-text-fill-color` is set alongside `color` because a plain `color`
+   loses to a gradient-clipped heading, and setting `background: none` here is
+   what stops one being applied in the first place.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-card :is(h4, .announcement-title) {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    background: none !important;
+    opacity: 1 !important;
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+}
+
+body:not(.auth-body) .announcement-card {
+    /* Read notices were held at 0.9 opacity, which dimmed the title along with
+       everything else. Having read something is not a reason to make it harder
+       to read again — the unread dot already carries that. */
+    opacity: 1 !important;
+    padding: 16px 18px !important;
+}
+
+body:not(.auth-body) .announcement-expand-area {
+    /* Room between the icon column and the text, and between the three lines,
+       so the card reads as heading / attribution / body rather than one
+       paragraph in three type sizes. */
+    row-gap: 8px !important;
+    padding: 2px 0 !important;
+    text-align: left !important;
+}
+
+body:not(.auth-body) .announcement-card .announcement-summary,
+body:not(.auth-body) .announcement-card .announcement-details {
+    margin-top: 6px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.6 !important;
+    color: #44403c !important;
+}
+
+body:not(.auth-body) .announcement-card .announcement-meta,
+body:not(.auth-body) .announcement-card .announcement-card-meta {
+    font-size: 0.78rem !important;
+    color: #6b5b57 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Q&A answer dialog
+
+   The dialog was rendering about two hundred pixels wide on a full desktop
+   screen: the modal is `display: grid; place-items: center`, and its content
+   box had a `max-width` but never a `width`, so it shrank to the width of its
+   own narrowest child. The sibling "Ask a question" dialog already states a
+   width — this is the same treatment, applied to the one that was missed.
+   ------------------------------------------------------------------------- */
+
+#question-detail-modal .question-detail-content,
+#question-detail-modal .modal-content {
+    width: min(880px, calc(100vw - 32px)) !important;
+    max-width: 880px !important;
+    max-height: min(88vh, 900px) !important;
+    overflow-y: auto !important;
+    padding: 26px 28px !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    border: 1px solid #e9dcd7 !important;
+    box-shadow: 0 32px 90px rgba(21, 4, 6, 0.32) !important;
+}
+
+#question-detail-modal .question-detail-content h3 {
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    color: #0f172a !important;
+}
+
+/* The answer box is the reason the dialog is open, so it gets the room. */
+#question-detail-modal textarea {
+    min-height: 140px !important;
+    width: 100% !important;
+    font-size: 0.95rem !important;
+    line-height: 1.55 !important;
+}
+
+/* The attachment controls were stacked one per row down a narrow column. */
+#question-detail-modal .qa-answer-attachments,
+#question-detail-modal .detail-answer-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    align-items: center !important;
+}
+
+@media (max-width: 700px) {
+    #question-detail-modal .question-detail-content,
+    #question-detail-modal .modal-content {
+        padding: 18px 16px !important;
+        max-height: 92vh !important;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   Admin page
+
+   Kept as the same set of cards — the tools are right, they were just hard to
+   scan. Every card gets one border, one radius and one shadow instead of four
+   different combinations, headings get a consistent size, and the two-column
+   split collapses in one step rather than at three different widths.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) #admin-panel .admin-card,
+body:not(.auth-body) #admin-panel .admin-panel-card {
+    padding: clamp(16px, 1.8vw, 22px) !important;
+    border: 1px solid #e9dcd7 !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 8px 22px rgba(60, 12, 20, 0.05) !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-card-header {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid #f0e6e2 !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-card-header h3 {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    font-size: 1.02rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-card-header h3 .material-icons {
+    font-size: 19px !important;
+    color: #7a1522 !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-card-title-group p {
+    margin: 3px 0 0 !important;
+    font-size: 0.84rem !important;
+    line-height: 1.5 !important;
+    color: #6b5b57 !important;
+}
+
+/* One breakpoint for the whole page, so the columns do not reflow twice on the
+   way down from a laptop to a phone. */
+body:not(.auth-body) #admin-panel .admin-split-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 16px !important;
+    align-items: start !important;
+}
+
+@media (max-width: 1100px) {
+    body:not(.auth-body) #admin-panel .admin-split-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+body:not(.auth-body) #admin-panel .admin-column {
+    display: grid !important;
+    gap: 16px !important;
+    align-content: start !important;
+    min-width: 0 !important;
+}
+
+/* The hero's quick actions were three different widths depending on how long
+   their labels were. */
+body:not(.auth-body) #admin-panel .admin-hero-quickgrid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+    gap: 10px !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-hero-quickgrid button {
+    display: grid !important;
+    gap: 2px !important;
+    padding: 12px 14px !important;
+    border: 1px solid #e9dcd7 !important;
+    background: #ffffff !important;
+    text-align: left !important;
+    cursor: pointer !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-hero-quickgrid button strong {
+    font-size: 0.92rem !important;
+    color: #0f172a !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-hero-quickgrid button small {
+    font-size: 0.76rem !important;
+    color: #6b5b57 !important;
+}
+
+body:not(.auth-body) #admin-panel .admin-hero-quickgrid button:hover {
+    border-color: #7a1522 !important;
+    background: #fdf3f4 !important;
+}
