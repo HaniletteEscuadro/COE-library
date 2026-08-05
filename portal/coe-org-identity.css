@@ -261,3 +261,54 @@ body:not(.auth-body) #coesc-panel .coesc-hero-stat strong {
 body:not(.auth-body) #coesc-panel .coesc-hero-stat span {
     color: #f0d68a !important;
 }
+
+/* -------------------------------------------------------------------------
+   Crest fallback
+
+   Drawn by coe-crest.js when no image file is found. It is a lettermark in the
+   organisation's own colours, not a redrawing of their logo — see the note at
+   the top of that file for why that distinction matters here.
+
+   The tile keeps every dimension it has with a real crest in it, so nothing on
+   the page moves when the image file is finally added.
+   ------------------------------------------------------------------------- */
+
+body:not(.auth-body) .coe-crest-fallback,
+.coe-crest-fallback {
+    display: grid !important;
+    place-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 10px !important;
+    background: var(--crest-bg, #7a1522) !important;
+    color: var(--crest-fg, #f0d68a) !important;
+    font-weight: 800 !important;
+    font-size: clamp(0.62rem, 1.5vw, 0.95rem) !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1 !important;
+    text-align: center !important;
+}
+
+/* In the tab pill the tile is 26px across, so the lettermark has to drop to
+   an initial or it renders as an unreadable smear. */
+body:not(.auth-body) #organizations-panel .org-tab-mark .coe-crest-fallback {
+    border-radius: 50% !important;
+    font-size: 0.5rem !important;
+    letter-spacing: 0 !important;
+}
+
+/* The tab's crest holder is a <span> now, so it needs the box the <img> used
+   to provide. */
+body:not(.auth-body) #organizations-panel .org-tab-mark {
+    display: grid !important;
+    place-items: center !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+body:not(.auth-body) #organizations-panel .org-tab-mark img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    padding: 2px !important;
+}

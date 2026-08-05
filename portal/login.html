@@ -62,7 +62,7 @@
                  credit itself, so the line still makes sense to a screen
                  reader and to anyone whose image never loads. -->
             <div class="lg-builtby">
-                <img src="assets/coesc-logo.png" alt="COE Student Council" loading="lazy" decoding="async">
+                <span class="lg-builtby-mark" data-crest="coesc"><img alt="COE Student Council" decoding="async"></span>
                 <div>
                     <strong>Built by the COE Student Council</strong>
                     <span>COESC · A.Y. 2025–2026</span>
@@ -271,6 +271,7 @@
 
 <!-- coe-api.js must load first: it owns the session, CSRF and login calls. -->
 <script src="coe-api.js?v=live-2026-08a"></script>
-<script src="coe-login.js?v=login-2026-08a"></script>
+<script src="coe-crest.js?v=crest-2026-08a" defer></script>
+    <script src="coe-login.js?v=login-2026-08a"></script>
 </body>
 </html>

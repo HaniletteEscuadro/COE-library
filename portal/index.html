@@ -1430,8 +1430,8 @@
         <section id="coesc-panel" class="coesc-panel page-panel hidden" data-page="coesc">
             <!-- Hero -->
             <div class="coesc-hero">
-                <div class="coesc-hero-mark">
-                    <img src="assets/coesc-logo.png" alt="COE Student Council seal" loading="lazy" decoding="async">
+                <div class="coesc-hero-mark" data-crest="coesc">
+                    <img alt="COE Student Council seal" decoding="async">
                 </div>
                 <div>
                     <span class="coesc-eyebrow"><span class="material-icons">account_balance</span> Student Council</span>
@@ -1592,11 +1592,11 @@
                  a screen reader should hear "PICE", not "PICE PICE". -->
             <div class="org-tabs" aria-label="Professional organization tabs">
                 <button type="button" class="org-tab active" data-org-tab="pice">
-                    <img class="org-tab-mark" src="assets/pice-logo.png" alt="" loading="lazy" decoding="async">
+                    <span class="org-tab-mark" data-crest="pice"><img alt="" decoding="async"></span>
                     PICE
                 </button>
                 <button type="button" class="org-tab" data-org-tab="iiee">
-                    <img class="org-tab-mark" src="assets/iiee-logo.png" alt="" loading="lazy" decoding="async">
+                    <span class="org-tab-mark" data-crest="iiee"><img alt="" decoding="async"></span>
                     IIEE
                 </button>
             </div>
@@ -1607,8 +1607,8 @@
                      in the reading order rather than floated in the corner is
                      what makes the card read as that organisation's page. -->
                 <section class="org-profile-card org-profile-pice">
-                    <div class="org-profile-mark">
-                        <img src="assets/pice-logo.png" alt="Philippine Institute of Civil Engineers logo" loading="lazy" decoding="async">
+                    <div class="org-profile-mark" data-crest="pice">
+                        <img alt="Philippine Institute of Civil Engineers logo" decoding="async">
                     </div>
                     <div class="org-profile-copy">
                         <span class="org-label">Philippine Institute of Civil Engineers</span>
@@ -1685,8 +1685,8 @@
 
             <div class="org-tab-content" id="iiee-org-tab" data-org-content="iiee">
                 <section class="org-profile-card org-profile-iiee">
-                    <div class="org-profile-mark">
-                        <img src="assets/iiee-logo.png" alt="Institute of Integrated Electrical Engineers logo" loading="lazy" decoding="async">
+                    <div class="org-profile-mark" data-crest="iiee">
+                        <img alt="Institute of Integrated Electrical Engineers logo" decoding="async">
                     </div>
                     <div class="org-profile-copy">
                         <span class="org-label">Institute of Integrated Electrical Engineers of the Philippines</span>
@@ -3119,6 +3119,7 @@
          order, and scripts.js hands the carousel its slides from inside
          renderAnnouncements() — so `window.CoeNewsfeed` has to already exist
          by the time that first runs. -->
+    <script src="coe-crest.js?v=crest-2026-08a" defer></script>
     <script src="coe-newsfeed.js?v=newsfeed-2026-08a" defer></script>
     <script src="scripts.js?v=upload-fix-2026-08f" defer></script>
     <script src="student-voice.js?v=voice-2026-08a" defer></script>

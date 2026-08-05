@@ -933,3 +933,30 @@ body.is-offline .lg-form {
         display: none;
     }
 }
+
+/* The council mark on the brand panel is a holder now, filled by coe-crest.js
+   with whichever file it finds — or with a lettermark when there is none. The
+   box is stated here so the credit line keeps its shape either way. */
+.lg-builtby-mark {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 3px;
+}
+
+.lg-builtby-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.lg-builtby-mark .coe-crest-fallback {
+    border-radius: 50%;
+    font-size: 0.5rem;
+    letter-spacing: 0;
+}
