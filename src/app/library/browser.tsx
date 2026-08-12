@@ -166,7 +166,7 @@ export function LibraryBrowser({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <section className="dash-card" aria-label="Browse materials">
+    <section className="dash-card lib-browse" aria-label="Browse materials">
       <div className="dash-card-head">
         <h2>Browse</h2>
         <span className="lib-sub">{loading ? "Loading…" : `${total} material${total === 1 ? "" : "s"}`}</span>

@@ -1322,6 +1322,14 @@ button:disabled {
 
 @media (max-width: 900px) {
   .lib-grid-2 { grid-template-columns: minmax(0, 1fr); }
+
+  /* One column on a phone means the materials list would otherwise sit below
+     the stat tiles and the whole folder tree. Pull it up: browse first, then
+     folders, with the totals last — they are the least urgent thing here. */
+  .lib-page .dash-grid { order: 1; }
+  .lib-page .dash-tiles { order: 2; }
+  .lib-grid-2 .lib-browse { order: 1; }
+  .lib-grid-2 .lib-folders { order: 2; }
 }
 
 /* --- Library live bar + upload progress ---------------------------------- */

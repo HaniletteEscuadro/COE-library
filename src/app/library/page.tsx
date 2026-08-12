@@ -57,7 +57,7 @@ export default async function LibraryPage() {
         }}
       />
 
-      <main className="dash">
+      <main className="dash lib-page">
         <header className="dash-head">
           <div>
             <p className="dash-kicker">ENGIdocs</p>
@@ -84,7 +84,7 @@ export default async function LibraryPage() {
 
         <div className="dash-grid lib-grid-2">
           {/* Folder tree */}
-          <section className="dash-card" aria-label="Folders">
+          <section className="dash-card lib-folders" aria-label="Folders">
             <div className="dash-card-head"><h2>Folders</h2></div>
 
             {folders.length === 0 ? (
