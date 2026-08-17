@@ -1,0 +1,683 @@
+/* ===========================================================================
+   PHONE LAYER — Android + iOS
+   ---------------------------------------------------------------------------
+   `mobile.css` made the portal fit a narrow screen and `coe-mobile.css` did the
+   same for the features added after it. Both are about *layout*. This file is
+   about the two things neither one covers:
+
+     1. The shell. Nine sticky nav tiles at the top of a phone ate three rows —
+        roughly 150px of a 667px screen — before a single word of content. On a
+        phone the primary destinations belong at the bottom, in thumb reach,
+        which is what both platforms have done for a decade. `coe-phone.js`
+        builds that bar; this file is what it looks like.
+
+     2. Platform behaviour. Rubber-band scroll chaining, Chrome's pull-to-
+        refresh firing mid-list, the 300ms double-tap delay, long-press
+        callouts on cards, `100vh` measuring taller than the visible viewport
+        under the URL bar — none of these are layout bugs, so none of them were
+        reachable from a width query alone.
+
+   Loaded LAST, after coe-mobile.css and everything added since it. Several of
+   those later sheets (coe-refine, coe-legibility, coe-newsfeed) carry their own
+   breakpoints, so a phone rule written earlier in the cascade silently loses to
+   them. Being last is the only way this stays true.
+
+   Every rule is inside a max-width, pointer or hover query. Desktop is
+   untouched.
+   =========================================================================== */
+
+:root {
+  /* Height of the tab bar without the home-indicator inset. Referenced by the
+     content padding below and by coe-phone.js when it measures the keyboard,
+     so the two can never drift apart. */
+  --m-tabbar-h: 60px;
+}
+
+/* ---------------------------------------------------------------------------
+   1. TOUCH BEHAVIOUR — any width, coarse pointer only.
+
+   These are the fixes that have nothing to do with how wide the screen is. A
+   tablet and a phone both need them; a mouse-driven laptop must not get them,
+   because `touch-action` and `user-select` changes there would break drag
+   selection and middle-click.
+   --------------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+
+  /* The 300ms wait. Mobile browsers historically held every tap for a third of
+     a second in case it turned into a double-tap zoom. `manipulation` says
+     "this element will never be double-tap zoomed", and the tap fires
+     immediately — which is most of the difference between an interface that
+     feels native and one that feels like a website. */
+  body:not(.auth-body) button,
+  body:not(.auth-body) a,
+  body:not(.auth-body) summary,
+  body:not(.auth-body) label,
+  body:not(.auth-body) [role="button"],
+  body:not(.auth-body) [role="tab"],
+  body:not(.auth-body) .lib-row,
+  body:not(.auth-body) .tree-leaf,
+  body:not(.auth-body) .tree-toggle {
+    touch-action: manipulation;
+    /* Safari and Chrome paint their own grey flash on tap. It lands on the
+       element's bounding box, not its border-radius, so on a rounded card it
+       shows as a grey rectangle behind the card. The `:active` states below
+       replace it with something that follows the shape. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Long-press on iOS raises a share/copy sheet over any element that looks
+     like a link or an image. On a *control* that is never what was meant — it
+     interrupts a scroll that started with a stationary finger. Content keeps
+     its callout; chrome does not. */
+  body:not(.auth-body) button,
+  body:not(.auth-body) .m-tab,
+  body:not(.auth-body) .priority-nav-item,
+  body:not(.auth-body) .sidebar-nav a,
+  body:not(.auth-body) .nav-icon-btn,
+  body:not(.auth-body) .material-icons {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* But never on anything somebody might legitimately want to copy: a room
+     number, a deadline, a link somebody posted, an answer to paste elsewhere. */
+  body:not(.auth-body) p,
+  body:not(.auth-body) .lib-file-name,
+  body:not(.auth-body) .msg-text,
+  body:not(.auth-body) .chat-message,
+  body:not(.auth-body) .qa-answer-body,
+  body:not(.auth-body) .announcement-body,
+  body:not(.auth-body) .detail-description,
+  body:not(.auth-body) input,
+  body:not(.auth-body) textarea {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Having removed the platform's tap flash, something has to take its place —
+     an unacknowledged tap reads as a dropped tap, and people tap again. */
+  body:not(.auth-body) button:active,
+  body:not(.auth-body) [role="button"]:active,
+  body:not(.auth-body) .sidebar-nav a:active {
+    /* Compositor-only, so it stays smooth on a low-end Android. */
+    transform: scale(0.97);
+  }
+
+  /* No transition on the scale. Most of these buttons already declare one for
+     their own colours, and restating the property here would replace it — a
+     press state is not worth silently dropping somebody else's animation. An
+     untweened 0.97 is what a native button does anyway. */
+
+  /* A card that scales down looks broken mid-scroll; a background change does
+     not. Ones with their own :active in coe-mobile.css keep it. */
+  body:not(.auth-body) .lib-row:active,
+  body:not(.auth-body) .nf-slide:active,
+  body:not(.auth-body) .panel-card:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.auth-body) button:active,
+  body:not(.auth-body) [role="button"]:active,
+  body:not(.auth-body) .sidebar-nav a:active {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   2. SCROLL CONTAINMENT
+
+   Two separate problems, both invisible on a desktop:
+
+   Scroll chaining — scrolling to the bottom of a dialog's content hands the
+   remaining momentum to the page behind it, which scrolls away underneath.
+   Close the dialog and you are somewhere else entirely.
+
+   Pull-to-refresh — Chrome on Android reloads the whole page when a downward
+   drag starts at scroll-top. In a chat thread or a file list, where an upward
+   flick to see older items routinely ends at the top, that means losing your
+   place in the app to a full reload. `overscroll-behavior-y: contain` keeps the
+   glow and kills the reload.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  html,
+  body:not(.auth-body) {
+    overscroll-behavior-y: contain;
+  }
+
+  body:not(.auth-body) .modal,
+  body:not(.auth-body) .modal-content,
+  body:not(.auth-body) .adm-modal-card,
+  body:not(.auth-body) .sidebar,
+  body:not(.auth-body) .m-account-sheet,
+  body:not(.auth-body) .m-more-sheet,
+  body:not(.auth-body) .folder-tree,
+  body:not(.auth-body) .chat-messages,
+  body:not(.auth-body) .comm-message-list,
+  body:not(.auth-body) .library-cards-container {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Horizontal strips — course tabs, Q&A tabs, the newsfeed — should stop at
+     their own ends rather than rubber-banding the page sideways. */
+  body:not(.auth-body) .course-tabs,
+  body:not(.auth-body) .qa-tab-row,
+  body:not(.auth-body) .nf-viewport,
+  body:not(.auth-body) .coesc-tabs,
+  body:not(.auth-body) [class*="-tabs"] {
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    /* A strip that stops between two tabs looks like a rendering fault. */
+    scroll-snap-type: x proximity;
+  }
+
+  body:not(.auth-body) .course-tab,
+  body:not(.auth-body) .qa-tab-btn {
+    scroll-snap-align: start;
+  }
+
+  /* A horizontal scrollbar drawn over a 12px-tall tab strip covers the labels.
+     Android shows one on scroll; iOS does not. */
+  body:not(.auth-body) .course-tabs::-webkit-scrollbar,
+  body:not(.auth-body) .qa-tab-row::-webkit-scrollbar,
+  body:not(.auth-body) .nf-viewport::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   3. THE VIEWPORT UNIT PROBLEM
+
+   `100vh` on a phone is the height of the viewport *with the browser UI hidden*
+   — taller than what you can actually see while the URL bar is showing. A
+   full-height dialog authored in `vh` therefore runs its last 60-90px, usually
+   its buttons, underneath the address bar. iOS Safari and Chrome on Android
+   both do this, and neither reflows when the bar retracts.
+
+   `dvh` is the same measurement against the *current* visible viewport. Most of
+   the newer sheets already use it; these are the ones still on `vh`, restated
+   here rather than edited in place so the fix is in one file.
+   --------------------------------------------------------------------------- */
+
+@supports (height: 100dvh) {
+  @media (max-width: 900px) {
+    body:not(.auth-body) .modal {
+      height: 100dvh !important;
+      max-height: 100dvh !important;
+    }
+
+    body:not(.auth-body) .preview-content,
+    body:not(.auth-body) .gd-modal,
+    body:not(.auth-body) .question-detail-content,
+    body:not(.auth-body) .concern-detail-content {
+      max-height: 92dvh !important;
+    }
+
+    body:not(.auth-body) .explorer-shell,
+    body:not(.auth-body) .explorer-body,
+    body:not(.auth-body) .pdf-viewer-shell {
+      max-height: 100dvh !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   4. THE BOTTOM TAB BAR
+
+   Built by coe-phone.js. Five targets: the four destinations students open
+   every day, then More for everything else. The buttons carry `data-page`, so
+   the delegated handler in scripts.js routes them and `setActiveNav` marks the
+   current one — no second copy of the navigation logic to keep in step.
+
+   760px matches the breakpoint styles.css already uses to collapse the top nav
+   into four columns, so there is never a width where both are on screen.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+
+  /* The nine sticky tiles are what this replaces. */
+  body:not(.auth-body) .student-priority-nav {
+    display: none !important;
+  }
+
+  body:not(.auth-body) #m-tabbar {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    /* Below the drawer's scrim (8500, `body::after` in mobile.css) on purpose.
+       Opening the menu should dim the bar along with everything else it covers
+       — a bar left bright over a dimmed page reads as still-tappable, and a tap
+       on it while the drawer is open is meant to close the drawer, not
+       navigate. Nothing else is pinned to the bottom, so it never has to
+       out-rank the top bar at 8000. */
+    z-index: 7900 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+    height: var(--m-tabbar-h) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-top: 1px solid #f0e6e2 !important;
+    box-shadow: 0 -6px 24px rgba(21, 4, 6, 0.08) !important;
+    /* Slides away when the keyboard opens — see coe-phone.js. */
+    transform: translateY(0) !important;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  /*
+   * Selected by id, and that is the whole reason the bar has one.
+   *
+   * These tabs also carry `.priority-nav-item`, because that is the class
+   * setActiveNav looks for when it marks the current destination — which is
+   * what keeps the bar in step without a second copy of the routing logic. The
+   * cost is that every rule ever written for the old tile strip now applies to
+   * them, and coe-legibility.css weights its two — the white inactive fill, the
+   * maroon active fill — by repeating the class, specifically so they beat
+   * whatever painted them before. That lands at (0,5,1) with `!important`. A
+   * class-only selector here would have to out-repeat it, and would break again
+   * the next time somebody adds a repeat there.
+   *
+   * One id settles it permanently.
+   *
+   * What those rules were protecting still holds: the current tab is maroon and
+   * the others are not. Only the shape changes — at 20% of a phone's width a
+   * filled tile leaves no room for a label, so the fill becomes a maroon icon
+   * and a rule along the top edge.
+   */
+  body:not(.auth-body) #m-tabbar .m-tab {
+    /* Anchors the active marker drawn by ::before below. */
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    /* 48px is Android's minimum touch target and 44px is Apple's; the bar is
+       60px, so every tab clears both by its full height. */
+    min-height: 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 6px 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: #7c6f72 !important;
+    font-family: inherit !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+
+  body:not(.auth-body) #m-tabbar .m-tab > .material-icons {
+    font-size: 23px !important;
+    line-height: 1 !important;
+    /* `inherit`, so the active/inactive colour is stated in exactly one place
+       below rather than twice with a chance of disagreeing. */
+    color: inherit !important;
+    transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  body:not(.auth-body) #m-tabbar .m-tab .m-tab-label {
+    display: block !important;
+    max-width: 100% !important;
+    font-size: 0.65rem !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.01em !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    color: inherit !important;
+  }
+
+  /* `.primary` as well as `.active`: setActiveNav sets both on the current
+     destination, and `.primary` carries a filled maroon pill from styles.css
+     that would make one tab look like a floating button.
+
+     #7a1522 on the bar's near-white is 9.4:1, so the current tab is legible on
+     its colour alone — the top rule below is confirmation, not the only signal,
+     which is what it has to be for anyone who cannot separate the two hues. */
+  body:not(.auth-body) #m-tabbar .m-tab:is(.active, .primary, [aria-current="page"]) {
+    background: none !important;
+    background-image: none !important;
+    color: #7a1522 !important;
+  }
+
+  body:not(.auth-body) #m-tabbar .m-tab:is(.active, [aria-current="page"]) > .material-icons {
+    color: #7a1522 !important;
+    transform: translateY(-1px) scale(1.06) !important;
+  }
+
+  /* Inactive tabs need no rule of their own: the base above already states the
+     muted grey and the transparent fill, and the id in its selector outranks
+     the white-fill rule coe-legibility.css writes for inactive tiles. Adding
+     one anyway would have to be `:not(.active):not(.primary):not([aria-current])`,
+     which would then outrank the `:active` press state below and swallow it. */
+
+  /* The active marker. A top rule rather than a background fill: at this size a
+     filled pill crowds the label out, and the rule reads at a glance. */
+  body:not(.auth-body) #m-tabbar .m-tab::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 50% !important;
+    width: 26px !important;
+    height: 3px !important;
+    border-radius: 0 0 3px 3px !important;
+    background: #7a1522 !important;
+    transform: translateX(-50%) scaleX(0) !important;
+    transform-origin: center !important;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  body:not(.auth-body) #m-tabbar .m-tab:is(.active, [aria-current="page"])::before {
+    transform: translateX(-50%) scaleX(1) !important;
+  }
+
+  body:not(.auth-body) #m-tabbar .m-tab:active {
+    background: rgba(122, 21, 34, 0.06) !important;
+  }
+
+  /* The page has to end above the bar, or its last row — usually a submit
+     button — is unreachable. */
+  body:not(.auth-body) .main-content {
+    padding-bottom: calc(var(--m-tabbar-h) + 16px) !important;
+  }
+
+  /* Anything else pinned to the bottom of the screen stacks on top of the bar
+     instead of under it. */
+  body:not(.auth-body) .chat-composer,
+  body:not(.auth-body) .comm-composer,
+  body:not(.auth-body) .qa-sticky-actions {
+    bottom: var(--m-tabbar-h) !important;
+  }
+
+  /* Keyboard open: the bar is 60px of dead space between the field and the
+     keyboard, and on a 360x640 Android it can push the field itself off. */
+  body.m-keyboard-open:not(.auth-body) #m-tabbar {
+    transform: translateY(110%) !important;
+  }
+
+  body.m-keyboard-open:not(.auth-body) .main-content {
+    padding-bottom: 16px !important;
+  }
+
+  body.m-keyboard-open:not(.auth-body) .chat-composer,
+  body.m-keyboard-open:not(.auth-body) .comm-composer {
+    bottom: 0 !important;
+  }
+}
+
+/* The home indicator on a gesture-navigation phone — iPhone X and later, and
+   most Android since 10 — sits in the bottom ~34px. Without the inset the last
+   row of labels is under it and the swipe-up gesture eats taps on that row. */
+@supports (padding: max(0px)) {
+  @media (max-width: 760px) {
+    body:not(.auth-body) #m-tabbar {
+      height: calc(var(--m-tabbar-h) + env(safe-area-inset-bottom)) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      padding-left: env(safe-area-inset-left) !important;
+      padding-right: env(safe-area-inset-right) !important;
+      box-sizing: border-box !important;
+    }
+
+    body:not(.auth-body) .main-content {
+      padding-bottom: calc(var(--m-tabbar-h) + env(safe-area-inset-bottom) + 16px) !important;
+    }
+
+    body:not(.auth-body) .chat-composer,
+    body:not(.auth-body) .comm-composer,
+    body:not(.auth-body) .qa-sticky-actions {
+      bottom: calc(var(--m-tabbar-h) + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+/* Landscape on a phone leaves ~350px of height. A 60px bar plus a 56px top bar
+   is a third of it, so the bar shrinks and drops its labels. */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+  :root {
+    --m-tabbar-h: 46px;
+  }
+
+  /* `.m-tab .m-tab-label`, matching the base rule's shape — the base sets
+     `display: block` through the tab, so a selector one class shorter here
+     would lose to it and the labels would stay. */
+  body:not(.auth-body) #m-tabbar .m-tab .m-tab-label {
+    display: none !important;
+  }
+
+  body:not(.auth-body) #m-tabbar .m-tab > .material-icons {
+    font-size: 21px !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   5. THE "MORE" SHEET
+
+   The five remaining destinations. A bottom sheet rather than a dropdown: it
+   opens next to the thumb that summoned it, and it is the pattern both
+   platforms use for exactly this.
+
+   Its rows are built from the sidebar's own links, so a destination that is
+   hidden for this account — the admin panel — is absent here too without this
+   file or the script knowing anything about roles.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  body:not(.auth-body) .m-more-scrim {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 8650 !important;
+    background: rgba(21, 4, 6, 0.45) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 220ms ease !important;
+  }
+
+  body:not(.auth-body) .m-more-scrim.is-open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  body:not(.auth-body) .m-more-sheet {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    /* Over the scrim and over the tab bar that opened it. */
+    z-index: 8700 !important;
+    max-height: 78dvh !important;
+    padding: 8px 10px calc(14px + env(safe-area-inset-bottom)) !important;
+    border-radius: 20px 20px 0 0 !important;
+    background: #fff !important;
+    box-shadow: 0 -18px 48px rgba(21, 4, 6, 0.24) !important;
+    overflow-y: auto !important;
+    /* Parked below the screen edge rather than hidden, so it can slide.
+       `visibility` — not `display` — because a display change cancels the
+       transition and the sheet would snap. */
+    visibility: hidden !important;
+    transform: translateY(101%) !important;
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0s linear 280ms !important;
+  }
+
+  body:not(.auth-body) .m-more-sheet.is-open {
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0s linear 0s !important;
+  }
+
+  /* Dragged by the finger: no transition, or the sheet lags behind the touch. */
+  body:not(.auth-body) .m-more-sheet.is-dragging {
+    transition: none !important;
+  }
+
+  /* The grab handle. Its only job is to say "this can be pulled down". */
+  body:not(.auth-body) .m-more-grip {
+    display: block !important;
+    width: 40px !important;
+    height: 4px !important;
+    margin: 4px auto 10px !important;
+    border-radius: 4px !important;
+    background: #e3d7d3 !important;
+  }
+
+  body:not(.auth-body) .m-more-title {
+    display: block !important;
+    padding: 0 8px 8px !important;
+    color: #8a7c7f !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+  }
+
+  body:not(.auth-body) .m-more-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 13px !important;
+    width: 100% !important;
+    /* Same 48px floor as the account sheet: these are one-tap navigations and
+       a mis-tap costs a page load. */
+    min-height: 50px !important;
+    padding: 0 12px !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: none !important;
+    color: #1f1416 !important;
+    font-family: inherit !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    cursor: pointer !important;
+  }
+
+  body:not(.auth-body) .m-more-item .material-icons {
+    font-size: 21px !important;
+    color: #8a7c7f !important;
+  }
+
+  body:not(.auth-body) .m-more-item:active {
+    background: #faf5f4 !important;
+    transform: none !important;
+  }
+
+  body:not(.auth-body) .m-more-item.is-active {
+    background: rgba(122, 21, 34, 0.08) !important;
+    color: #7a1522 !important;
+  }
+
+  body:not(.auth-body) .m-more-item.is-active .material-icons {
+    color: #7a1522 !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   6. FORM ERGONOMICS
+
+   `mobile.css` already sets 16px on inputs to stop iOS zooming on focus. What
+   it cannot do from CSS is tell the keyboard what kind of field this is —
+   that is `inputmode`/`type`, applied by coe-phone.js. These are the rest.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  /* A field the keyboard is about to cover should be scrolled clear of the
+     sticky top bar, not flush against it. */
+  html {
+    scroll-padding-top: 76px;
+    scroll-padding-bottom: calc(var(--m-tabbar-h) + 16px);
+  }
+
+  /* A textarea that grows under the finger is easier than one with its own
+     scrollbar, and both platforms handle the resize without a reflow jump. */
+  body:not(.auth-body) textarea {
+    /* Vertical only: a horizontal drag on a phone is a scroll gesture. */
+    resize: vertical !important;
+  }
+
+  /* iOS renders a select as a picker wheel and Android as a dialog; neither
+     needs the desktop caret, and Safari draws its own on top of it. */
+  body:not(.auth-body) select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: none !important;
+    padding-right: 12px !important;
+  }
+
+  /* Safari strips the background off a submit button and rounds its corners,
+     so a maroon call-to-action arrives as grey system chrome. */
+  body:not(.auth-body) button,
+  body:not(.auth-body) input[type="submit"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Focus has to be visible without a hover state to fall back on. */
+  body:not(.auth-body) input:focus-visible,
+  body:not(.auth-body) textarea:focus-visible,
+  body:not(.auth-body) select:focus-visible,
+  body:not(.auth-body) button:focus-visible {
+    outline: 2px solid #7a1522 !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   7. IMAGES AND MEDIA
+
+   A phone is where a mis-sized image actually costs something — the whole page
+   scrolls sideways and every column looks broken.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  body:not(.auth-body) img,
+  body:not(.auth-body) video,
+  body:not(.auth-body) iframe,
+  body:not(.auth-body) canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* `height: auto` is wrong for a video sized by its container — it collapses
+     the frame. Excluded above by being restated here. */
+  body:not(.auth-body) .detail-preview video,
+  body:not(.auth-body) .detail-preview iframe {
+    height: auto !important;
+    max-height: 60dvh !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   8. STANDALONE MODE
+
+   Once the site is installed to a home screen there is no browser UI: no URL
+   bar to retract, and on iOS no status-bar background either. The body has to
+   supply the top inset itself, and the fixed top bar has to sit inside it.
+
+   `display-mode: standalone` matches both platforms' installed shells.
+   --------------------------------------------------------------------------- */
+
+@media (display-mode: standalone) {
+  @media (max-width: 900px) {
+    /* Nothing to swipe back to in a standalone window, so an accidental
+       horizontal overscroll has nowhere useful to go. */
+    html,
+    body {
+      overscroll-behavior: none;
+    }
+  }
+}

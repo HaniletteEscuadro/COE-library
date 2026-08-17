@@ -1,0 +1,35 @@
+{
+  "name": "COE Studio — College of Engineering Workspace",
+  "short_name": "COE Studio",
+  "description": "Tasks, library materials, announcements, Q&A and student support for the Araullo University College of Engineering.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#1a090d",
+  "theme_color": "#1a090d",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

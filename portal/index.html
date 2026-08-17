@@ -14,6 +14,29 @@
     <meta name="theme-color" content="#1a090d">
     <title>COE Studio | College of Engineering Workspace</title>
     <link rel="icon" href="assets/coe-engineering.jpg">
+
+    <!-- Add to Home Screen.
+         Installed, the portal opens in its own window with no URL bar — which
+         is the difference between a site a student visits and one they keep on
+         the home screen next to their other apps. The two platforms read
+         different things: Android reads the manifest, iOS ignores most of it
+         and reads the `apple-*` tags plus `apple-touch-icon` below. Both are
+         needed; neither is enough on its own.
+
+         `black-translucent` puts the page behind the status bar, which is why
+         the safe-area insets in mobile.css and coe-phone.css matter even more
+         once installed — there is no browser chrome left to keep content clear
+         of the notch. -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="COE Studio">
+    <!-- Stops iOS turning anything that looks like a student number or a room
+         code into a blue "call this" link inside the page's own text. -->
+    <meta name="format-detection" content="telephone=no">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="image" href="assets/coe-engineering.jpg">
@@ -63,6 +86,17 @@
     <link rel="stylesheet" href="coe-org-identity.css?v=orgid-2026-08a">
     <link rel="stylesheet" href="coe-legibility.css?v=legibility-2026-08a">
     <link rel="stylesheet" href="coe-refine.css?v=refine-2026-08a">
+    <!-- The library folder browser. After coe-requested-polish.css and
+         mobile.css, both of which pin the folder panel to a static column at
+         tablet width — correct for the old stacked tree, wrong for a sheet. -->
+    <link rel="stylesheet" href="coe-browse.css?v=browse-2026-08a">
+    <!-- Genuinely last. The phone layer replaces the sticky nav strip with a
+         bottom tab bar and turns off the browser behaviours that make a web
+         page feel like a web page on a phone — pull-to-refresh mid-list, the
+         double-tap delay, scroll chaining out of a dialog. Every sheet above
+         this one carries its own breakpoints, so any of them could otherwise
+         win against a phone rule written earlier. -->
+    <link rel="stylesheet" href="coe-phone.css?v=phone-2026-08a">
 </head>
 
 <body>
@@ -551,7 +585,7 @@
             <section id="coe-approval-queue" class="coe-approval-queue" hidden aria-label="Uploads waiting for approval"></section>
 
             <div class="library-wrapper">
-                <aside class="library-tree-sidebar library-folder-panel" aria-label="Library folders">
+                <aside id="library-folder-panel" class="library-tree-sidebar library-folder-panel" aria-label="Library folders">
                     <div class="folder-panel-head">
                         <div>
                             <span class="library-section-label">Library Tab</span>
@@ -603,6 +637,16 @@
                             </button>
                         </div>
                         <div class="library-header-meta lib-breadcrumb-row">
+                            <!-- Phones and small tablets only (see coe-browse.css).
+                                 There the folder panel is a sheet rather than a
+                                 column, so it needs something to open it; on a
+                                 desktop the panel is already on screen and this
+                                 button would be a second way to do nothing. -->
+                            <button type="button" id="library-folders-btn" class="lib-folders-btn"
+                                    aria-expanded="false" aria-controls="library-folder-panel">
+                                <span class="material-icons" aria-hidden="true">folder_open</span>
+                                <span>Folders</span>
+                            </button>
                             <nav class="lib-breadcrumb" aria-label="Current folder">
                                 <span class="material-icons" aria-hidden="true">folder_open</span>
                                 <span class="library-breadcrumb" id="library-breadcrumb">All Materials</span>
@@ -3165,6 +3209,10 @@
     <script src="coe-pdf.js?v=live-2026-08a" defer></script>
     <script src="enhanced-library.js?v=embed-links-2026-08a" defer></script>
     <script src="mobile.js?v=upload-fix-2026-08f" defer></script>
+    <!-- After mobile.js: the tab bar sits alongside the drawer that file
+         builds, and after scripts.js because it reads the panel that scripts.js
+         has already opened to decide which tab starts marked. -->
+    <script src="coe-phone.js?v=phone-2026-08a" defer></script>
     <script src="upload-ui.js?v=embed-links-2026-08a" defer></script>
 </body>
 

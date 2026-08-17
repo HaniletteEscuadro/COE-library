@@ -8,6 +8,18 @@
     <title>Sign in | COE Studio</title>
     <link rel="icon" href="assets/coe-engineering.jpg">
 
+    <!-- The same Add to Home Screen tags index.html carries. Repeated rather
+         than shared because this page is where somebody arrives first, and an
+         install started here has to land in the portal — which is what
+         `start_url` in the manifest says. Without these, installing from the
+         sign-in page produces a shortcut that opens in a browser tab. -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="COE Studio">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">

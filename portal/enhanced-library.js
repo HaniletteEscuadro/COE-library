@@ -202,10 +202,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeEnhancedLibrary() {
-    populateLibraryFolderTree(); // Build the tree initially
-    document.querySelectorAll('.folder-card-group').forEach(group => group.classList.remove('hidden'));
-    document.querySelectorAll('.tree-children').forEach(children => children.classList.add('hidden'));
-    document.querySelectorAll('.expand-icon').forEach(icon => icon.textContent = 'expand_more');
+    /* Opens at the root — the two course cards. Nothing to collapse afterwards:
+       the browser only ever renders the level it is standing on. */
+    renderFolderBrowser();
 
     const courseTabs = document.querySelectorAll('.course-tab');
     courseTabs.forEach(tab => {
@@ -227,38 +226,73 @@ function initializeEnhancedLibrary() {
         });
     }
 
-    // Folder tree and category click delegation
+    /*
+     * Folder browser click delegation.
+     *
+     * Delegated because the panel replaces its own contents on every step, so
+     * a listener bound to a row would be thrown away the moment it was used.
+     */
     const folderTreeNav = document.querySelector('.folder-tree');
     if (folderTreeNav) {
         folderTreeNav.addEventListener('click', function(e) {
             const actionBtn = e.target.closest('[data-library-action]');
-            const toggleBtn = e.target.closest('.tree-toggle');
-            const leafBtn = e.target.closest('.tree-leaf');
-
             if (actionBtn && folderTreeNav.contains(actionBtn)) {
-                const action = actionBtn.dataset.libraryAction;
-                if (action === 'create-professor-library') {
+                if (actionBtn.dataset.libraryAction === 'create-professor-library') {
                     createProfessorLibraryForFolder(actionBtn.dataset.folder || currentFolderId);
                 }
                 return;
             }
 
-            if (toggleBtn && folderTreeNav.contains(toggleBtn)) {
-                // e.preventDefault(); // Allow default behavior for now, selectFolder will handle
-                const childrenGroup = getTreeChildren(toggleBtn);
-                if (childrenGroup) {
-                    toggleFolderTree(toggleBtn, childrenGroup);
+            const backBtn = e.target.closest('[data-browse-back]');
+            if (backBtn && folderTreeNav.contains(backBtn)) {
+                /* The same button in two states: a back arrow while browsing,
+                   an X while search results are up. Clearing the box has to go
+                   through the input, or the text stays behind and the next
+                   keystroke re-filters against it. */
+                if (backBtn.dataset.browseBack === 'clear') {
+                    const box = document.getElementById('library-sidebar-search');
+                    if (box) box.value = '';
+                    renderFolderBrowser();
+                } else {
+                    browseBack();
                 }
-                selectFolder(toggleBtn.dataset.folder, toggleBtn);
                 return;
             }
 
-            if (leafBtn && folderTreeNav.contains(leafBtn)) {
-                // e.preventDefault(); // Allow default behavior for now, selectFolder will handle
-                selectFolder(leafBtn.dataset.folder, leafBtn);
+            const row = e.target.closest('.fb-row');
+            if (!row || !folderTreeNav.contains(row)) return;
+
+            /* A search hit is somewhere else entirely, so it moves the panel
+               there rather than selecting from where it stands. */
+            if (row.dataset.browseJump === '1') {
+                const box = document.getElementById('library-sidebar-search');
+                if (box) box.value = '';
+                openFolderInBrowser(row.dataset.folder);
+                closeFolderSheet();
+                return;
             }
+
+            /*
+             * A row that opens a level does both: it walks in *and* loads that
+             * folder's materials, so the grid on the right always matches what
+             * the panel is showing. A leaf — a lesson, or a category with
+             * nothing filed under it — only selects, and the panel stays put
+             * with the row marked.
+             */
+            if (row.dataset.browseDrill === '1') {
+                /* The sheet stays open on a phone: walking in is a step, not an
+                   arrival, and closing it here would mean re-opening it for
+                   every level. It closes when a leaf is finally picked. */
+                browseInto(row.dataset.browseKind, row.dataset.browseValue, row.dataset.browseLabel);
+                return;
+            }
+
+            selectFolder(row.dataset.folder, row);
+            closeFolderSheet();
         });
     }
+
+    initFolderSheet();
 
     const libraryUploadBtn = document.getElementById('library-upload-btn');
     if (libraryUploadBtn) {
@@ -654,85 +688,11 @@ function createProfessorLibraryForFolder(folderId = currentFolderId) {
         saveProfessorLibraryRecords(records);
     }
 
-    populateLibraryFolderTree();
     populateLibrarySearchSuggestions();
-    const professorFolderId = buildProfessorFolderId(parts.course, parts.yearShort, parts.subject, professorUsername);
-    const professorButton = Array.from(document.querySelectorAll('.tree-toggle, .tree-leaf'))
-        .find(node => node.dataset.folder === professorFolderId);
-    selectFolder(professorFolderId, professorButton || null);
+    /* Walks the panel into the new folder, which also re-renders it — so the
+       count that just changed is redrawn without a separate rebuild call. */
+    openFolderInBrowser(buildProfessorFolderId(parts.course, parts.yearShort, parts.subject, professorUsername));
     alert(exists ? 'Your professor folder already exists.' : 'Professor folder created.');
-}
-
-function createProfessorLibraryTree(course, year, subject) {
-    const yearShort = getYearShortFromYear(year);
-    const overviewFolderId = buildProfessorOverviewFolderId(course, yearShort, subject);
-    const professorLibraries = getProfessorLibrariesForSubject(course, year, subject);
-    const createAction = isLibraryFacultyOrAdmin()
-        ? `
-            <div class="tree-node professor-create-node">
-                <button type="button" class="tree-action library-professor-create" data-library-action="create-professor-library" data-folder="${escapeHtml(buildSubjectFolderId(course, yearShort, subject))}" title="Create my professor folder">
-                    <span class="material-icons">add_circle</span>
-                    <span class="folder-name">Create Prof Folder</span>
-                </button>
-            </div>
-        `
-        : '';
-    const professorFolders = professorLibraries.length
-        ? professorLibraries.map(professor => {
-            const professorKey = professor.professorUsername || professor.professorName;
-            const professorFolderId = buildProfessorFolderId(course, yearShort, subject, professorKey);
-            const professorCount = getMaterialsByFolder(professorFolderId).length;
-            const professorCategoryFolders = FOLDER_MATERIAL_CATEGORIES.map(category => {
-                const categoryFolderId = `${professorFolderId}-${category}`;
-                const categoryCount = getMaterialsByFolder(categoryFolderId).length;
-                return `
-                    <div class="tree-node professor-type-node">
-                        <button type="button" class="tree-leaf" data-folder="${escapeHtml(categoryFolderId)}" title="${course} > ${year} > ${escapeHtml(subject)} > ${escapeHtml(professor.professorName)} > ${MATERIAL_CATEGORIES_DISPLAY[category]}">
-                            <span class="material-icons">${getCategoryIcon(category)}</span>
-                            <span class="folder-name">${MATERIAL_CATEGORIES_DISPLAY[category]}</span>
-                            <span class="folder-count">${categoryCount}</span>
-                        </button>
-                    </div>
-                `;
-            }).join('');
-
-            return `
-                <div class="tree-node professor-node">
-                    <button type="button" class="tree-toggle" data-folder="${escapeHtml(professorFolderId)}" aria-expanded="false" title="${course} > ${year} > ${escapeHtml(subject)} > ${escapeHtml(professor.professorName)}">
-                        <span class="material-icons expand-icon">expand_more</span>
-                        <span class="material-icons">school</span>
-                        <span class="folder-name">${escapeHtml(professor.professorName)}</span>
-                        <span class="folder-count">${professorCount}</span>
-                    </button>
-                    <div class="tree-children professor-material-list hidden">
-                        ${professorCategoryFolders}
-                    </div>
-                </div>
-            `;
-        }).join('')
-        : `
-            <div class="tree-node professor-empty-node">
-                <span class="tree-muted-line">
-                    <span class="material-icons">info</span>
-                    <span>No prof folder yet</span>
-                </span>
-            </div>
-        `;
-
-    return `
-        <div class="tree-node professor-library-node">
-            <button type="button" class="tree-toggle" data-folder="${escapeHtml(overviewFolderId)}" aria-expanded="false" title="${course} > ${year} > ${escapeHtml(subject)} > Professor Folders">
-                <span class="material-icons expand-icon">expand_more</span>
-                <span class="material-icons">co_present</span>
-                <span class="folder-name">Professor Folders</span>
-                <span class="folder-count">${professorLibraries.length} prof${professorLibraries.length === 1 ? '' : 's'}</span>
-            </button>
-            <div class="tree-children hidden">
-                ${createAction}
-                ${professorFolders}
-            </div>
-        </div>
-    `;
 }
 
 /** Folder id for one lesson inside a category. */
@@ -762,186 +722,520 @@ function getLessonsInFolder(folderId) {
         .sort((a, b) => a.lesson.localeCompare(b.lesson, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
+/* ===========================================================================
+   THE FOLDER BROWSER
+   ---------------------------------------------------------------------------
+   One level at a time, in place of a tree that held every level at once.
+
+   The panel used to render the whole hierarchy on load and hide most of it with
+   a class: both courses, four years each, every subject under every year, and
+   under every subject a Study Materials branch with five category folders and
+   their lessons, then a Professor Folders branch with every professor's five
+   folders again. Two clicks in, the sidebar was forty-odd rows at five indent
+   depths, and getting back to 1st Year meant scrolling past somebody else's
+   lesson folders.
+
+   Now the panel shows exactly one level. Tap Electrical Engineering and it
+   becomes the four years; tap 1st Year and it becomes that year's subjects.
+   Everything else leaves the screen. A back button and the trail across the top
+   say where you are, and each step also loads that folder's materials on the
+   right, so the middle of the page always matches the panel.
+
+   The walk:
+
+     courses → years → subjects ─┬─ Study Materials → categories → lessons
+                                 └─ Professor Folders → professors → categories
+
+   `browsePath` is the entire state. Folder ids are still built by the same
+   helpers the rest of this file uses, so what the browser selects is exactly
+   what `parseFolderParts` reads back — no id shape is invented here.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   The panel as a sheet, on phones and small tablets.
+
+   Below 1024px there is no room for a folder column beside the material grid
+   without squeezing both. The panel becomes a sheet that slides up over the
+   page instead — the same element, the same markup, the same handlers, just
+   positioned differently by coe-browse.css. Nothing here knows what it looks
+   like; it only owns the one class that says whether it is open.
+   --------------------------------------------------------------------------- */
+
+const FOLDER_SHEET_CLASS = 'lib-folders-open';
+
+function isFolderSheetLayout() {
+    return window.matchMedia('(max-width: 1023.98px)').matches;
+}
+
+function openFolderSheet(open) {
+    document.body.classList.toggle(FOLDER_SHEET_CLASS, open);
+    const trigger = document.getElementById('library-folders-btn');
+    if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeFolderSheet() {
+    if (document.body.classList.contains(FOLDER_SHEET_CLASS)) openFolderSheet(false);
+}
+
+function initFolderSheet() {
+    const trigger = document.getElementById('library-folders-btn');
+    if (trigger) {
+        trigger.addEventListener('click', function () {
+            openFolderSheet(!document.body.classList.contains(FOLDER_SHEET_CLASS));
+        });
+    }
+
+    /* The scrim is a pseudo-element on the panel's own container, so a tap on
+       it lands on the container rather than on anything inside the sheet. */
+    const wrapper = document.querySelector('#library-panel .library-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('click', function (event) {
+            if (!document.body.classList.contains(FOLDER_SHEET_CLASS)) return;
+            if (event.target.closest('.library-folder-panel')) return;
+            if (event.target.closest('#library-folders-btn')) return;
+            closeFolderSheet();
+        });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeFolderSheet();
+    });
+
+    /* A sheet left open across a resize would sit over a layout that has the
+       panel back in its column, covering it with a copy of itself. */
+    window.addEventListener('resize', function () {
+        if (!isFolderSheetLayout()) closeFolderSheet();
+    });
+}
+
 /**
- * One category, with its lessons nested under it.
+ * Where the browser is, one entry per level walked into. `[]` is the root.
  *
- * A category used to be a leaf: clicking "Reference Books" dumped every file in
- * the subject onto the screen at once. Now it opens into the lessons it
- * contains, and the middle of the screen stays empty until a lesson is picked —
- * which is the whole point of the level.
- *
- * The category itself is still selectable (a `tree-toggle` both expands and
- * selects), so "show me everything in Reference Books" is still one click.
+ * Entries are `{ kind, value, label }`. `value` is what the folder-id builders
+ * want (the raw course key, year, subject, category or professor key); `label`
+ * is what a person should read in the trail. They differ for a course — "EE"
+ * builds the id, "Electrical Engineering" goes in the breadcrumb.
  */
-function createCategoryTreeNode(course, year, subject, subjectFolderId, category) {
-    const categoryFolderId = `${subjectFolderId}-${category}`;
-    const categoryCount = getMaterialsByFolder(categoryFolderId).length;
-    const label = MATERIAL_CATEGORIES_DISPLAY[category] || category;
-    const path = `${course} > ${year} > ${subject} > ${label}`;
-    const lessons = getLessonsInFolder(categoryFolderId);
+let browsePath = [];
 
-    // A single unnamed lesson is not a level worth walking through, so a
-    // category whose files are all unfiled stays a plain leaf.
-    const worthNesting = lessons.length > 1 ||
-        (lessons.length === 1 && lessons[0].lesson !== 'General');
+/**
+ * The two branches under a subject.
+ *
+ * Kept as data because both the row that opens a branch and the branch's own
+ * header need the same label and icon, and they used to be written out twice.
+ */
+const BROWSE_SECTIONS = {
+    materials: { label: 'Study Materials', icon: 'inventory_2' },
+    profs: { label: 'Professor Folders', icon: 'co_present' }
+};
 
-    if (!worthNesting) {
-        return `
-            <div class="tree-node type-node subject-type-node">
-                <button type="button" class="tree-leaf" data-folder="${escapeHtml(categoryFolderId)}" title="${escapeHtml(path)}">
-                    <span class="material-icons">${getCategoryIcon(category)}</span>
-                    <span class="folder-name">${escapeHtml(label)}</span>
-                    <span class="folder-count">${categoryCount}</span>
-                </button>
-            </div>
-        `;
+function browseEntry(kind, value, label) {
+    return { kind, value, label: label || String(value) };
+}
+
+function browseValue(kind) {
+    return browsePath.find(entry => entry.kind === kind)?.value || '';
+}
+
+/**
+ * The folder id for wherever the browser is standing.
+ *
+ * Built from the path rather than stored alongside it, so the two can never
+ * disagree — every navigation changes one thing.
+ */
+function browseFolderId() {
+    const course = browseValue('course');
+    if (!course) return 'all';
+
+    const yearShort = getYearShortFromYear(browseValue('year'));
+    if (!yearShort) return course;
+
+    const subject = browseValue('subject');
+    if (!subject) return `${course}-${yearShort}`;
+
+    const subjectFolderId = buildSubjectFolderId(course, yearShort, subject);
+    const section = browseValue('section');
+    const category = browseValue('category');
+
+    if (section === 'profs') {
+        const professorKey = browseValue('professor');
+        if (!professorKey) return buildProfessorOverviewFolderId(course, yearShort, subject);
+        const professorFolderId = buildProfessorFolderId(course, yearShort, subject, professorKey);
+        return category ? `${professorFolderId}-${category}` : professorFolderId;
     }
 
-    return `
-        <div class="tree-node type-node subject-type-node has-lessons">
-            <button type="button" class="tree-toggle" data-folder="${escapeHtml(categoryFolderId)}" aria-expanded="false" title="${escapeHtml(path)}">
-                <span class="material-icons expand-icon">expand_more</span>
-                <span class="material-icons">${getCategoryIcon(category)}</span>
-                <span class="folder-name">${escapeHtml(label)}</span>
-                <span class="folder-count">${lessons.length} lesson${lessons.length === 1 ? '' : 's'}</span>
-            </button>
-            <div class="tree-children lesson-list hidden">
-                ${lessons.map(({ lesson, count }) => {
-                    const lessonFolderId = buildCategoryLessonFolderId(subjectFolderId, category, lesson);
-                    const lessonLabel = lesson === 'General' ? 'Unfiled' : lesson;
-                    return `
-                        <div class="tree-node lesson-node">
-                            <button type="button" class="tree-leaf" data-folder="${escapeHtml(lessonFolderId)}" title="${escapeHtml(path + ' > ' + lessonLabel)}">
-                                <span class="material-icons">${lesson === 'General' ? 'folder_open' : 'topic'}</span>
-                                <span class="folder-name">${escapeHtml(lessonLabel)}</span>
-                                <span class="folder-count">${count}</span>
-                            </button>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
+    if (section === 'materials' && category) {
+        return `${subjectFolderId}-${category}`;
+    }
+
+    return subjectFolderId;
 }
 
-function createSubjectMaterialTree(course, year, subject) {
+/** What the header calls this level, and the trail above it. */
+function browseHeading() {
+    if (!browsePath.length) {
+        return { title: 'All Materials', crumbs: [] };
+    }
+    const labels = browsePath.map(entry => entry.label);
+    return { title: labels.at(-1), crumbs: labels.slice(0, -1) };
+}
+
+function browseItemCountLabel(folderId) {
+    const count = getMaterialsByFolder(folderId).length;
+    return `${count} item${count === 1 ? '' : 's'}`;
+}
+
+/**
+ * The rows for the current level.
+ *
+ * `drill: true` means the row opens a level of its own; `false` means it only
+ * selects, and the panel stays where it is. A lesson is the one true leaf — it
+ * has nothing under it, so walking into it would show an empty panel next to a
+ * full grid of its files.
+ */
+function browseRows() {
+    const course = browseValue('course');
+
+    if (!course) {
+        return Object.entries(COURSE_FOLDERS).map(([key, label]) => ({
+            kind: 'course',
+            value: key,
+            label,
+            note: key,
+            meta: `${COURSE_YEARS.length} year levels`,
+            icon: 'school',
+            folderId: key,
+            drill: true
+        }));
+    }
+
+    const year = browseValue('year');
+    if (!year) {
+        return COURSE_YEARS.map(entry => {
+            const yearShort = getYearShortFromYear(entry);
+            const subjects = getSubjectsForCourseYear(course, entry);
+            return {
+                kind: 'year',
+                value: entry,
+                label: entry,
+                meta: `${subjects.length} subject${subjects.length === 1 ? '' : 's'}`,
+                icon: `filter_${yearShort.replace(/\D/g, '') || '1'}`,
+                folderId: `${course}-${yearShort}`,
+                drill: true
+            };
+        });
+    }
+
     const yearShort = getYearShortFromYear(year);
+    const subject = browseValue('subject');
+    if (!subject) {
+        return getSubjectsForCourseYear(course, year).map(entry => {
+            const folderId = buildSubjectFolderId(course, yearShort, entry);
+            const professors = getProfessorLibrariesForSubject(course, year, entry);
+            return {
+                kind: 'subject',
+                value: entry,
+                label: entry,
+                meta: `${browseItemCountLabel(folderId)} · ${professors.length} prof${professors.length === 1 ? '' : 's'}`,
+                icon: 'menu_book',
+                folderId,
+                drill: true
+            };
+        });
+    }
+
     const subjectFolderId = buildSubjectFolderId(course, yearShort, subject);
-    const materialCount = getMaterialsByFolder(subjectFolderId).length;
+    const section = browseValue('section');
 
-    return `
-        <div class="tree-node subject-materials-node">
-            <button type="button" class="tree-toggle tree-section-toggle" data-folder="${escapeHtml(subjectFolderId)}" aria-expanded="false" title="${course} > ${year} > ${escapeHtml(subject)} > Study Materials">
-                <span class="material-icons expand-icon">expand_more</span>
-                <span class="material-icons">inventory_2</span>
-                <span class="folder-name">Study Materials</span>
-                <span class="folder-count">${materialCount} item${materialCount === 1 ? '' : 's'}</span>
-            </button>
-            <div class="tree-children subject-material-list hidden">
-                ${FOLDER_MATERIAL_CATEGORIES
-                    .map(category => createCategoryTreeNode(course, year, subject, subjectFolderId, category))
-                    .join('')}
-            </div>
-        </div>
-    `;
-}
+    if (!section) {
+        const professors = getProfessorLibrariesForSubject(course, year, subject);
+        return [
+            {
+                kind: 'section',
+                value: 'materials',
+                label: BROWSE_SECTIONS.materials.label,
+                meta: browseItemCountLabel(subjectFolderId),
+                icon: BROWSE_SECTIONS.materials.icon,
+                folderId: subjectFolderId,
+                drill: true
+            },
+            {
+                kind: 'section',
+                value: 'profs',
+                label: BROWSE_SECTIONS.profs.label,
+                meta: `${professors.length} prof${professors.length === 1 ? '' : 's'}`,
+                icon: BROWSE_SECTIONS.profs.icon,
+                folderId: buildProfessorOverviewFolderId(course, yearShort, subject),
+                drill: true
+            }
+        ];
+    }
 
-function createSubjectTreeNode(course, year, subject) {
-    const yearShort = getYearShortFromYear(year);
-    const subjectFolderId = buildSubjectFolderId(course, yearShort, subject);
-    const professorLibraries = getProfessorLibrariesForSubject(course, year, subject);
-    const materialCount = getMaterialsByFolder(subjectFolderId).length;
+    if (section === 'profs') {
+        const professorKey = browseValue('professor');
 
-    return `
-        <div class="tree-node subject-node">
-            <button type="button" class="tree-toggle" data-folder="${escapeHtml(subjectFolderId)}" aria-expanded="false" title="${course} > ${year} > ${escapeHtml(subject)}">
-                <span class="material-icons expand-icon">expand_more</span>
-                <span class="material-icons">menu_book</span>
-                <span class="folder-name">${escapeHtml(subject)}</span>
-                <span class="folder-count">${materialCount} item${materialCount === 1 ? '' : 's'} / ${professorLibraries.length} prof${professorLibraries.length === 1 ? '' : 's'}</span>
-            </button>
-            <div class="tree-children hidden">
-                ${createSubjectMaterialTree(course, year, subject)}
-                ${createProfessorLibraryTree(course, year, subject)}
-            </div>
-        </div>
-    `;
-}
-
-function populateLibraryFolderTree() {
-    const dynamicTreeContainer = document.getElementById('dynamic-folder-tree');
-    if (!dynamicTreeContainer) return;
-
-    let treeHtml = '';
-    for (const [course, courseLabel] of Object.entries(COURSE_FOLDERS)) {
-        treeHtml += `
-            <div class="folder-card-group course-tree" data-course="${course}">
-                <div class="tree-node course-node">
-                    <button type="button" class="tree-toggle" data-folder="${course}" aria-expanded="false" title="${courseLabel} materials">
-                        <span class="material-icons expand-icon">expand_more</span>
-                        <span class="material-icons">folder</span>
-                        <span class="folder-name">${course}</span>
-                        <span class="folder-count">${courseLabel}</span>
-                    </button>
-                    <div class="tree-children hidden">
-        `;
-        for (const year of COURSE_YEARS) {
-            const yearShort = year.split(' ')[0]; // e.g., "1st"
-            const yearNumber = yearShort.replace(/\D/g, '');
-            const subjectFolders = getSubjectsForCourseYear(course, year)
-                .map(subject => createSubjectTreeNode(course, year, subject))
-                .join('');
-            treeHtml += `
-                <div class="tree-node year-node">
-                    <button type="button" class="tree-toggle" data-folder="${course}-${yearShort}" title="${course} ${year} materials">
-                        <span class="material-icons expand-icon">expand_more</span>
-                        <span class="material-icons">filter_${yearNumber}</span>
-                        <span class="folder-name">${year}</span>
-                    </button>
-                    <div class="tree-children hidden">
-                        ${subjectFolders}
-                    </div>
-                </div>
-            `;
+        if (!professorKey) {
+            return getProfessorLibrariesForSubject(course, year, subject).map(professor => {
+                const key = professor.professorUsername || professor.professorName;
+                const folderId = buildProfessorFolderId(course, yearShort, subject, key);
+                return {
+                    kind: 'professor',
+                    value: key,
+                    label: professor.professorName,
+                    meta: browseItemCountLabel(folderId),
+                    icon: 'school',
+                    folderId,
+                    drill: true
+                };
+            });
         }
-        treeHtml += `
-                </div>
-                </div>
-            </div>
-        `;
+
+        const professorFolderId = buildProfessorFolderId(course, yearShort, subject, professorKey);
+        return FOLDER_MATERIAL_CATEGORIES.map(category => {
+            const folderId = `${professorFolderId}-${category}`;
+            return {
+                kind: 'category',
+                value: category,
+                label: MATERIAL_CATEGORIES_DISPLAY[category] || category,
+                meta: browseItemCountLabel(folderId),
+                icon: getCategoryIcon(category),
+                folderId,
+                /* A professor's category holds files directly — there is no
+                   lesson level under it, so it selects rather than opens. */
+                drill: false
+            };
+        });
     }
-    dynamicTreeContainer.innerHTML = treeHtml;
+
+    const category = browseValue('category');
+    if (!category) {
+        return FOLDER_MATERIAL_CATEGORIES.map(entry => {
+            const folderId = `${subjectFolderId}-${entry}`;
+            const lessons = getLessonsInFolder(folderId);
+            /* A single unfiled lesson is not a level worth walking through, so
+               a category whose files are all unfiled selects instead. */
+            const worthNesting = lessons.length > 1 ||
+                (lessons.length === 1 && lessons[0].lesson !== 'General');
+            return {
+                kind: 'category',
+                value: entry,
+                label: MATERIAL_CATEGORIES_DISPLAY[entry] || entry,
+                meta: worthNesting
+                    ? `${lessons.length} lesson${lessons.length === 1 ? '' : 's'}`
+                    : browseItemCountLabel(folderId),
+                icon: getCategoryIcon(entry),
+                folderId,
+                drill: worthNesting
+            };
+        });
+    }
+
+    return getLessonsInFolder(`${subjectFolderId}-${category}`).map(({ lesson, count }) => ({
+        kind: 'lesson',
+        value: lesson,
+        label: lesson === 'General' ? 'Unfiled' : lesson,
+        meta: `${count} item${count === 1 ? '' : 's'}`,
+        icon: lesson === 'General' ? 'folder_open' : 'topic',
+        folderId: buildCategoryLessonFolderId(subjectFolderId, category, lesson),
+        drill: false
+    }));
+}
+
+/** The "Create Prof Folder" row, shown only inside Professor Folders. */
+function browseActionRow() {
+    if (browseValue('section') !== 'profs' || browseValue('professor')) return '';
+    if (!isLibraryFacultyOrAdmin()) return '';
+
+    const folderId = buildSubjectFolderId(
+        browseValue('course'),
+        getYearShortFromYear(browseValue('year')),
+        browseValue('subject')
+    );
+
+    return `
+        <button type="button" class="fb-row fb-row-action"
+                data-library-action="create-professor-library" data-folder="${escapeHtml(folderId)}">
+            <span class="fb-row-icon material-icons" aria-hidden="true">add_circle</span>
+            <span class="fb-row-copy">
+                <strong class="folder-name">Create Prof Folder</strong>
+                <small>Your own folder under this subject</small>
+            </span>
+        </button>
+    `;
+}
+
+function browseEmptyLine() {
+    const section = browseValue('section');
+    if (section === 'profs' && !browseValue('professor')) {
+        return 'No professor has made a folder for this subject yet.';
+    }
+    if (browseValue('year') && !browseValue('subject')) {
+        return 'No subjects listed for this year yet.';
+    }
+    return 'This folder is empty.';
+}
+
+/**
+ * Paint the panel.
+ *
+ * Rows are `.fb-row` and deliberately carry none of the old tree classes.
+ * Reusing `.tree-leaf` was tempting — `selectFolder` already clears the active
+ * mark from it — but that one class pulls in fifteen rules across styles.css
+ * and coe-requested-polish.css, written for a row indented five levels deep
+ * inside a dark tree, every one of which would have had to be undone here.
+ * Adding `.fb-row` to that one selector in `selectFolder` was the smaller
+ * change, and it leaves these rows with no inherited styling to fight.
+ */
+function renderFolderBrowser() {
+    const container = document.getElementById('dynamic-folder-tree');
+    if (!container) return;
+
+    const { title, crumbs } = browseHeading();
+    const rows = browseRows();
+    const currentFolder = browseFolderId();
+
+    const back = browsePath.length
+        ? `<button type="button" class="fb-back" data-browse-back="1" aria-label="Go back to ${escapeHtml(crumbs.at(-1) || 'All Materials')}">
+               <span class="material-icons" aria-hidden="true">arrow_back</span>
+           </button>`
+        : '';
+
+    const trail = crumbs.length
+        ? `<span class="fb-crumbs">${crumbs.map(escapeHtml).join(' <span aria-hidden="true">›</span> ')}</span>`
+        : '<span class="fb-crumbs">Browse by course</span>';
+
+    const list = rows.length
+        ? rows.map(row => `
+            <button type="button" class="fb-row${row.drill ? ' is-drill' : ''}"
+                    data-folder="${escapeHtml(row.folderId)}"
+                    data-browse-kind="${escapeHtml(row.kind)}"
+                    data-browse-value="${escapeHtml(row.value)}"
+                    data-browse-label="${escapeHtml(row.label)}"
+                    data-browse-drill="${row.drill ? '1' : '0'}"
+                    title="${escapeHtml([...crumbs, title, row.label].join(' > '))}">
+                <span class="fb-row-icon material-icons" aria-hidden="true">${escapeHtml(row.icon)}</span>
+                <span class="fb-row-copy">
+                    <strong class="folder-name">${escapeHtml(row.label)}</strong>
+                    <small class="folder-count">${escapeHtml(row.meta)}</small>
+                </span>
+                ${row.drill
+                    ? '<span class="fb-row-chev material-icons" aria-hidden="true">chevron_right</span>'
+                    : ''}
+            </button>
+        `).join('')
+        : `<p class="fb-empty">${escapeHtml(browseEmptyLine())}</p>`;
+
+    container.innerHTML = `
+        <div class="fb" data-depth="${browsePath.length}">
+            <div class="fb-head">
+                ${back}
+                <span class="fb-head-copy">
+                    ${trail}
+                    <strong class="fb-title">${escapeHtml(title)}</strong>
+                </span>
+            </div>
+            <div class="fb-list" role="list">
+                ${browseActionRow()}
+                ${list}
+            </div>
+        </div>
+    `;
+
+    /* The course tabs are a shortcut into this same path, so they follow it
+       rather than keeping a selection of their own. */
+    const course = browseValue('course');
+    document.querySelectorAll('#library-course-tabs .course-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.course === (course || 'all'));
+    });
+
+    /* Mark the row for the folder that is actually open, which happens when a
+       leaf was picked — a lesson, or a category with nothing under it. */
+    container.querySelectorAll('.fb-row[data-folder]').forEach(row => {
+        row.classList.toggle('active', row.dataset.folder === currentFolderId && currentFolderId !== currentFolder);
+    });
+}
+
+/** Walk one level in, then show that folder's materials. */
+function browseInto(kind, value, label) {
+    browsePath = [...browsePath, browseEntry(kind, value, label)];
+    renderFolderBrowser();
+    selectFolder(browseFolderId());
+}
+
+function browseBack() {
+    if (!browsePath.length) return;
+    browsePath = browsePath.slice(0, -1);
+    renderFolderBrowser();
+    selectFolder(browseFolderId());
+}
+
+/**
+ * Point the browser at a folder id somebody else chose.
+ *
+ * Bookmarks, search suggestions and "your professor folder was created" all
+ * hand over an id and expect the panel to be showing it. The path is rebuilt by
+ * asking `parseFolderParts` what the id means, so this stays correct for any id
+ * shape that function already understands.
+ *
+ * The path stops at the *parent* of a leaf: a lesson id leaves the panel on its
+ * category with the lesson row marked, which is where you would be if you had
+ * walked there by hand.
+ */
+function browseToFolderId(folderId) {
+    const parts = parseFolderParts(folderId);
+    const path = [];
+
+    if (parts.course) {
+        path.push(browseEntry('course', parts.course, COURSE_FOLDERS[parts.course] || parts.course));
+        if (parts.year) {
+            path.push(browseEntry('year', parts.year, parts.year));
+            if (parts.subject) {
+                path.push(browseEntry('subject', parts.subject, parts.subject));
+
+                if (parts.isProfessorLibrary) {
+                    path.push(browseEntry('section', 'profs', BROWSE_SECTIONS.profs.label));
+                    if (parts.professorKey) {
+                        path.push(browseEntry('professor', parts.professorKey, parts.professorName || parts.professorKey));
+                    }
+                } else if (parts.category || parts.lesson) {
+                    path.push(browseEntry('section', 'materials', BROWSE_SECTIONS.materials.label));
+                    /* A lesson is a leaf, so its category is as deep as the
+                       panel goes — the lesson itself is a row to highlight. */
+                    if (parts.category && parts.lesson) {
+                        path.push(browseEntry('category', parts.category,
+                            MATERIAL_CATEGORIES_DISPLAY[parts.category] || parts.category));
+                    }
+                }
+            }
+        }
+    }
+
+    browsePath = path;
+    renderFolderBrowser();
+}
+
+/**
+ * Rebuild the panel where it stands.
+ *
+ * Called after an upload or a folder is created, when the counts on the visible
+ * rows have gone stale. Keeping the path means the panel does not jump back to
+ * the root under somebody who was three levels in.
+ */
+function populateLibraryFolderTree() {
+    renderFolderBrowser();
 }
 
 function switchLibraryCourse(course) {
     const normalizedCourse = course || 'all';
-    document.querySelectorAll('.folder-card-group').forEach(group => {
-        group.classList.toggle('hidden', normalizedCourse !== 'all' && group.dataset.course !== normalizedCourse);
-    });
-    document.querySelectorAll('#library-course-tabs .course-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.course === normalizedCourse);
-    });
-    document.querySelectorAll('.tree-toggle, .tree-leaf').forEach(el => el.classList.remove('active'));
 
-    if (normalizedCourse === 'all') {
-        selectFolder('all', document.getElementById('btn-all-materials'));
-        return;
-    }
+    browsePath = normalizedCourse === 'all'
+        ? []
+        : [browseEntry('course', normalizedCourse, COURSE_FOLDERS[normalizedCourse] || normalizedCourse)];
 
-    const courseOverviewBtn = document.querySelector(`.tree-toggle[data-folder="${normalizedCourse}"]`);
-    if (courseOverviewBtn) {
-        courseOverviewBtn.classList.add('active');
-        selectFolder(normalizedCourse, courseOverviewBtn);
-    } else {
-        selectFolder(normalizedCourse);
-    }
+    renderFolderBrowser();
+    selectFolder(browseFolderId());
 }
 
-// No longer needed as folders are built dynamically and collapsed by default
-// function collapseAllLibraryFolders() {
-//     document.querySelectorAll('.tree-children').forEach(child => child.classList.add('hidden'));
-//     document.querySelectorAll('.tree-toggle .expand-icon').forEach(icon => icon.textContent = 'expand_more');
-// }
 
 function populateYearFilter() {
     const yearSelect = document.getElementById('library-filter-year');
@@ -1080,16 +1374,7 @@ function applySearchSuggestion(value) {
     const term = String(value || '').trim();
     if (!term) return;
     const match = findFolderForSearchTerm(term);
-    if (match) {
-        const target = Array.from(document.querySelectorAll('.tree-leaf, .tree-toggle'))
-            .find(button => button.dataset.folder === match || button.getAttribute('onclick')?.includes(match));
-        if (target) {
-            revealFolderButton(target);
-            selectFolder(match, target);
-        } else {
-            selectFolder(match);
-        }
-    }
+    if (match) openFolderInBrowser(match);
 }
 
 function findFolderForSearchTerm(term) {
@@ -1118,25 +1403,29 @@ function findFolderForSearchTerm(term) {
     return [file.discipline, yearShort, file.subject, getMaterialCategory(file)].filter(Boolean).join('-');
 }
 
-function revealFolderButton(button) {
-    const courseTree = button.closest('.course-tree');
-    if (courseTree && courseTree.classList.contains('hidden')) {
-        document.querySelectorAll('.course-tree').forEach(tree => tree.classList.add('hidden'));
-        courseTree.classList.remove('hidden');
-        const course = courseTree.dataset.course;
-        document.querySelectorAll('.course-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.course === course);
-        });
-    }
+/**
+ * Open a folder that something other than the panel picked.
+ *
+ * A bookmark, a search suggestion, a freshly created professor folder — each
+ * hands over an id and expects the panel to be sitting on it, not still showing
+ * whatever level the last click left behind.
+ *
+ * This replaced `revealFolderButton`, which walked up from a button un-hiding
+ * each `.tree-children` above it. There is nothing to un-hide any more: the
+ * panel holds one level, so getting there means moving it, and the row to mark
+ * only exists once that move has happened — which is why the mark is applied
+ * after the render rather than passed into `selectFolder`.
+ */
+function openFolderInBrowser(folderId) {
+    if (!folderId) return;
 
-    let parent = button.closest('.tree-children');
-    while (parent) {
-        parent.classList.remove('hidden');
-        const toggle = parent.previousElementSibling;
-        const icon = toggle?.querySelector('.expand-icon');
-        if (icon) icon.textContent = 'expand_less';
-        if (toggle) toggle.setAttribute('aria-expanded', 'true');
-        parent = parent.parentElement?.closest('.tree-children');
+    browseToFolderId(folderId);
+    selectFolder(folderId);
+
+    const row = document.querySelector(`#dynamic-folder-tree .fb-row[data-folder="${CSS.escape(folderId)}"]`);
+    if (row) {
+        row.classList.add('active');
+        row.scrollIntoView({ block: 'nearest' });
     }
 }
 
@@ -1436,78 +1725,127 @@ function isCurrentUserEditor() {
     return String(libraryCurrentUser.role || '').toUpperCase() === 'ADMIN';
 }
 
-function getTreeChildren(toggleBtn) {
-    if (!toggleBtn) return null;
-    const nextSibling = toggleBtn.nextElementSibling;
-    if (nextSibling?.classList.contains('tree-children')) {
-        return nextSibling;
-    }
-    return toggleBtn.parentElement?.querySelector(':scope > .tree-children') || null;
-}
+/**
+ * Every folder in the library, flattened, for the panel's search box.
+ *
+ * Search has to reach folders the panel is not currently showing — that is the
+ * entire point of it. The old version could only hide and un-hide `.tree-node`
+ * elements, which worked because every folder was in the DOM at once; with one
+ * level rendered at a time there is nothing to hide, so the set has to be built
+ * from the data instead.
+ *
+ * Walked on each keystroke rather than cached. The tree is small — two courses,
+ * four years, a few dozen subjects — and a cache would go stale the moment a
+ * file was uploaded or a professor folder was made, which is exactly when
+ * somebody is most likely to search for it.
+ */
+function collectBrowseFolders() {
+    const folders = [];
 
-function toggleFolderTree(element, children) {
-    if (!children) {
-        children = getTreeChildren(element);
-    }
-    if (children && children.classList.contains('tree-children')) {
-        const isHidden = children.classList.contains('hidden');
-        children.classList.toggle('hidden', !isHidden); // Toggle based on current hidden state
-        element.setAttribute('aria-expanded', String(isHidden));
-        
-        const icon = element.querySelector('.expand-icon');
-        if (icon) {
-            icon.textContent = isHidden ? 'expand_less' : 'expand_more';
+    for (const [course, courseLabel] of Object.entries(COURSE_FOLDERS)) {
+        folders.push({ folderId: course, label: courseLabel, icon: 'school', trail: '' });
+
+        for (const year of COURSE_YEARS) {
+            const yearShort = getYearShortFromYear(year);
+            folders.push({
+                folderId: `${course}-${yearShort}`,
+                label: year,
+                icon: `filter_${yearShort.replace(/\D/g, '') || '1'}`,
+                trail: courseLabel
+            });
+
+            for (const subject of getSubjectsForCourseYear(course, year)) {
+                const subjectFolderId = buildSubjectFolderId(course, yearShort, subject);
+                folders.push({
+                    folderId: subjectFolderId,
+                    label: subject,
+                    icon: 'menu_book',
+                    trail: `${courseLabel} › ${year}`
+                });
+
+                for (const category of FOLDER_MATERIAL_CATEGORIES) {
+                    folders.push({
+                        folderId: `${subjectFolderId}-${category}`,
+                        label: MATERIAL_CATEGORIES_DISPLAY[category] || category,
+                        icon: getCategoryIcon(category),
+                        trail: `${year} › ${subject}`
+                    });
+                }
+
+                for (const professor of getProfessorLibrariesForSubject(course, year, subject)) {
+                    const key = professor.professorUsername || professor.professorName;
+                    folders.push({
+                        folderId: buildProfessorFolderId(course, yearShort, subject, key),
+                        label: professor.professorName,
+                        icon: 'school',
+                        trail: `${year} › ${subject} › Professor Folders`
+                    });
+                }
+            }
         }
     }
+
+    return folders;
 }
 
+/**
+ * Show search hits in place of the current level, or restore the level when the
+ * box is cleared.
+ *
+ * Results are flat and carry their own trail, because a hit is only useful if
+ * you can tell which year's "Handouts" you are looking at — there are eight of
+ * them with that name.
+ */
 function filterFolderTree(e) {
-    const searchTerm = String(e.target.value || '').trim().toLowerCase();
-    const treeNodes = document.querySelectorAll('.tree-node');
-    
-    treeNodes.forEach(node => {
-        const folderText = Array.from(node.querySelectorAll('.folder-name'))
-            .map(el => el.textContent.toLowerCase())
-            .join(' ');
-        const matches = !searchTerm || folderText.includes(searchTerm);
-        node.style.display = matches ? 'block' : 'none';
-        if (matches) {
-            let parentFolder = node.parentElement?.closest('.tree-children')?.previousElementSibling?.closest('.tree-node');
-            while (parentFolder) {
-                parentFolder.style.display = 'block';
-                parentFolder = parentFolder.parentElement?.closest('.tree-children')?.previousElementSibling?.closest('.tree-node');
-            }
-        }
-    });
+    const container = document.getElementById('dynamic-folder-tree');
+    if (!container) return;
 
-    if (searchTerm) {
-        document.querySelectorAll('.tree-node').forEach(node => {
-            if (node.style.display === 'none') return;
-            let parent = node.parentElement?.closest('.tree-children');
-            while (parent) {
-                parent.classList.remove('hidden');
-                const toggle = parent.previousElementSibling;
-                if (toggle) toggle.setAttribute('aria-expanded', 'true');
-                const icon = toggle?.querySelector('.expand-icon');
-                if (icon) icon.textContent = 'expand_less';
-                parent = parent.parentElement?.closest('.tree-children');
-            }
-        });
+    const term = String(e.target.value || '').trim().toLowerCase();
+    if (!term) {
+        renderFolderBrowser();
+        return;
     }
 
-    const folderCardGroups = document.querySelectorAll('.folder-card-group');
-    folderCardGroups.forEach(group => {
-        const hasVisibleNodes = Array.from(group.querySelectorAll('.tree-node')).some(node => node.style.display !== 'none');
-        group.classList.toggle('hidden', !hasVisibleNodes);
-    });
+    const hits = collectBrowseFolders()
+        .filter(folder => folder.label.toLowerCase().includes(term))
+        .slice(0, 40);
+
+    const list = hits.length
+        ? hits.map(folder => `
+            <button type="button" class="fb-row fb-row-hit"
+                    data-folder="${escapeHtml(folder.folderId)}"
+                    data-browse-drill="0"
+                    data-browse-jump="1"
+                    title="${escapeHtml([folder.trail, folder.label].filter(Boolean).join(' > '))}">
+                <span class="fb-row-icon material-icons" aria-hidden="true">${escapeHtml(folder.icon)}</span>
+                <span class="fb-row-copy">
+                    <strong class="folder-name">${escapeHtml(folder.label)}</strong>
+                    <small class="folder-count">${escapeHtml(folder.trail || 'Course')}</small>
+                </span>
+                <span class="fb-row-chev material-icons" aria-hidden="true">north_east</span>
+            </button>
+        `).join('')
+        : `<p class="fb-empty">Walang folder na tugma sa “${escapeHtml(e.target.value.trim())}”.</p>`;
+
+    container.innerHTML = `
+        <div class="fb is-search" data-depth="search">
+            <div class="fb-head">
+                <button type="button" class="fb-back" data-browse-back="clear" aria-label="Clear search">
+                    <span class="material-icons" aria-hidden="true">close</span>
+                </button>
+                <span class="fb-head-copy">
+                    <span class="fb-crumbs">Search results</span>
+                    <strong class="fb-title">${hits.length} folder${hits.length === 1 ? '' : 's'}</strong>
+                </span>
+            </div>
+            <div class="fb-list" role="list">${list}</div>
+        </div>
+    `;
 }
 
 function selectFolder(folderId, element) {
     currentFolderId = folderId;
     window.currentFolderId = folderId;
-    if (element) {
-        revealFolderButton(element);
-    }
     
     // Sync top bar filters
     const yearSelect = document.getElementById('library-filter-year');
@@ -1546,7 +1884,7 @@ function selectFolder(folderId, element) {
     populateTagFilter(); // Always call to ensure tags are updated
     
     // Update active state
-    document.querySelectorAll('.tree-toggle, .tree-leaf').forEach(el => {
+    document.querySelectorAll('.tree-toggle, .tree-leaf, .fb-row').forEach(el => {
         el.classList.remove('active');
     });
     if (element) {
@@ -2943,9 +3281,7 @@ function updateBookmarksList() {
 }
 
 function selectBookmarkedFolder(folderId) {
-    const button = Array.from(document.querySelectorAll('.tree-leaf, .tree-toggle')).find(node => node.dataset.folder === folderId);
-    if (button) revealFolderButton(button);
-    selectFolder(folderId, button || null);
+    openFolderInBrowser(folderId);
 }
 
 function updateLibraryStats(scopeFiles = null) {
@@ -3235,6 +3571,9 @@ function generateId(prefix) {
 // Export for external use
 window.enhancedLibrary = {
     populateLibraryFolderTree, // Export this for initial setup
+    renderFolderBrowser,
+    openFolderInBrowser,
+    browseBack,
     updateBookmarksList,
     updateLibraryStats,
     displayMaterialCards,

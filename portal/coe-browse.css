@@ -1,0 +1,467 @@
+/* ===========================================================================
+   THE LIBRARY FOLDER BROWSER
+   ---------------------------------------------------------------------------
+   Styles for the one-level-at-a-time panel that replaced the nested folder
+   tree (see the FOLDER BROWSER block in enhanced-library.js).
+
+   The rows are `.fb-row` and carry none of the old `.tree-toggle` /
+   `.tree-leaf` classes. That is deliberate: those two classes pull in fifteen
+   rules across styles.css and coe-requested-polish.css, all written for a row
+   indented five levels inside a dark tree — indents, connector lines, reduced
+   font sizes at depth. Reusing them would have meant undoing every one. With a
+   clean class there is nothing to override, which is why almost nothing in this
+   file needs `!important`.
+
+   Three layouts, one panel:
+
+     ≥1024px   a column beside the material grid
+     <1024px   a sheet that slides up over the page, opened by the Folders
+               button in the library header
+     ≤430px    the same sheet, taller, with bigger rows
+
+   Loaded after coe-refine.css and before coe-phone.css.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. THE PANEL SHELL
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .enhanced-library-section .fb {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+/* --- Header: back button, trail, and the level's own name ---------------- */
+
+body:not(.auth-body) .enhanced-library-section .fb-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 2px 2px 10px;
+    border-bottom: 1px solid #f1e6e3;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    /* 40px on a mouse, raised to 44 on touch further down. */
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #efe1dd;
+    border-radius: 12px;
+    background: #fff;
+    color: #7a1522;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-back:hover {
+    background: #fdf4f2;
+    border-color: #e3cdc7;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-back .material-icons {
+    font-size: 20px;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-head-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    /* Without this a long subject name pushes the header wider than the panel
+       and the whole column gains a horizontal scrollbar. */
+    min-width: 0;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-crumbs {
+    display: block;
+    color: #9b8a8d;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    /* The trail is context, not content — it may be clipped. The full path is
+       on every row's `title`. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-title {
+    display: block;
+    color: #2a1418;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.25;
+    /* The name of the level you are in must never be cut off — it is the one
+       thing on screen that says where you are. */
+    overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+   2. THE ROWS
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .enhanced-library-section .fb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row {
+    display: grid;
+    /* icon | copy | chevron. The middle column is the only flexible one, and
+       `minmax(0, 1fr)` is what lets its text ellipse instead of forcing the
+       row wider than the panel. */
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    /* 46px clears Android's 48 with the gap, and Apple's 44 outright. */
+    min-height: 46px;
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: none;
+    color: #2a1418;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row:hover {
+    background: #fdf6f4;
+    border-color: #f2e2de;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row:active {
+    background: #faeeeb;
+}
+
+/* The open folder. Only ever a leaf — a lesson, or a category with nothing
+   filed under it — because walking into a level marks the header, not a row. */
+body:not(.auth-body) .enhanced-library-section .fb-row.active {
+    background: rgba(122, 21, 34, 0.08);
+    border-color: rgba(122, 21, 34, 0.18);
+    color: #7a1522;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #fdf1ee;
+    color: #7a1522;
+    font-size: 19px;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row.active .fb-row-icon {
+    background: #7a1522;
+    color: #fff;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row-copy .folder-name {
+    display: block;
+    color: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.3;
+    /* Subject codes run long — "OE 025 - CHEMISTRY FOR ENGINEERS" is 32
+       characters. Wrapping to two lines reads; ellipsing loses the subject. */
+    overflow-wrap: anywhere;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row-copy .folder-count {
+    display: block;
+    /* #6f6266 on #fff is 5.6:1 — this is the count of what is inside, so it
+       has to stay readable rather than fade into the row. */
+    color: #6f6266;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row.active .folder-count {
+    color: #8a4551;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row-chev {
+    color: #b9a7aa;
+    font-size: 20px;
+    transition: transform 140ms ease;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row:hover .fb-row-chev {
+    transform: translateX(2px);
+    color: #7a1522;
+}
+
+/* --- Create Prof Folder -------------------------------------------------- */
+
+body:not(.auth-body) .enhanced-library-section .fb-row-action {
+    border-style: dashed;
+    border-color: #e8d4cf;
+    margin-bottom: 4px;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-row-action .fb-row-icon {
+    background: #f2f7f2;
+    color: #2f7d4f;
+}
+
+/* --- Search hits ---------------------------------------------------------- */
+
+/* A hit lives somewhere else in the tree, so its second line is a path rather
+   than a count — set smaller and lighter so the two never read as the same
+   kind of information. */
+body:not(.auth-body) .enhanced-library-section .fb-row-hit .folder-count {
+    color: #8b7a7e;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+body:not(.auth-body) .enhanced-library-section .fb-empty {
+    margin: 6px 2px;
+    padding: 14px 12px;
+    border: 1px dashed #eddedb;
+    border-radius: 12px;
+    color: #6f6266;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+/* ---------------------------------------------------------------------------
+   3. THE PANEL ITSELF
+
+   The browser is short — five rows at most — so the panel no longer needs the
+   fixed 300px scroll box the tree required.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+    body:not(.auth-body) .enhanced-library-section .folder-tree {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
+/* The Folders button belongs to the sheet layout only. */
+body:not(.auth-body) .lib-folders-btn {
+    display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   4. BELOW 1024px — THE PANEL BECOMES A SHEET
+
+   A folder column and a material grid cannot both have room under 1024px, and
+   stacking them put four hundred pixels of folders above the files on every
+   page load. The panel slides up over the page instead, opened by the Folders
+   button and closed as soon as a folder is actually picked.
+
+   `!important` throughout this block, and only here: mobile.css and
+   coe-requested-polish.css both pin `.library-tree-sidebar` to `position:
+   static` at this width with `!important` of their own, which is correct for a
+   stacked column and exactly wrong for a sheet.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 1023.98px) {
+    body:not(.auth-body) .lib-folders-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 42px;
+        padding: 0 14px;
+        border: 1px solid #e8d4cf;
+        border-radius: 12px;
+        background: #fff;
+        color: #7a1522;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    body:not(.auth-body) .lib-folders-btn .material-icons {
+        font-size: 19px;
+    }
+
+    body:not(.auth-body) .lib-folders-btn:active {
+        background: #fdf1ee;
+    }
+
+    body:not(.auth-body) .enhanced-library-section #library-folder-panel {
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        /* Over the page and the tab bar (7900 in coe-phone.css), under the
+           navigation drawer (9000) — the drawer is a way out of the library,
+           so it has to be able to cover this. */
+        z-index: 8300 !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: 76dvh !important;
+        margin: 0 !important;
+        padding: 10px 12px calc(16px + env(safe-area-inset-bottom)) !important;
+        border: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        background: #fff !important;
+        box-shadow: 0 -18px 48px rgba(21, 4, 6, 0.26) !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
+        /* Parked below the edge rather than hidden, so it can slide.
+           `visibility` — not `display` — because a display change cancels the
+           transition and the sheet would snap into place. */
+        visibility: hidden !important;
+        transform: translateY(101%) !important;
+        transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+                    visibility 0s linear 280ms !important;
+    }
+
+    body.lib-folders-open:not(.auth-body) .enhanced-library-section #library-folder-panel {
+        visibility: visible !important;
+        transform: translateY(0) !important;
+        transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+                    visibility 0s linear 0s !important;
+    }
+
+    /* Scrim. Drawn by the wrapper so a tap on it lands on the wrapper — which
+       is what the close handler in enhanced-library.js listens for. */
+    body:not(.auth-body) .enhanced-library-section .library-wrapper::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 8250;
+        background: rgba(21, 4, 6, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 240ms ease;
+    }
+
+    body.lib-folders-open:not(.auth-body) .enhanced-library-section .library-wrapper::before {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* The grab handle, and the room for it. Says the sheet can be dismissed
+       before anybody has to guess. */
+    body:not(.auth-body) .enhanced-library-section #library-folder-panel::before {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 4px;
+        margin: 0 auto 12px;
+        border-radius: 4px;
+        background: #e6d7d3;
+    }
+
+    /* The panel's own heading is a page-level introduction — "Library Tab /
+       Folders / CE subjects, material folders, and separate professor folders".
+       In a sheet the user opened by tapping Folders, all three are answered
+       already, and they push the first row below the fold. */
+    body:not(.auth-body) .enhanced-library-section #library-folder-panel .folder-panel-head {
+        display: none !important;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .folder-tree {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   5. TOUCH SIZING
+
+   Applied by pointer rather than by width, so a touchscreen laptop and a tablet
+   in landscape get the bigger targets too — neither is narrow enough to match a
+   max-width query.
+   --------------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+    body:not(.auth-body) .enhanced-library-section .fb-row {
+        min-height: 52px;
+        padding: 9px 11px;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-back {
+        width: 44px;
+        height: 44px;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-row-copy .folder-name {
+        font-size: 0.9rem;
+    }
+
+    /* :hover either never fires on a touchscreen or sticks after a tap, so the
+       chevron nudge and the row tint must not be the only feedback. */
+    body:not(.auth-body) .enhanced-library-section .fb-row:hover {
+        background: none;
+        border-color: transparent;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-row:hover .fb-row-chev {
+        transform: none;
+        color: #b9a7aa;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-row:active {
+        background: #faeeeb;
+        border-color: #f2e2de;
+    }
+
+    /* The active row keeps its fill — that is state, not hover. */
+    body:not(.auth-body) .enhanced-library-section .fb-row.active:hover {
+        background: rgba(122, 21, 34, 0.08);
+        border-color: rgba(122, 21, 34, 0.18);
+    }
+}
+
+/* Small phones. Below this the second line and the chevron compete for the
+   same 40px, and the chevron loses — a row that opens a level is already
+   obvious from the fact that everything at this depth does. */
+@media (max-width: 430px) {
+    body:not(.auth-body) .enhanced-library-section #library-folder-panel {
+        max-height: 82dvh !important;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-row {
+        grid-template-columns: 32px minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-row-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+    }
+
+    body:not(.auth-body) .enhanced-library-section .fb-title {
+        font-size: 0.95rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body:not(.auth-body) .enhanced-library-section #library-folder-panel,
+    body:not(.auth-body) .enhanced-library-section .library-wrapper::before,
+    body:not(.auth-body) .enhanced-library-section .fb-row,
+    body:not(.auth-body) .enhanced-library-section .fb-row-chev {
+        transition: none !important;
+    }
+}
