@@ -1429,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ? `<button class="announcement-action-btn danger" data-announcement-action="delete" title="Delete"><span class="material-icons">delete</span></button>`
             : '';
         return `
-            <article class="announcement-card ${pinned ? 'pinned' : ''} ${urgent ? 'urgent' : ''} ${read ? 'read' : 'unread'} ${compact ? 'compact' : ''}" data-announcement-id="${escapeHtml(item.id)}">
+            <article class="announcement-card ${pinned ? 'pinned' : ''} ${urgent ? 'urgent' : ''} ${read ? 'read' : 'unread'} ${compact ? 'compact' : ''} ${expanded ? 'expanded' : ''}" data-announcement-id="${escapeHtml(item.id)}">
                 <button class="announcement-expand-area" type="button" data-announcement-action="toggle">
                     <span class="announcement-card-icon material-icons">${getAnnouncementIcon(item.tag)}</span>
                     <span class="announcement-card-body">

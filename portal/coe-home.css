@@ -1,0 +1,463 @@
+/* ===========================================================================
+   HOME PAGE POLISH
+   ---------------------------------------------------------------------------
+   Four things, all of them visible on the dashboard as it stands and none of
+   them a redesign:
+
+     1. Empty states. There are six of them on this page and every one is a
+        dashed rectangle with a single grey sentence in it. On a fresh account —
+        which is every account at the start of a term — most of the dashboard is
+        those boxes, and they read as something failing to load rather than as
+        somewhere nothing has been posted yet.
+
+     2. The achievements composer. It holds 42% of its card permanently, and at
+        that width five stacked controls have nothing to breathe with while the
+        posts beside them are squeezed into the rest.
+
+     3. The announcement footer. Four unlabelled icons in a row with no target
+        of their own, and "Tap for details" set in the same grey as everything
+        else, so neither reads as something you can press.
+
+     4. Rhythm. Card padding, heading sizes and radii were set in four separate
+        places across styles.css and disagree by a few pixels each time — enough
+        that the stack of cards never quite lines up.
+
+   CSS only. No markup and no script changed, so nothing here can alter what the
+   page does — only how much of it you can read.
+
+   Loaded after coe-browse.css and before coe-phone.css: the phone layer has the
+   last word on anything that is a touch-target or a safe-area question.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. EMPTY STATES
+
+   One shape everywhere: an icon, the sentence that was already there, and room
+   around both. The icon comes from a pseudo-element rather than from markup
+   because these boxes are written by six different render functions across
+   scripts.js and coe-announce.js — reaching all of them meant touching six
+   files, and the icon is decoration, which is exactly what a pseudo-element is
+   for. Material Icons is already loaded for the rest of the page.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) #home-panel .empty-home-section {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    min-height: 148px !important;
+    margin: 0 !important;
+    padding: 26px 22px !important;
+    border: 1px dashed #e6dcd9 !important;
+    border-radius: 14px !important;
+    /* A very slight warm tint rather than the blue-grey #f8fafc. The rest of
+       this page is maroon and cream; a cold panel in the middle of it was half
+       of why the empty boxes read as foreign. */
+    background: linear-gradient(180deg, #fffdfc 0%, #fdf8f6 100%) !important;
+    /* #5b6673 is 5.6:1 on that tint. #64748b, which this replaces, measured
+       4.55 — over the line by a twentieth of a point, and under it as soon as
+       the background is tinted at all, which it now is. */
+    color: #5b6673 !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+    text-align: center !important;
+    box-shadow: none !important;
+}
+
+body:not(.auth-body) #home-panel .empty-home-section::before {
+    /* The ligature name, not a character. Material Icons resolves it. */
+    content: "inbox";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #fdf1ee;
+    color: #b98a90;
+    font-family: "Material Icons";
+    font-size: 24px;
+    /* Material Icons ligatures only form with these off. Inherited word-spacing
+       or a transform from a parent will otherwise split "inbox" into letters
+       and print the word instead of the glyph. */
+    font-weight: normal;
+    font-style: normal;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+}
+
+/* An icon that matches what is missing says more than a generic tray. */
+body:not(.auth-body) #home-panel #home-achievements-list .empty-home-section::before {
+    content: "emoji_events";
+}
+
+body:not(.auth-body) #home-panel #home-upload-progress-list .empty-home-section::before {
+    content: "cloud_upload";
+}
+
+body:not(.auth-body) #home-panel #home-review-queue-list .empty-home-section::before {
+    content: "fact_check";
+}
+
+body:not(.auth-body) #home-panel #home-schedule-timeline .empty-home-section::before {
+    content: "event_available";
+}
+
+body:not(.auth-body) #home-panel #home-announcements-list .empty-home-section::before {
+    content: "campaign";
+}
+
+/* Two known costs of drawing the icon with a ligature rather than an SVG, both
+   accepted rather than overlooked:
+     - If Material Icons fails to load, the circle prints the word
+       "emoji_events". That is already true of every icon on the site — the
+       markup is full of `<span class="material-icons">school</span>` — so this
+       adds a case to an existing failure mode rather than a new one.
+     - Some screen readers announce generated content, so a reader may hear the
+       ligature name before the sentence. The sentence still carries the whole
+       message, and the alternative — six inline SVGs transcribed by hand — has
+       its own way of being wrong that is harder to spot.
+   The circle clips either way. */
+body:not(.auth-body) #home-panel .empty-home-section::before {
+    overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   2. THE ACHIEVEMENTS COMPOSER
+
+   The card is a 0.42 / 0.58 split from styles.css. That is a reasonable desktop
+   layout and it stays. What changes is the composer inside it: the fields were
+   inheriting a generic form style meant for a full-width panel, so at 42% of a
+   column they had 12px of padding and no separation from each other.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) #home-panel .home-achievement-form {
+    gap: 12px !important;
+    padding: 16px !important;
+    border: 1px solid #ece0dc !important;
+    border-radius: 14px !important;
+    background: linear-gradient(180deg, #fffdfc 0%, #fbf6f4 100%) !important;
+    box-shadow: 0 6px 18px rgba(21, 4, 6, 0.04) !important;
+}
+
+body:not(.auth-body) #home-panel .home-post-composer-head {
+    display: flex !important;
+    align-items: center !important;
+    gap: 11px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid #f2e7e3 !important;
+}
+
+body:not(.auth-body) #home-panel .home-post-avatar {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    /* flex-shrink: 0 — without it a long heading squeezes the circle into an
+       oval, which is the sort of thing nobody reports and everybody notices. */
+    flex: 0 0 auto !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    background: #7a1522 !important;
+    color: #fff !important;
+}
+
+body:not(.auth-body) #home-panel .home-post-avatar .material-icons {
+    font-size: 21px !important;
+    color: #fff !important;
+}
+
+body:not(.auth-body) #home-panel .home-post-composer-head strong {
+    display: block !important;
+    color: #2a1418 !important;
+    font-size: 0.92rem !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+}
+
+body:not(.auth-body) #home-panel .home-post-composer-head small {
+    display: block !important;
+    color: #6f6266 !important;
+    font-size: 0.76rem !important;
+    line-height: 1.35 !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form textarea,
+body:not(.auth-body) #home-panel .home-achievement-form input[type="text"],
+body:not(.auth-body) #home-panel .home-achievement-form select {
+    border: 1px solid #e4d7d3 !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    color: #2a1418 !important;
+    font-family: inherit !important;
+    font-size: 0.88rem !important;
+    transition: border-color 140ms ease, box-shadow 140ms ease !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form textarea::placeholder,
+body:not(.auth-body) #home-panel .home-achievement-form input::placeholder {
+    /* 4.6:1 on white. A placeholder is the only instruction these fields carry
+       — there are no labels — so it cannot be set at the usual placeholder
+       grey. */
+    color: #857a7d !important;
+    opacity: 1 !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form textarea:focus,
+body:not(.auth-body) #home-panel .home-achievement-form input[type="text"]:focus,
+body:not(.auth-body) #home-panel .home-achievement-form select:focus {
+    outline: none !important;
+    border-color: #7a1522 !important;
+    box-shadow: 0 0 0 3px rgba(122, 21, 34, 0.12) !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form textarea {
+    min-height: 96px !important;
+    padding: 12px 13px !important;
+    line-height: 1.5 !important;
+}
+
+/* --- The image picker ---------------------------------------------------- */
+
+body:not(.auth-body) #home-panel .home-achievement-image-picker {
+    gap: 10px !important;
+    /* nowrap plus a `min-width: 0` name below: the filename shortens instead of
+       dropping to a second line and pushing the Post button down. */
+    flex-wrap: nowrap !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-image-picker label {
+    flex: 0 0 auto !important;
+    min-height: 42px !important;
+    border-color: #e4d7d3 !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    cursor: pointer !important;
+    transition: background 140ms ease, border-color 140ms ease !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-image-picker label:hover {
+    background: #fdf4f2 !important;
+    border-color: #d9c3bd !important;
+}
+
+body:not(.auth-body) #home-panel #home-achievement-image-name {
+    min-width: 0 !important;
+    color: #6f6266 !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+/* --- Category and Post --------------------------------------------------- */
+
+body:not(.auth-body) #home-panel .home-achievement-form-row {
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form-row select {
+    /* The select takes the slack so the button stays the size it needs and no
+       larger — a "Post" button stretched across half a card reads as the
+       primary action of the whole page rather than of this form. */
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form-row button {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    padding: 0 18px !important;
+    border-radius: 11px !important;
+    box-shadow: 0 6px 16px rgba(122, 21, 34, 0.22) !important;
+    transition: background 140ms ease, box-shadow 140ms ease !important;
+}
+
+body:not(.auth-body) #home-panel .home-achievement-form-row button:hover {
+    background: #63101b !important;
+    box-shadow: 0 8px 20px rgba(122, 21, 34, 0.28) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   3. THE ANNOUNCEMENT FOOTER
+
+   Narrower than it first looked. coe-requested-polish.css already lays the
+   footer out as `minmax(0, 1fr) auto` and already collapses it to one column
+   below 760px, and it already gives the buttons 40px and a maroon icon. None of
+   that is restated here — it works, and replacing a working grid with a flex
+   row of my own would only be a chance to get it wrong.
+
+   Two things were genuinely missing: the buttons had no hover or press state at
+   all, and "Tap for details" was set in the same grey as the meta line above
+   it, so the one line on the card telling you it opens looked like more
+   metadata.
+
+   The green `.active` fill is also left alone. Green for "read" is a better
+   signal than the house maroon would be — it is the one state on the card that
+   means finished rather than important.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-time {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    color: #7a1522 !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.01em !important;
+}
+
+/* The arrow follows the card. `.expanded` is a one-word addition to the class
+   list in renderAnnouncementCard — the text beside it already changed between
+   "Tap for details" and "Tap to collapse", but nothing in the DOM said which,
+   so an arrow could only ever have been right half the time. */
+body:not(.auth-body) .announcement-time::after {
+    content: "expand_more";
+    font-family: "Material Icons";
+    font-size: 17px;
+    /* Material Icons ligatures need all of these off. Any of them inherited
+       from a parent splits the ligature and the word prints instead. */
+    font-weight: normal;
+    font-style: normal;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+}
+
+body:not(.auth-body) .announcement-card.expanded .announcement-time::after {
+    content: "expand_less";
+}
+
+/* Feedback the buttons never had. Colours, size and layout stay as
+   coe-requested-polish.css set them; this only adds the states. */
+body:not(.auth-body) .announcement-action-btn {
+    cursor: pointer !important;
+    transition: background 140ms ease, border-color 140ms ease, color 140ms ease !important;
+}
+
+body:not(.auth-body) .announcement-action-btn:hover {
+    background: #fdf4f2 !important;
+    border-color: #e3cdc7 !important;
+}
+
+body:not(.auth-body) .announcement-action-btn:active {
+    background: #f8e9e5 !important;
+}
+
+/* The green fill is the read/pinned state and has to survive the pointer
+   leaving, so hover must not repaint it. */
+body:not(.auth-body) .announcement-action-btn.active:hover {
+    background: #cdf5da !important;
+    border-color: #6ee7a0 !important;
+}
+
+body:not(.auth-body) .announcement-action-btn.danger:hover {
+    background: #fef2f2 !important;
+    border-color: #fca5a5 !important;
+}
+
+/* ---------------------------------------------------------------------------
+   4. CARD RHYTHM
+
+   The same card is given `border-radius: 8px` in one place and 16px in another,
+   `padding: 18px` in one and 14px in a third. Stated once here, after all of
+   them.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) #home-panel .panel-card,
+body:not(.auth-body) #home-panel .home-achievements-card,
+body:not(.auth-body) #home-panel .home-announcements-card {
+    border-radius: 16px !important;
+    border-color: #ece0dc !important;
+    /* Softer and lower than the 0 14px 34px it replaces. Six cards stacked with
+       a heavy shadow each is what made the page look layered rather than
+       ordered. */
+    box-shadow: 0 4px 16px rgba(21, 4, 6, 0.05) !important;
+}
+
+body:not(.auth-body) #home-panel .panel-heading {
+    padding-bottom: 13px !important;
+    border-bottom: 1px solid #f2e7e3 !important;
+}
+
+body:not(.auth-body) #home-panel .panel-heading h3 {
+    color: #2a1418 !important;
+    font-size: 1.08rem !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+}
+
+body:not(.auth-body) #home-panel .panel-heading p {
+    /* 5.6:1 on white — this line explains what the card is for, and on an empty
+       dashboard it is often the only text in it. */
+    color: #5b6673 !important;
+    font-size: 0.84rem !important;
+    line-height: 1.45 !important;
+}
+
+/* ---------------------------------------------------------------------------
+   5. NARROW WIDTHS
+
+   styles.css keeps the composer beside the posts down to 760px. Between there
+   and about 1024 the composer's column is at its 260px floor, which is where
+   the category select and the Post button stop fitting on one line and the
+   filename starts eating the picker. One column earlier is simply more
+   readable, and coe-legibility.css already does exactly this below 760.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+    body:not(.auth-body) #home-panel .home-achievements-card {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+@media (max-width: 560px) {
+    body:not(.auth-body) #home-panel .empty-home-section {
+        min-height: 130px !important;
+        padding: 22px 16px !important;
+        font-size: 0.86rem !important;
+    }
+
+    body:not(.auth-body) #home-panel .empty-home-section::before {
+        width: 40px;
+        height: 40px;
+        font-size: 21px;
+    }
+
+    /* Below this the two of them cannot share a line, and a select squeezed to
+       90px shows none of its option text. */
+    body:not(.auth-body) #home-panel .home-achievement-form-row {
+        flex-wrap: wrap !important;
+    }
+
+    body:not(.auth-body) #home-panel .home-achievement-form-row select,
+    body:not(.auth-body) #home-panel .home-achievement-form-row button {
+        flex: 1 1 100% !important;
+        justify-content: center !important;
+    }
+
+    /* Nothing for the announcement footer here on purpose:
+       coe-requested-polish.css already stacks it and left-aligns its actions
+       below 760px, which covers every width this block does. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body:not(.auth-body) #home-panel .home-achievement-form :is(textarea, input, select, button, label),
+    body:not(.auth-body) .announcement-action-btn {
+        transition: none !important;
+    }
+}
