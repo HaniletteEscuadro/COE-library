@@ -59,6 +59,52 @@
      */
     const BASE = 'assets/';
 
+    /**
+     * What the last probe found, so the next page load does not repeat it.
+     *
+     * Three crests times five extensions is fifteen requests, and while none
+     * of the files exist that is fifteen 404s on every single load — fifteen
+     * round trips on a phone before the placeholder can be drawn, and fifteen
+     * red lines in the console that make a working page look like a failing
+     * one. The answer that was already found is worth keeping.
+     *
+     * Six hours rather than forever: dropping a file into `assets/` has to
+     * start working without anyone knowing to clear storage, and it is the
+     * only way the answer can change. A cache miss costs one page load of
+     * what the file did every load before.
+     */
+    const CACHE_KEY = 'coeCrestFiles';
+    const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+    function readCache() {
+        try {
+            const raw = global.localStorage.getItem(CACHE_KEY);
+            const cache = raw ? JSON.parse(raw) : null;
+            if (!cache || typeof cache.at !== 'number') return null;
+            // Date.now() rather than a stored expiry, so a clock moved
+            // backwards expires the cache instead of extending it.
+            if (Date.now() - cache.at > CACHE_TTL_MS) return null;
+            return cache.found && typeof cache.found === 'object' ? cache.found : null;
+        } catch (error) {
+            // Private mode, a full quota, or a value somebody edited by hand.
+            // Probing is the correct fallback for all three.
+            return null;
+        }
+    }
+
+    function writeCache(name, url) {
+        try {
+            const found = readCache() || {};
+            // `null` is as much of an answer as a URL, and it is the one that
+            // costs five requests to reach.
+            found[name] = url;
+            global.localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), found: found }));
+        } catch (error) {
+            // A cache that cannot be written is a slower page, not a broken
+            // one — every load simply probes as it did before.
+        }
+    }
+
     /** Resolves to the first URL that loads, or null when none of them do. */
     function findImage(name, index) {
         index = index || 0;
@@ -98,7 +144,22 @@
 
         const img = tile.querySelector('img');
 
-        findImage(crest.file).then(function (url) {
+        /*
+         * A cached answer is used without re-probing — including a cached
+         * `null`, which is the expensive one to find. `hasOwnProperty` rather
+         * than a truthiness test, because `null` is a real answer here and
+         * `undefined` is the absence of one.
+         */
+        const cached = readCache();
+        const known = cached && Object.prototype.hasOwnProperty.call(cached, crest.file);
+        const lookup = known
+            ? Promise.resolve(cached[crest.file])
+            : findImage(crest.file).then(function (url) {
+                writeCache(crest.file, url);
+                return url;
+            });
+
+        lookup.then(function (url) {
             if (url && img) {
                 img.src = url;
                 tile.classList.add('has-crest');

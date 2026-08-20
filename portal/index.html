@@ -102,6 +102,11 @@
          this one carries its own breakpoints, so any of them could otherwise
          win against a phone rule written earlier. -->
     <link rel="stylesheet" href="coe-phone.css?v=phone-2026-08a">
+
+    <!-- Last, and only because both of its fixes are corrections to rules
+         spread across the sheets above: the document must scroll, and the
+         workspace nav must show its labels rather than "H..." and "Da...". -->
+    <link rel="stylesheet" href="coe-fix.css?v=fix-2026-08a">
 </head>
 
 <body>
@@ -3219,6 +3224,9 @@
          has already opened to decide which tab starts marked. -->
     <script src="coe-phone.js?v=phone-2026-08a" defer></script>
     <script src="upload-ui.js?v=embed-links-2026-08a" defer></script>
+    <!-- Last: it clears scroll locks left behind by the dialogs and the drawer
+         that the files above own, so it has to load after all of them. -->
+    <script src="coe-fix.js?v=fix-2026-08a" defer></script>
 </body>
 
 </html>

@@ -1,0 +1,449 @@
+/* ===========================================================================
+   CORRECTIONS LAYER
+   ---------------------------------------------------------------------------
+   Four faults. The first three were reported from one screen — the portal
+   opened in the Messenger in-app browser on a ~780-900px viewport; the fourth
+   turned up while measuring the others in Chrome and is a desktop fault.
+
+     1. The page would not scroll.
+
+     2. Every label in the workspace nav was cut to one letter — "H...",
+        "Da...", "T...", "Ta...". Measured in Chrome at 880px: the strip is
+        `repeat(8, minmax(0, 1fr))` from styles.css with `text-overflow:
+        ellipsis` on a single line, which gives a 99.5px column, 36px of which
+        is the icon. All nine labels reported as clipped. After the rules
+        below: three columns of 274px, none clipped.
+
+     3. Two menu buttons and two account controls on screen at once, 50px
+        apart. mobile.js builds a fixed top bar with a hamburger and an account
+        button below 900px, and .top-navbar keeps its own pair down to 700px —
+        so between 700 and 900 the page has two of each, and below 700 it still
+        has two hamburgers.
+
+     4. The pinned workspace card in the sidebar is 5%-opaque white, so at any
+        window short enough to scroll the sidebar it prints itself over the
+        Settings link and neither is readable.
+
+   Loaded last, after coe-phone.css, because all of them have to out-rank rules
+   spread across styles.css, coe-requested-polish.css, mobile.css and
+   coe-phone.css. Every declaration here is a correction to something already
+   stated elsewhere — nothing new is introduced, which is why the file is short
+   and why it is safe to delete once the layers underneath are reconciled.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. THE DOCUMENT MUST SCROLL
+
+   Nothing in the stylesheets pins the document outright, so the lock is a
+   runtime state — a dialog that pinned <body> and did not unpin it, a drawer
+   that set `overflow: hidden` and was closed by a different code path, or an
+   invisible full-screen overlay left in the DOM. coe-fix.js clears
+   those as they happen; these rules are the standing floor underneath it, so
+   the page is scrollable even if the script never runs.
+   --------------------------------------------------------------------------- */
+
+html {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    /* Kept from mobile.css: one overflowing child must not scroll the page
+       sideways. Only the vertical axis is being reopened here. */
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    /* coe-phone.css puts `overscroll-behavior-y: contain` on <html> to stop
+       Chrome's pull-to-refresh. Several in-app browsers — Messenger and
+       Instagram among them — read that on the root element as "this page
+       drives its own gestures" and stop handing the drag over at all, which
+       is a page that cannot be scrolled. The guard still works on <body>,
+       one level down, so it moves there and the root behaves normally. */
+    overscroll-behavior-y: auto !important;
+}
+
+/*
+ * `!important` here is doing real work rather than decorating: an author
+ * declaration marked important outranks an inline style that is not, which is
+ * what `document.body.style.overflow = 'hidden'` — set by mobile.js when the
+ * drawer opens — leaves behind if it is never cleared. This is the standing
+ * answer to that, independent of the script.
+ *
+ * The vertical axis only. mobile.css pins `overflow-x: hidden` on <body> to
+ * stop one wide child scrolling the page sideways, and that stays. The two
+ * axes disagreeing means the browser resolves this one to `auto` rather than
+ * `visible`; with `height: auto` the body grows to its content either way, so
+ * the scrolling still happens on the document and nothing is clipped.
+ */
+body:not(.auth-body) {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/*
+ * `position: fixed` on <body> is the iOS technique for holding the page still
+ * behind a dialog (enhanced-library.js, lockBackgroundScroll). It is correct
+ * while a dialog is open and it is a dead page the moment one is not, so it is
+ * allowed only for as long as the class that goes with it is present.
+ */
+body:not(.auth-body):not(.coe-modal-open):not(.nav-open) {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+}
+
+/* No ancestor of the page content may become a scroll container of its own.
+   #messages-panel is excluded on purpose: the chat workspace is deliberately
+   a fixed-height pane with its own internal scrollers. */
+body:not(.auth-body) .main-content {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Only the height clamp. `overflow-y` is deliberately left alone: styles.css
+   sets `overflow-x: hidden` on every visible panel, and a box with one axis
+   hidden and the other visible resolves the visible one to `auto` — which
+   would turn each panel into a scroll container of its own and reintroduce
+   the fault this file exists to remove. */
+body:not(.auth-body) .page-panel:not(#messages-panel):not(.hidden) {
+    max-height: none !important;
+}
+
+/* The decorative grid drawn over the whole viewport must never take a touch.
+   It is already `pointer-events: none` in styles.css; restated because it is
+   declared four separate times there and one of them is enough to lose. */
+body::before {
+    pointer-events: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   2. THE NAV LABELS, IN FULL
+
+   The strip carries nine destinations, each a two-line label — "Home /
+   Dashboard", "COESC / Student council". Read together they are the only map
+   of the site a first-time student gets, so the answer is to give them room
+   rather than to shorten the words.
+
+   Below 761px this section does nothing: coe-phone.css replaces the strip with
+   the five-tab bottom bar, which is the right shape for a phone and already
+   labels its tabs.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 761px) {
+
+    body:not(.auth-body) .student-priority-nav {
+        display: grid !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+        overflow: visible !important;
+    }
+
+    body:not(.auth-body) .priority-nav-item {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        min-height: 56px !important;
+        padding: 9px 12px !important;
+        /* The clip that produced "H...". */
+        overflow: visible !important;
+        text-align: left !important;
+    }
+
+    body:not(.auth-body) .priority-nav-item > .material-icons {
+        flex: 0 0 auto !important;
+    }
+
+    /* The label pair. `:not(.material-icons)` picks it out without needing a
+       class the markup does not have. */
+    body:not(.auth-body) .priority-nav-item > span:not(.material-icons) {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        gap: 1px !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    /* Wrap rather than truncate. A label that runs to two lines makes its row
+       taller and the grid matches every sibling to it, so the strip stays a
+       set of equal tiles instead of one tall chip among short ones. */
+    body:not(.auth-body) .priority-nav-item strong,
+    body:not(.auth-body) .priority-nav-item small {
+        display: block !important;
+        max-width: none !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.25 !important;
+    }
+
+    body:not(.auth-body) .priority-nav-item strong {
+        font-size: 0.9rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.005em !important;
+    }
+
+    body:not(.auth-body) .priority-nav-item small {
+        font-size: 0.735rem !important;
+        font-weight: 600 !important;
+        opacity: 0.78 !important;
+    }
+}
+
+/*
+ * Tablet, and the width the report came from.
+ *
+ * Three columns rather than a fitted count, because nine items over three
+ * columns is exactly three full rows — no short last row, and at ~250px a
+ * column every label in the set fits on one line with room to spare.
+ */
+@media (min-width: 761px) and (max-width: 1023px) {
+    body:not(.auth-body) .student-priority-nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+}
+
+/*
+ * Desktop. 200px is the widest label in the set ("Student council" under
+ * "COESC") plus its icon and padding, so auto-fit gives the most columns that
+ * still hold a one-line label: five at 1024px, six at the 1320px maximum.
+ */
+@media (min-width: 1024px) {
+    body:not(.auth-body) .student-priority-nav {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   3. ONE MENU BUTTON, ONE ACCOUNT CONTROL
+
+   mobile.js builds `.m-bar` below 900px — a fixed top bar carrying a hamburger
+   (#m-nav-toggle) and an account button (#m-account-toggle) — because
+   styles.css hides `.nav-right`, and with it the only Sign Out, below 700px.
+   That is the right call at 390px. It is also unconditional, so between 700
+   and 900 the page ends up with both bars: two hamburgers 50px apart that open
+   the same drawer, and two account controls that open the same four items.
+
+   The bar wins, because it is the one that is always there. What it duplicates
+   inside `.top-navbar` is hidden — and hidden with `display: none` rather than
+   removed, which matters: `.m-account-sheet` works by calling `.click()` on
+   the dropdown's own links, and a click dispatched at a `display: none`
+   element still fires its handlers. Take the markup away and Sign Out stops
+   working; leave it in place and unseen, and every item keeps its behaviour.
+
+   What is left in the card is the search field, which nothing else offers, now
+   across the full width instead of squeezed between two buttons that were
+   already on the bar above it.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+
+    body:not(.auth-body) #mobile-sidebar-btn,
+    body:not(.auth-body) .top-navbar .mobile-sidebar-btn,
+    body:not(.auth-body) .top-navbar .nav-profile-dropdown {
+        display: none !important;
+    }
+
+    /*
+     * The card is `.nav-left` (the hidden button plus the search) and
+     * `.nav-right` (clock, notifications, the hidden profile). With the button
+     * gone the search is the whole of the left side, so the left side takes
+     * the free space and the right side takes only what it needs.
+     *
+     * `min-width: 0` on every step down to the input is what actually lets it
+     * grow: a flex item will not shrink below the intrinsic width of its
+     * content by default, and an <input> carries a default size of 20
+     * characters. Without it the field collapses to a sliver — which is
+     * exactly what the first version of this rule did.
+     */
+    body:not(.auth-body) .top-navbar {
+        display: flex !important;
+        /* Both stated, and both needed. An earlier sheet stacks this card into
+           a column with `space-between`, which was written for the three-part
+           card; with one part left it centred a 248px block in a 346px box and
+           left 61px of nothing down the side. */
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        /* 96px of card around a 44px field, measured at 390px. On a phone that
+           is a fifth of the screen spent on one input. */
+        padding: 10px 12px !important;
+        margin-top: 8px !important;
+    }
+
+    body:not(.auth-body) .top-navbar .nav-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        width: auto !important;
+    }
+
+    body:not(.auth-body) .top-navbar .nav-right {
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+    }
+
+    body:not(.auth-body) .top-navbar .global-search-container {
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    body:not(.auth-body) .top-navbar #global-search {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   4. THE SIDEBAR FOOTER THAT SITS ON TOP OF THE LAST LINK
+
+   `.sidebar-workspace-card` — the account card at the foot of the sidebar — is
+   `position: sticky; bottom: 0` inside a `display: block` panel that is itself
+   the scroll container. Sticky takes an element out of flow, so it reserves no
+   space: it parks at the bottom of the scrollport and whatever is under it
+   stays under it. At 1440x900 that is the card printed across the Settings
+   link, both legible, neither readable — and Settings is the only route to
+   account and workspace options.
+
+   The card's own background is `rgba(255, 255, 255, 0.055)`, 5% of white on a
+   near-black panel, which is why the two read through each other rather than
+   one simply hiding the other.
+
+   Making the card opaque and padding the nav underneath it was the first
+   attempt and it does not hold: padding is added below the list, the card is
+   pinned over the middle of the scrollport, and the item it covers depends on
+   where the sidebar happens to be scrolled. Both symptoms come from the same
+   cause — a footer that has to be sticky because the panel is one long block —
+   so the fix is to stop needing sticky.
+
+   The sidebar becomes what it has always been in shape: a header that stays, a
+   list that scrolls, a footer that stays. The nav takes the free height and
+   scrolls inside it; the card goes back into normal flow at the bottom, where
+   it reserves its own space and cannot cover anything. `min-height: 0` is the
+   part that is easy to leave out — a flex item will not shrink below its
+   content's height without it, so the nav would push the card off the panel
+   instead of scrolling.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    /* The panel no longer scrolls; the list inside it does. */
+    overflow: hidden !important;
+}
+
+body:not(.auth-body) .sidebar .sidebar-header {
+    flex: 0 0 auto !important;
+}
+
+body:not(.auth-body) .sidebar .sidebar-nav {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+    /* The panel's own scrollbar is hidden by styles.css; this one inherits
+       that intent rather than introducing a bar the design never had. */
+    scrollbar-width: none !important;
+}
+
+body:not(.auth-body) .sidebar .sidebar-nav::-webkit-scrollbar {
+    display: none !important;
+}
+
+body:not(.auth-body) .sidebar-workspace-card {
+    position: static !important;
+    flex: 0 0 auto !important;
+    /* Opaque now that it is a footer rather than a pane floating over the
+       list — and in the sidebar's own colours, because it is the foot of a
+       maroon panel and not a grey tile resting on one. */
+    background: linear-gradient(180deg, #2a1013 0%, #1d0a0e 100%) !important;
+    box-shadow: 0 -10px 24px rgba(21, 4, 6, 0.32) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   5. THE MOBILE CHROME WAS UNDERNEATH THE PAGE
+
+   The worst of the four, and the one that explains the rest.
+
+   styles.css carries a rule from some earlier debugging session, labelled
+   "Emergency override: ensure main interactive regions receive clicks even if
+   an overlay exists". It gives `.sidebar`, `.main-content`, `.library-wrapper`
+   and four more selectors `pointer-events: auto !important`, `position:
+   relative` and `z-index: 20000 !important`.
+
+   `pointer-events: auto` is what makes those regions clickable. The z-index
+   was along for the ride, and it puts the page content at 20000 while every
+   piece of mobile chrome sits in the 7900-9000 band that mobile.css and
+   coe-phone.css agreed on:
+
+       #m-tabbar  7900     .m-bar  8000     scrim  8500     drawer  9000
+
+   All four are below the page. Measured in Chrome at 390x844:
+
+     - Opening the menu appears to do nothing. The drawer is there, at full
+       height and full opacity, painted behind the dashboard. The scrim does
+       not dim anything either, for the same reason.
+     - Scroll down and the top bar disappears under the cards, taking the menu
+       button with it.
+     - The bottom tab bar is half-covered by whatever card is over it.
+
+   Which is to say: on a phone the navigation is gone the moment you touch it,
+   and a page whose menu does nothing and whose bars vanish is a page that
+   reads as broken — "it will not scroll" is a fair description of it from the
+   outside.
+
+   The band moves above the content rather than the content moving down. The
+   emergency rule stays exactly as it is — other panels may lean on it, and
+   nothing that currently works can break by raising things that are currently
+   buried. The order within the band is the one those files already chose, so
+   the drawer still covers the scrim, and the scrim still dims both bars.
+
+     content 20000 < tabbar 20100 < bar 20200 < scrim 20300 < drawer 20400
+                   < sheets 20500 ................ modals stay at 55000
+
+   Only below 900px, which is the only place the drawer, the bar and the tab
+   bar exist.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+
+    body:not(.auth-body) #m-tabbar {
+        z-index: 20100 !important;
+    }
+
+    body:not(.auth-body) .m-bar {
+        z-index: 20200 !important;
+    }
+
+    /* The drawer scrim. Above both bars so opening the menu dims them too — a
+       bar left bright over a dimmed page reads as still-tappable. */
+    body:not(.auth-body)::after {
+        z-index: 20300 !important;
+    }
+
+    body:not(.auth-body) .sidebar {
+        z-index: 20400 !important;
+    }
+
+    /* The account menu and the More sheet, each with its own scrim. These open
+       over the drawer rather than under it. */
+    body:not(.auth-body) .m-account-sheet,
+    body:not(.auth-body) .m-more-scrim {
+        z-index: 20500 !important;
+    }
+
+    body:not(.auth-body) .m-more-sheet {
+        z-index: 20600 !important;
+    }
+}
