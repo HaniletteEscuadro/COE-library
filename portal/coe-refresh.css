@@ -691,3 +691,189 @@ body:not(.auth-body) .calendar-day-cell {
         padding: 14px !important;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   13. THE TOOLBAR THAT NEVER FIT A LAPTOP
+
+   Measured at 1280x900, signed in as a student, with the sidebar open. The
+   panels are 906px wide there. Both filter toolbars report a min-content width
+   of 980px:
+
+       .qa-controls          tracks resolve to  240px 130px 130px 130px 130px 130px
+       .announcement-toolbar tracks resolve to  240px 130px 130px 130px 130px 130px
+
+   A search field plus five controls, each with a hard 130px floor. The rule
+   setting it is unmediated and only steps down to two columns below 1100px, so
+   from 1101px up to about 1360px — which is 1280 and 1366, the two commonest
+   laptop widths — the toolbar's minimum is wider than the panel holding it.
+
+   A grid column sized `auto` cannot be narrower than the widest min-content
+   among its items, so the toolbar does not merely overflow itself: it drags
+   the panel's whole column out to 980px, and on Announcements to 1024px once
+   the 22px side margins are added. Every sibling then stretches to match. That
+   is why four unrelated boxes on each panel all measured the same 980px wide
+   and all ran past the right edge together.
+
+   Nothing scrolls to reach it. `.announcement-panel-card` is `overflow-x:
+   hidden` and <body> carries the horizontal guard, so the document stays 1280
+   wide and the overhang is simply cut:
+
+       announcements   right edge at 1326   46px cut off — the Compact button
+       q&a             right edge at 1304   24px cut off — the sort select
+
+   The controls are not squeezed, they are gone, and there is no gesture that
+   brings them back.
+
+   The floor comes off and the row is allowed to count its own columns. The
+   search keeps a line of its own, which is what both panels already do below
+   1100px and below 760px — so this makes one layout of what were three.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 1101px) {
+    body:not(.auth-body) .qa-controls,
+    body:not(.auth-body) .announcement-toolbar {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+    }
+
+    body:not(.auth-body) .qa-controls .search-box,
+    body:not(.auth-body) .announcement-toolbar .announcement-search {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   14. THE FORTNIGHT STRIP, IN TWO WEEKS RATHER THAN ONE
+
+   `#calendar-month-grid` is not a month. scripts.js renders fourteen
+   consecutive days from today, each cell carrying its own weekday name, so
+   fourteen cells is correct — it is the fourteen *columns* that are not.
+
+   `repeat(14, minmax(64px, 1fr))` has a minimum of fourteen 64px cells plus
+   thirteen 8px gaps: 1000px. The card gives it 866px at 1280x900. The cells
+   cannot compress below their floor, so they run to 1343 — 63px past the
+   screen, which is the whole of the last day of the fortnight, clipped and
+   unreachable for the same reason as above.
+
+   Below 1100px this is already seven across. Making it seven at every width
+   above 760 leaves the calendar one layout instead of two, and reading a
+   fortnight as two rows of seven puts each weekday under the same column,
+   which one long strip never did. `minmax(0, 1fr)` rather than a pixel floor,
+   so no width can push it out again.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 1101px) {
+    body:not(.auth-body) .calendar-month-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   15. THE SEND BUTTON ON A LINE OF ITS OWN — MEASURED, AND LEFT THERE
+
+   Section 8 moved the composer tools to their own line so the field could keep
+   the first line "with the send button". The tools moved; the send button did
+   not, and at 390x844 the composer is three lines rather than two — pill at
+   y=1205, a 42px send button alone at y=1301, tools at y=1351, 200px in all.
+
+   The cause is `flex: 1 1 auto` on the pill. A flex line is broken on
+   flex-basis and only what survives the break is then shrunk, so `auto`
+   resolves the pill to its 308px of content, which with the button and an 8px
+   gap is 358 in a 296px row: the button wraps away before `min-width: 0` is
+   ever consulted. `flex: 1 1 0` does put both on one line, and takes the
+   composer to 150px.
+
+   It is not worth it, and this is the measurement that says so. The pill holds
+   the field and two 42px buttons — #comm-emoji-btn "Stickers and emoji" and a
+   second .discord-composer-tool "Add smile" — so whatever width the pill is
+   given, the field gets 84px less than it. On one line at 360x844 the pill is
+   216px and the field 100px, and the placeholder "Message #General Chat" then
+   needs three lines inside a textarea fixed at 74px with `overflow-y: hidden`:
+   20px of its own placeholder cut off. That is the fault section 8 was written
+   to fix, coming back at a narrower width.
+
+   Full width, the pill is 296px and the field about 200px — past the 180px
+   section 8 aimed for. Fifty pixels of an 844px screen is the price, and it is
+   the right way round: a send button on a line of its own is untidy, a field
+   nobody can type in is not usable.
+
+   The two emoji buttons are the thing actually worth removing here, and that
+   is a question about the composer rather than about the layout.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   16. AN ICON ON A LINE BY ITSELF
+
+   `.org-notice-head` is an icon, a heading with its description, and a "See
+   all" button. At 390x844 the row is 290px and all three take a line each,
+   162px in total: the 24px campaign icon gets a whole line to itself with the
+   heading underneath it.
+
+   Section 9 gave these rows `flex-basis: auto`, which is enough when the
+   content is short and not when it is a sentence — the text block's basis
+   resolves to the full 290px, so the icon cannot share with it.
+
+   Two columns settle it: the icon in a 24px track and the text beside it, the
+   button on the row below where the text starts rather than under the icon.
+   Left to the flex row above 900px, where the three do fit one line.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+    body:not(.auth-body) .org-notice-head {
+        display: grid !important;
+        grid-template-columns: 24px minmax(0, 1fr) !important;
+        align-items: start !important;
+        gap: 10px !important;
+    }
+
+    body:not(.auth-body) .org-notice-head > .org-notice-all {
+        grid-column: 2 !important;
+        justify-self: start !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   17. A COLUMN HELD OPEN FOR A RAIL THAT NEVER COMES
+
+   The chat is clipped on a 1280px laptop. Measured signed in, Messages tab:
+
+       workspace  949px      tracks  286px  397px  264px
+       chat shell 397px      its content needs 475px      78px cut
+
+   `.discord-chat-shell` is `overflow-x: hidden`, so those 78px are not
+   scrollable — they are gone. That is the whole reason #comm-channel-topic
+   shows "General room for announcements, re…" out of a 70-character sentence
+   and the presence line stops at "synced loc…". The ellipsis is doing its job;
+   the box it is doing it in is 78px too narrow.
+
+   The third track belongs to the members rail. coe-chat-refresh.css asks for
+   it at 1280 and up — "the members rail only earns its column when there is
+   room for it" — but the rail is not there to fill it. Counted at 1280, 1366,
+   1440, 1600 and 1920, the workspace has two visible children at every one of
+   them, and the 264px stays empty at every one of them.
+
+   The rail loses to this, in styles.css:
+
+       #messages-panel.comm-clean-tab :is(.discord-server-rail,
+         .discord-member-rail, .comm-clean-group, #comm-favorite-channel, ...)
+         { display: none !important }
+
+   `:is()` takes the specificity of its most specific argument, and that list
+   contains four ids. So the selector weighs (2,2,1) while the rule meant to
+   bring the rail back at 1280 weighs (1,4,1) — an id beats any number of
+   classes, and being in a later file does not help, because specificity is
+   settled before order is. The rail has been hidden at every width since.
+
+   Reserving a column for it is the part that is wrong either way: a rail that
+   is not drawn must not be paid for. Two tracks, and the conversation takes
+   the space back. At 1280 the chat goes from 397px to about 647px, which is
+   173px more than its content asks for, and nothing is cut.
+
+   Whether the members rail should return at all is a question about the
+   product, not the layout, and is deliberately left alone here.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 1280px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .comm-product-workspace {
+        grid-template-columns: 286px minmax(0, 1fr) !important;
+    }
+}
