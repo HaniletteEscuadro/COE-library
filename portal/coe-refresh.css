@@ -1,0 +1,386 @@
+/* ===========================================================================
+   CONTENT-FIRST REFRESH
+   ---------------------------------------------------------------------------
+   The brief: the first thing a student sees should look good and be easy to
+   use, so they come back. Measured on a 390x844 phone, the page as it stood
+   answered neither.
+
+     - The hero is 774px tall. The viewport is 844. The first piece of actual
+       content — the newsfeed — starts at y=1101, so every student arrives at a
+       full screen of masthead and has to scroll past it before the page has
+       told them anything. Broken down: the copy block is 282px, three stacked
+       buttons are 158px, and a decorative photo is another 240px.
+
+     - An announcement card is 245px tall, of which 115px is the notice and
+       96px is its footer: the words "Tap for details" on a card that is
+       already one big button, and four 44x44 buttons in three colours. Two
+       fifths of every card is chrome, and the loudest thing on the page is a
+       row of unlabelled icons.
+
+   So: the masthead shrinks to a greeting, the photo goes on phones, the three
+   buttons become one row, and the card keeps its content and quiets its
+   furniture. Maroon and gold stay — they are the college's — but as ink and
+   accent rather than as fills and gradients competing with the text.
+
+   Loaded last, after coe-fix.css, for the same reason that file is: every
+   rule here corrects something already stated in styles.css or
+   coe-requested-polish.css, both of which use `!important` freely.
+
+   The action buttons are quieted in place rather than folded into a "..."
+   menu. handleAnnouncementAction() finds the notice with
+   `event.target.closest('[data-announcement-id]')`, so a button moved into a
+   popover outside the card silently stops working. In place they also stay
+   discoverable, which on a phone is worth more than a tidier row.
+   =========================================================================== */
+
+body:not(.auth-body) {
+    /* One place for the palette, so the other tabs can be brought over to it
+       without guessing which maroon was meant. */
+    --coe-maroon: #7b1e27;
+    --coe-maroon-deep: #5c151c;
+    --coe-gold: #b8912f;
+    --coe-ink: #2a1f21;
+    --coe-ink-soft: #6b5a5d;
+    --coe-line: #e9e0dc;
+    --coe-surface: #ffffff;
+    --coe-radius: 14px;
+    --coe-shadow: 0 1px 2px rgba(42, 31, 33, 0.06), 0 8px 24px rgba(42, 31, 33, 0.05);
+}
+
+/* ---------------------------------------------------------------------------
+   1. THE MASTHEAD BECOMES A GREETING
+
+   Desktop keeps the photo — there is room for it beside the copy, and it is
+   the college's own building. On a phone it is 240px of decoration in front of
+   the thing the student opened the app to read.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) #home-page.page-header {
+    padding: 20px !important;
+    border-radius: var(--coe-radius) !important;
+}
+
+body:not(.auth-body) #home-page.page-header .welcome-banner,
+body:not(.auth-body) #home-panel .welcome-banner {
+    gap: 6px !important;
+}
+
+/* The winning rule names `.welcome-banner`, so this one has to as well:
+   `clamp(2rem, 11vw, 3.2rem)` is 42.9px at 390px, and "College of Engineering
+   workspace" then takes three lines and 126px of the first screen. */
+body:not(.auth-body) #home-page.page-header .welcome-banner h1,
+body:not(.auth-body) #home-panel .page-header .welcome-banner h1 {
+    margin: 4px 0 !important;
+    font-size: clamp(1.5rem, 7.4vw, 2.3rem) !important;
+    line-height: 1.14 !important;
+    letter-spacing: -0.015em !important;
+}
+
+/* The three calls to action, on one line instead of three. */
+body:not(.auth-body) #home-page.page-header .hero-actions,
+body:not(.auth-body) #home-panel .hero-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+}
+
+body:not(.auth-body) #home-page.page-header .hero-action-btn,
+body:not(.auth-body) #home-panel .hero-action-btn {
+    /* styles.css gives each of these `width: 100%`, which is what actually
+       stacked them — a row of three full-width items is three rows. */
+    width: auto !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 0 14px !important;
+    border-radius: 10px !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+}
+
+@media (max-width: 760px) {
+    body:not(.auth-body) #home-page.page-header {
+        padding: 16px !important;
+    }
+
+    /* The photo. Decorative, and the single biggest block between the student
+       and the page — it is `aria-hidden` scenery, so nothing is lost with it
+       gone on a screen this size. */
+    body:not(.auth-body) #home-page.page-header .header-visual,
+    body:not(.auth-body) #home-panel .header-visual {
+        display: none !important;
+    }
+
+    /* The standfirst repeats what the eight-tile nav under it already says. */
+    body:not(.auth-body) #home-page.page-header .welcome-banner > p,
+    body:not(.auth-body) #home-page.page-header .header-copy > p {
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        margin-bottom: 0 !important;
+        font-size: 0.9rem !important;
+        line-height: 1.45 !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   2. SECTION HEADINGS
+
+   Title, one line of explanation, and the way out on the right — the same
+   shape on every section so the eye learns it once. "View all" was wrapping
+   onto two lines inside its own button at 390px.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .home-section-head,
+body:not(.auth-body) #home-announcements-panel > .panel-head,
+body:not(.auth-body) .nf-head {
+    align-items: flex-start !important;
+    gap: 12px !important;
+}
+
+body:not(.auth-body) .nf-viewall,
+body:not(.auth-body) #home-announcements-panel .view-all-btn,
+body:not(.auth-body) .home-section-head .view-all-btn {
+    flex: 0 0 auto !important;
+    min-height: 40px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
+}
+
+/* ---------------------------------------------------------------------------
+   3. THE ANNOUNCEMENT CARD
+
+   One surface, one border, one radius. It is used here and on the
+   Announcements tab from the same template, so both get this.
+   --------------------------------------------------------------------------- */
+
+/* The Home copy of the card is given `border-radius: 8px` by an id-scoped
+   rule, so it alone was a different shape from the same card on the
+   Announcements tab. Named here so both round the same way. */
+body:not(.auth-body) .announcement-card[data-announcement-id],
+body:not(.auth-body) #home-panel .home-announcements-card .announcement-card {
+    padding: 0 !important;
+    border: 1px solid var(--coe-line) !important;
+    border-radius: var(--coe-radius) !important;
+    background: var(--coe-surface) !important;
+    box-shadow: var(--coe-shadow) !important;
+    overflow: hidden !important;
+}
+
+body:not(.auth-body) .announcement-card.pinned {
+    border-color: rgba(184, 145, 47, 0.55) !important;
+}
+
+/* The tappable body of the card. */
+body:not(.auth-body) .announcement-expand-area {
+    gap: 12px !important;
+    padding: 14px 16px 10px !important;
+    border-radius: 0 !important;
+    background: none !important;
+}
+
+body:not(.auth-body) .announcement-card-icon {
+    flex: 0 0 auto !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 9px !important;
+    font-size: 19px !important;
+}
+
+body:not(.auth-body) .announcement-card-header h4 {
+    margin: 0 !important;
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* `CE | Posted Aug 12, 2026 | Event Aug 17, 2026 | By Matt Andrei A.
+   Peralteon` — four facts and three pipes, wrapping to three lines and setting
+   the card's height. Held to two lines and dropped out of the way of the
+   title, which is what the student is actually scanning. */
+body:not(.auth-body) .announcement-meta-line {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    margin: 2px 0 4px !important;
+    color: var(--coe-ink-soft) !important;
+    font-size: 0.74rem !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.005em !important;
+}
+
+body:not(.auth-body) .announcement-summary {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    color: var(--coe-ink) !important;
+    font-size: 0.88rem !important;
+    line-height: 1.5 !important;
+}
+
+/* Opened, the full text is the point — no clamp. */
+body:not(.auth-body) .announcement-card.expanded .announcement-summary {
+    -webkit-line-clamp: unset !important;
+}
+
+body:not(.auth-body) .announcement-details {
+    margin-top: 8px !important;
+    color: var(--coe-ink) !important;
+    font-size: 0.88rem !important;
+    line-height: 1.55 !important;
+}
+
+/* ---------------------------------------------------------------------------
+   4. THE FOOTER, QUIETED
+
+   96px of a 245px card, for four icons and a label. The label goes — the whole
+   body above it is a button with `aria-expanded`, so "Tap for details" is
+   instructions for something already obvious. The icons stay, at a real touch
+   size, but as ink on the card instead of three filled chips.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-card-footer {
+    justify-content: flex-end !important;
+    padding: 0 10px 8px !important;
+    border-top: 0 !important;
+    background: none !important;
+}
+
+body:not(.auth-body) .announcement-time {
+    display: none !important;
+}
+
+body:not(.auth-body) .announcement-card-actions {
+    gap: 2px !important;
+}
+
+body:not(.auth-body) .announcement-action-btn {
+    width: 40px !important;
+    height: 40px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--coe-ink-soft) !important;
+    transition: background-color 140ms ease, color 140ms ease !important;
+}
+
+body:not(.auth-body) .announcement-action-btn .material-icons {
+    font-size: 19px !important;
+    color: inherit !important;
+}
+
+body:not(.auth-body) .announcement-action-btn:hover,
+body:not(.auth-body) .announcement-action-btn:focus-visible {
+    background: rgba(123, 30, 39, 0.07) !important;
+    color: var(--coe-maroon) !important;
+}
+
+/* On is said with the college's own two colours rather than a filled chip:
+   read is maroon, pinned is gold. */
+body:not(.auth-body) .announcement-action-btn.active {
+    background: rgba(123, 30, 39, 0.09) !important;
+    color: var(--coe-maroon) !important;
+}
+
+body:not(.auth-body) .announcement-action-btn[data-announcement-action="pin"].active {
+    background: rgba(184, 145, 47, 0.16) !important;
+    color: #8a6c1f !important;
+}
+
+body:not(.auth-body) .announcement-action-btn.danger:hover {
+    background: rgba(178, 32, 32, 0.1) !important;
+    color: #b22020 !important;
+}
+
+/* ---------------------------------------------------------------------------
+   5. EMPTY STATES
+
+   "No COE achievements posted yet." was a 263px panel to deliver six words.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .empty-home-section,
+body:not(.auth-body) .home-achievements-empty,
+body:not(.auth-body) .achievement-empty-state {
+    padding: 20px 16px !important;
+    border-radius: 12px !important;
+    color: var(--coe-ink-soft) !important;
+    font-size: 0.88rem !important;
+}
+
+body:not(.auth-body) .empty-home-section .material-icons,
+body:not(.auth-body) .home-achievements-empty .material-icons,
+body:not(.auth-body) .achievement-empty-state .material-icons {
+    font-size: 26px !important;
+    opacity: 0.5 !important;
+}
+
+/* ---------------------------------------------------------------------------
+   6. THE NOTICE LIST WAS SQUEEZING ITS OWN CARDS
+
+   Not introduced here — measured with this file disabled, and worse without
+   it. `.announcement-panel-card .announcement-list` is `display: grid` with
+   `max-height: 760px` and no rule for what happens when the content is
+   taller. Five notices then share 760px: the grid shrinks every auto row to
+   about 150px, each card is handed a row shorter than the card, and because
+   the overflow is visible it is drawn anyway — the action buttons of one card
+   land on top of the meta line of the same card, and the whole list reads as
+   scrambled.
+
+   Measured at 390x844 on the Announcements tab, before any of today's
+   changes: a 161px card body in a 44px row, overflowing by 117px.
+
+   Rows sized to their content, and no cap. It is the page's own list, not a
+   preview pane — there is nothing for it to be bounded against, and the
+   document scrolls perfectly well now that section 1 of coe-fix.css lets it.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-panel-card .announcement-list,
+body:not(.auth-body) .home-announcements-card .announcement-list {
+    max-height: none !important;
+    grid-auto-rows: max-content !important;
+    align-items: start !important;
+}
+
+/* ---------------------------------------------------------------------------
+   7. TAB STRIPS THAT WRAPPED INSTEAD OF SCROLLING
+
+   coe-phone.css already treats these as horizontal strips — it gives them
+   `overscroll-behavior-x: contain` and `scroll-snap-type: x proximity`, which
+   only mean anything on something that scrolls sideways. They do not. The
+   strip is `display: flex` with `overflow-x: auto` as intended, but the tabs
+   inside are laid out full-width, so "All", "CE" and "EE" are three 260px
+   items in a 270px strip and it wraps to three rows: 150px of a phone screen
+   to offer three words.
+
+   Sized to their own labels, they are one row of about 60px each, and the
+   strip scrolls when a course list is genuinely too long for the screen —
+   which is what the snap rules were written for.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-council-tabs,
+body:not(.auth-body) .course-tabs,
+body:not(.auth-body) .qa-tab-row,
+body:not(.auth-body) .coesc-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+}
+
+body:not(.auth-body) .announcement-council-tabs > *,
+body:not(.auth-body) .course-tabs > .course-tab,
+body:not(.auth-body) .qa-tab-row > *,
+body:not(.auth-body) .coesc-tabs > * {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 16px !important;
+    scroll-snap-align: start !important;
+}
