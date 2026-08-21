@@ -384,3 +384,310 @@ body:not(.auth-body) .coesc-tabs > * {
     padding: 0 16px !important;
     scroll-snap-align: start !important;
 }
+
+/* ---------------------------------------------------------------------------
+   8. THE CHAT PANEL WAS DRAWING ITSELF ON TOP OF ITSELF
+
+   `.discord-chat-shell` is a grid with six rows stated in pixels —
+   `82px 86px 59px 76px 32px 119px`, 454px in total — and `overflow: hidden`.
+   The message thread is given the 76px row and carries `min-height: 240px`,
+   which it cannot go below. So it overflows its own row by 164px and is
+   painted straight over the two rows beneath it: 32px of typing indicator and
+   119px of composer. Measured at 390x844, and those two numbers are exactly
+   the overlaps reported.
+
+   A chat window is one fixed part, one flexible part and one fixed part. Rows
+   sized to their content, the thread scrolling inside a range of its own, and
+   nothing clipped by the shell.
+   --------------------------------------------------------------------------- */
+
+/*
+ * Specificity: every rule that shapes this panel is written as
+ * `#messages-panel.comm-clean-tab .discord-chat-shell`, so a bare
+ * `.discord-chat-shell` never reaches it. Matched here.
+ *
+ * The template is not the problem — it already says
+ * `auto auto auto minmax(0, 1fr) auto`. The height is. `min-height:
+ * calc(100vh - 390px)` is 454px on an 844px phone, the five fixed rows around
+ * the thread need 378px of it, and the `1fr` row is left with 76px. Give the
+ * shell the room the panel already has (it is 762px tall) and the thread gets
+ * about 256px instead.
+ */
+@media (max-width: 900px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .discord-chat-shell {
+        min-height: calc(100dvh - 210px) !important;
+        overflow: visible !important;
+    }
+}
+
+/* And it must be allowed to shrink into whatever that row turns out to be.
+   `min-height: 240px` on a grid item in a 76px track is what actually did the
+   overlapping — a grid item cannot go below its own min-height, so it spills
+   over the rows beneath instead. */
+body:not(.auth-body) #messages-panel.comm-clean-tab #comm-chat-thread {
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+}
+
+/*
+ * The composer. The textarea measured 12px wide inside a 128px pill inside a
+ * 348px form: a flex item will not shrink below the intrinsic width of its
+ * content, and a <textarea> carries a default width of about 20 characters, so
+ * every button around it took its width first and the field got the remainder.
+ * `min-width: 0` is what lets it take the space instead — the same fix
+ * coe-fix.css already applies to the search field in the phone top bar.
+ */
+body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-composer-row,
+body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-input-pill {
+    min-width: 0 !important;
+}
+
+body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-input-pill {
+    flex: 1 1 auto !important;
+}
+
+body:not(.auth-body) #messages-panel.comm-clean-tab #comm-chat-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    min-height: 44px !important;
+    max-height: 120px !important;
+    overflow-y: auto !important;
+}
+
+/*
+ * `min-width: 0` was necessary but not sufficient: the row simply has more in
+ * it than fits. Measured at 390px — the row is 316px wide and holds a 130px
+ * tools group, a 42px send button and the pill, which leaves the pill 128px;
+ * inside the pill sit two more 42px buttons, so the field itself came out at
+ * 12px. Nobody can type in 12px.
+ *
+ * The tools go to a line of their own below, which is where a phone keyboard
+ * expects them anyway, and the field keeps the first line with the send
+ * button: about 170px of typing room instead of 12.
+ */
+@media (max-width: 900px) {
+    body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-composer-row {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-input-pill {
+        order: 1 !important;
+        flex: 1 1 auto !important;
+    }
+
+    body:not(.auth-body) #messages-panel.comm-clean-tab .discord-send-btn {
+        order: 2 !important;
+    }
+
+    body:not(.auth-body) #messages-panel.comm-clean-tab .msgr-tools {
+        order: 3 !important;
+        flex: 1 1 100% !important;
+        justify-content: flex-start !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   9. HEADER ROWS THAT STACKED ONE ITEM PER LINE
+
+   The same fault in four places, all of them a wrapping flex row whose
+   children are laid out full-width: three items then make three rows. Measured
+   at 390x844 — the Q&A tabs 150px, the library breadcrumb 145px, the library
+   folder context 192px, the organisations notice head 166px, and the COESC
+   hero 418px with its stats running 44px past the right edge of the screen.
+
+   Sized to their content, they are rows again. `flex-wrap` is left alone, so
+   anything genuinely too wide still wraps rather than being cut off — what
+   changes is that it wraps when it has to, not always.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .qa-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+}
+
+body:not(.auth-body) .qa-tabs > * {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    scroll-snap-align: start !important;
+}
+
+body:not(.auth-body) .lib-breadcrumb-row > *,
+body:not(.auth-body) .library-folder-context > *,
+body:not(.auth-body) .org-notice-head > *,
+body:not(.auth-body) .coesc-hero > * {
+    width: auto !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+}
+
+body:not(.auth-body) .lib-breadcrumb-row,
+body:not(.auth-body) .org-notice-head {
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+/* The stats strip is the part that overran the screen: fixed-width tiles in a
+   row that is narrower than they are. */
+body:not(.auth-body) .coesc-hero-stats {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+body:not(.auth-body) .coesc-hero-stat {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+/* ---------------------------------------------------------------------------
+   10. THE META LINE, WITHOUT LOSING THE AUTHOR
+
+   Two lines was one line too few: "CE | Posted Aug 12, 2026 | Event Aug 17,
+   2026 | By Matt Andrei A. Peralteon" is four facts, and the clamp was cutting
+   the name off every card on the Announcements tab. Three lines fits it at
+   390px and still bounds the card.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .announcement-meta-line {
+    -webkit-line-clamp: 3 !important;
+}
+
+/* ---------------------------------------------------------------------------
+   11. ONE SET OF EDGES
+
+   Surveyed across Tasks, Library, Q&A, COESC, Organisations, Calendar,
+   Settings and Voice, the panels use nine corner radii — 8, 9, 10, 12, 14, 16,
+   18, 20 and 999px — and two different palettes for their edges:
+
+     warm   #e9dcd7  #f0e6e2  #e3d3cd  #e9e0dc     cards, panels
+     cool   rgba(100,116,139,.24)  #cbd5e1  #e2e8f0  slate — inputs, selects,
+                                                     the COESC sections
+
+   The cool family is Tailwind's slate, and next to a maroon-and-gold college
+   it reads as blue-grey. That single mismatch is most of why the tabs look
+   like different products: every form control on every page is outlined in a
+   colour the rest of the page does not use.
+
+   Three radii, one line colour, one shadow. Nothing moves — this changes what
+   the edges are, not where anything sits.
+
+   Dark surfaces are left alone. The heroes outline themselves in translucent
+   white because they sit on a photograph, which is correct there and would be
+   invisible if it were changed to the warm line.
+   --------------------------------------------------------------------------- */
+
+body:not(.auth-body) .page-panel :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) {
+    border: 1px solid var(--coe-line) !important;
+    border-radius: 10px !important;
+    background-color: var(--coe-surface) !important;
+    color: var(--coe-ink) !important;
+}
+
+body:not(.auth-body) .page-panel :is(input, select, textarea):focus-visible {
+    border-color: rgba(123, 30, 39, 0.55) !important;
+    outline: 2px solid rgba(123, 30, 39, 0.18) !important;
+    outline-offset: 1px !important;
+}
+
+/* The cards. Named rather than matched by shape, so nothing else is caught. */
+body:not(.auth-body) :is(
+    .metric-card,
+    .library-stat-card,
+    .empty-state,
+    .qa-command-card,
+    .stat-item,
+    .coesc-section,
+    .org-profile-card,
+    .org-tool-card,
+    .calendar-stat-card,
+    .calendar-panel-card,
+    .calendar-event-item,
+    .setting-item,
+    .settings-heading,
+    .profile-summary-card,
+    .voice-card,
+    .voice-stat
+) {
+    border: 1px solid var(--coe-line) !important;
+    border-radius: var(--coe-radius) !important;
+    box-shadow: var(--coe-shadow) !important;
+}
+
+/* The containers those cards sit in, one step larger. */
+body:not(.auth-body) :is(
+    .library-wrapper,
+    .qa-container,
+    .voice-container,
+    .calendar-dashboard,
+    .org-command-hero
+) {
+    border-radius: 18px !important;
+}
+
+/* Tab strips and their buttons are pills, everywhere, not eight shapes. */
+body:not(.auth-body) :is(.qa-tabs, .voice-tabs, .org-tabs, .course-tabs, .coesc-tabs, .announcement-council-tabs) {
+    border-radius: 999px !important;
+}
+
+body:not(.auth-body) :is(.qa-tab-btn, .voice-tab-btn, .org-tab, .course-tab) {
+    border: 0 !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+}
+
+body:not(.auth-body) :is(.qa-tab-btn, .voice-tab-btn, .org-tab, .course-tab)[aria-selected="true"],
+body:not(.auth-body) :is(.qa-tab-btn, .voice-tab-btn, .org-tab, .course-tab).active {
+    background: var(--coe-maroon) !important;
+    color: #ffffff !important;
+}
+
+/* The calendar grid keeps its own tighter radius — 14px on a 40px day cell
+   leaves no straight edge for the number to sit against. */
+body:not(.auth-body) .calendar-day-cell {
+    border: 1px solid var(--coe-line) !important;
+    border-radius: 10px !important;
+}
+
+/* ---------------------------------------------------------------------------
+   12. COUNTERS TWO ACROSS, THE WAY TWO TABS ALREADY DO IT
+
+   The library and Voice lay their small statistics out two to a row on a
+   phone: 142px cards, and the whole strip is 274px and 220px respectively.
+   Tasks, Q&A and the calendar put the same kind of card in a single column,
+   and a counter showing one word and one number gets the full width of the
+   screen:
+
+     tasks     .task-metrics             4 x 132px = 564px
+     qa-hub    .qa-stats                 3 x 132px = 424px
+     calendar  .calendar-dashboard-grid  4 x  92px = 404px
+
+   Half a screen or more, before the tasks, the questions or the month, and
+   most of it reading "0". Two across, like the other two tabs.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+    body:not(.auth-body) .task-metrics,
+    body:not(.auth-body) .qa-stats,
+    body:not(.auth-body) .calendar-dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    /* 132px was a full-width card's height; at half the width the same
+       content needs less of it. Held as a minimum, not a fixed height, so a
+       longer label still gets its second line. */
+    body:not(.auth-body) :is(.metric-card, .stat-item, .calendar-stat-card) {
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 14px !important;
+    }
+}
