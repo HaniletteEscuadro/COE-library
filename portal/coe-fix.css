@@ -72,11 +72,39 @@ html {
  * `visible`; with `height: auto` the body grows to its content either way, so
  * the scrolling still happens on the document and nothing is clipped.
  */
+/*
+ * No `overscroll-behavior` here. It cannot live on this element, and the
+ * reason is two lines up.
+ *
+ * The note above is right that `overflow-y: visible` resolves to `auto` while
+ * mobile.css holds `overflow-x: hidden` on <body> — and that is precisely what
+ * makes <body> a scroll container. Its height is `auto`, so it grows to its
+ * content and has nothing to scroll: zero room, measured. Add
+ * `overscroll-behavior-y: contain` to that same element and the scroll chain
+ * now *stops* at a container that cannot move, before it ever reaches the
+ * viewport, which is the thing holding the 1123px of actual room.
+ *
+ * The page is then completely dead to a finger and to a wheel, while
+ * `window.scrollTo()` still works perfectly — programmatic scrolling does not
+ * chain. That is why every audit of this file passed: they all measured with
+ * scrollTo. Measured at 360x640 with a real drag: 0px, on all eleven panels.
+ *
+ * Which device it hits depends only on whether the browser knows the property:
+ * Chrome and Android have since 2017 and Safari since 16, so those pages are
+ * frozen, while an older iPhone drops the declaration and scrolls fine. One
+ * phone works, the next does not, and nothing about the page explains it.
+ *
+ * `contain` was here to stop Chrome's pull-to-refresh reloading the page and
+ * losing your place. It cannot go on <html> either — the note above records
+ * in-app browsers refusing the drag outright when it is on the root. So the
+ * guard is dropped: pull-to-refresh behaves the way it does on every other
+ * site, which is a far smaller thing than a page that will not move.
+ */
 body:not(.auth-body) {
     height: auto !important;
     max-height: none !important;
     overflow-y: visible !important;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto !important;
     -webkit-overflow-scrolling: touch;
 }
 
