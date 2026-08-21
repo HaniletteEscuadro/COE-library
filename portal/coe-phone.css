@@ -324,6 +324,20 @@
   body:not(.auth-body) #m-tabbar .m-tab > .material-icons {
     font-size: 23px !important;
     line-height: 1 !important;
+    /*
+     * The tile strip's 36x36 icon box, undone.
+     *
+     * These tabs carry `.priority-nav-item` (see above), so
+     * `.priority-nav-item > .material-icons` reaches them and hands the icon a
+     * 36px square — which renders 38.2px tall inside a tab whose content box is
+     * only 47px. Icon plus gap plus label wants 52.6px, so the label is the
+     * flex item that gives: it shrinks from 11.4px to 8px and every one of
+     * "Home", "Tasks", "Study", "Ask" loses its bottom third. Sizing the icon
+     * by its own font again leaves the label the room it asks for.
+     */
+    width: auto !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
     /* `inherit`, so the active/inactive colour is stated in exactly one place
        below rather than twice with a chance of disagreeing. */
     color: inherit !important;

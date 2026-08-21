@@ -333,8 +333,26 @@
   }
 }
 
-/* Above 900px the drawer does not exist, so neither should the scrim. */
-@media (min-width: 901px) {
+/*
+ * Above 1180px the drawer does not exist, so neither should the scrim.
+ *
+ * 901 was the number here, on the assumption that the desktop layout resumes
+ * where this file's phone rules stop. It does not. styles.css collapses the
+ * body grid to a single column all the way up to 1180px, and puts the sidebar
+ * back on top of the page as a drawer for the whole of that band — a different
+ * drawer from this one, opened by `#mobile-sidebar-btn` and marked with
+ * `.mobile-open` rather than `.is-open`, but a drawer.
+ *
+ * Flattening it to `position: static` therefore did not restore a column: it
+ * dropped a full-height 220px panel into a one-column grid, as the grid's
+ * first row, with the entire dashboard as the second. Measured at 1024x768 and
+ * at 1100x768: `.main-content` starts 834px down, so the page opens on an
+ * empty screen and the top bar, the workspace nav and every card are below the
+ * fold before the page has done anything at all.
+ *
+ * The boundary belongs where the second column actually reappears.
+ */
+@media (min-width: 1181px) {
   body:not(.auth-body)::after {
     display: none !important;
     pointer-events: none !important;

@@ -432,6 +432,27 @@ body:not(.auth-body) .sidebar-workspace-card {
         z-index: 20300 !important;
     }
 
+    /*
+     * And it has to be allowed to paint at all.
+     *
+     * styles.css states `body:not(.auth-body)::before, body:not(.auth-body)
+     * ::after { display: none !important }` with no media query around it,
+     * which is the whole portal. mobile.css builds the scrim out of position,
+     * inset, background and opacity but never restates `display`, so the
+     * property it never mentions is the one that decides: measured at 390x844
+     * with the drawer open, `display` computes to `none` and the page behind
+     * it is not dimmed by anything. Raising its z-index last time moved an
+     * element that was never being drawn.
+     *
+     * Only while the drawer is open, so the rule above keeps holding the rest
+     * of the time, and a click still lands on <body> — pseudo-elements are not
+     * event targets — where mobile.js's outside-click handler closes the
+     * drawer exactly as it did before.
+     */
+    body:not(.auth-body).nav-open::after {
+        display: block !important;
+    }
+
     body:not(.auth-body) .sidebar {
         z-index: 20400 !important;
     }
@@ -445,5 +466,85 @@ body:not(.auth-body) .sidebar-workspace-card {
 
     body:not(.auth-body) .m-more-sheet {
         z-index: 20600 !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   6. THE TABLET BAND HAD NO NAVIGATION AT ALL
+
+   Section 5 above ends with "only below 900px, which is the only place the
+   drawer, the bar and the tab bar exist". That is true of *this* drawer — the
+   one mobile.js opens with `.is-open`. It is not true of the sidebar, which
+   goes off-canvas twice, under two different names:
+
+     <= 900     mobile.js          `.is-open`      opened from the phone bar
+     901-1040   scripts.js         `.mobile-open`  opened from #mobile-sidebar-btn
+     1041-1180  nothing            -               nothing opens it
+     >= 1181    a real column
+
+   styles.css collapses the body grid to `1fr` at 1180 and lifts the sidebar to
+   `position: fixed` with it, so from 901 to 1180 the page is laid out for a
+   drawer. Only the first half of that band was ever given one, and mobile.css
+   then flattened even that back to `position: static` from 901 up (corrected
+   at the foot of that file). Measured at 1024x768, 1100x768 and 1180x768, all
+   three landed in the same place: sidebar as the grid's first row, 768px tall,
+   `.main-content` starting at 834px, an empty screen on arrival.
+
+   1041-1180 was worse than broken layout. `#mobile-sidebar-btn` is shown by a
+   `max-width: 1040px` rule, so above 1040 the button is gone as well — no
+   column, no drawer, and nothing to open one with. Every destination in the
+   portal is reached from that sidebar.
+
+   So the drawer runs to 1180, where the column comes back. The z-index band is
+   section 5's, for section 5's reason: `.main-content` sits at 20000, and a
+   drawer at the 120 styles.css gives it opens *behind* the dashboard.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 901px) and (max-width: 1180px) {
+
+    body:not(.auth-body) .sidebar {
+        position: fixed !important;
+        inset: 0 auto 0 0 !important;
+        width: min(86vw, 320px) !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        overflow-y: auto !important;
+        /* Compositor-only, so the slide stays smooth on a tablet. */
+        transform: translateX(-104%) !important;
+        transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        z-index: 20400 !important;
+    }
+
+    body:not(.auth-body) .sidebar.mobile-open {
+        transform: translateX(0) !important;
+        box-shadow: 24px 0 80px rgba(15, 23, 42, 0.34) !important;
+    }
+
+    /* The scrim setMobileSidebar already asks for by putting
+       `.sidebar-overlay-active` on <body>. Above the page, below the drawer. */
+    body:not(.auth-body).sidebar-overlay-active::after {
+        position: fixed !important;
+        display: block !important;
+        inset: 0 !important;
+        z-index: 20300 !important;
+        content: "" !important;
+        background: rgba(15, 23, 42, 0.42) !important;
+        backdrop-filter: blur(2px);
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    /* The same safety valve section 5 gives the phone: a class left behind by
+       a close that took another path must not leave an invisible sheet over
+       the page with nothing on it clickable. */
+    body:not(.auth-body):not(.sidebar-overlay-active)::after {
+        display: none !important;
+        pointer-events: none !important;
+    }
+
+    /* Shown to 1040 by styles.css; the band needs it to 1180. */
+    body:not(.auth-body) #mobile-sidebar-btn,
+    body:not(.auth-body) .top-navbar .mobile-sidebar-btn {
+        display: inline-flex !important;
     }
 }
