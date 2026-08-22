@@ -22842,6 +22842,117 @@ document.addEventListener('DOMContentLoaded', function () {
                 linkSource === 'drive' ? 'Google Drive Link' :
                 linkSource === 'notebook' ? 'Notebook Link' :
                 linkSource === 'gem' ? 'Study Link' : 'External Link';
+
+            /** Clear the composer and land on the library, however it was saved. */
+            const finishLinkUpload = function (headline, detail, tone) {
+                if (window.enhancedLibrary?.populateLibraryFolderTree) {
+                    window.enhancedLibrary.populateLibraryFolderTree();
+                    window.enhancedLibrary.populateSubjectFilter?.();
+                    window.enhancedLibrary.populateLessonFilter?.();
+                    window.enhancedLibrary.populateTagFilter?.();
+                }
+                displayLibrary();
+                libraryUploadPageForm.reset();
+                if (libraryUploadFileName) libraryUploadFileName.textContent = 'No file selected';
+                if (libraryUploadFolderNameInput) libraryUploadFolderNameInput.value = '';
+                populateLibraryUploadFolders();
+                showPage('library');
+                window.showLibraryToast?.(headline, detail, tone || 'success');
+            };
+
+            // --- Shared library ------------------------------------------
+            //
+            // A link pasted on the upload PAGE used to be written into this
+            // browser's own copy of the library and nowhere else. It looked
+            // like it worked - the card appeared, the toast said "added" - but
+            // the server never heard about it, so nobody else could see it and
+            // it was gone the moment coe-live.js rebuilt the cache from the
+            // database. Files from this same form already took this path;
+            // links did not, which is the whole of the bug.
+            //
+            // The modal's link tab was fixed in upload-ui.js. This is the same
+            // fix for the full-page composer, which is the other way in.
+            if (window.CoeLive?.ready) {
+                const folderInfo = parseLibraryFolderId(folderId);
+
+                /*
+                 * The shelf has to be one the folder tree actually builds.
+                 *
+                 * getDefaultMaterialCategory() answers 'GDrive Links' for a
+                 * link, which is in MATERIAL_CATEGORIES but is NOT one of
+                 * FOLDER_MATERIAL_CATEGORIES - so a link stamped with it saves,
+                 * reaches the server, comes back, and then has no folder
+                 * anywhere in the tree to be drawn in. The folder being
+                 * uploaded into wins; otherwise a video link goes to Video
+                 * Lectures and everything else to Reference Books.
+                 */
+                const composerCategory = uploadMetadata.materialCategory === 'GDrive Links'
+                    ? ''
+                    : uploadMetadata.materialCategory;
+                const linkCategory = folderInfo.category || composerCategory ||
+                    (linkSource === 'youtube' ? 'Video Lectures' : 'Reference Books');
+
+                // Where the button sits during the round trip. A link POST is
+                // fast but not instant, and a form that looks idle invites a
+                // second submit.
+                const submitBtn = libraryUploadPageForm.querySelector('button[type="submit"], .gd-submit');
+                const submitLabel = submitBtn ? submitBtn.innerHTML : '';
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Adding link...';
+                }
+
+                window.CoeLive.uploadMaterial({
+                    folder: {
+                        course: folderInfo.course || professorInfo.course || uploadMetadata.course || libraryUploadCourseSelect?.value || 'CE',
+                        year: folderInfo.year || professorInfo.year || uploadMetadata.year || '',
+                        subject: folderInfo.subject || professorInfo.subject || uploadMetadata.subject || subject || '',
+                        category: linkCategory
+                    },
+                    title: uploadMetadata.title || uploadMetadata.standardizedName || linkOriginalName,
+                    description: uploadMetadata.description || '',
+                    tags: uploadMetadata.tags,
+                    lesson: folderInfo.lesson || uploadMetadata.lesson || libraryUploadLessonPageInput?.value.trim() || '',
+                    professorName: professorInfo.professorName,
+                    externalUrl: driveLink
+                }).then(function (result) {
+                    finishLinkUpload(
+                        result.status === 'pending' ? 'Sent for approval' : 'Link added to the library',
+                        result.status === 'pending' ? result.message : (formatLibraryFolderLabel(folderId) || 'Library'),
+                        result.status === 'pending' ? 'info' : 'success'
+                    );
+                }).catch(function (error) {
+                    // Nothing is cleared on failure: the address stays in the
+                    // box so it can be retried without being pasted again.
+                    window.showLibraryToast?.('Could not add link', error?.message || 'Try again.', 'error');
+                }).then(function () {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = submitLabel;
+                    }
+                });
+
+                return;
+            }
+
+            // Served by the app server, but the live layer never came up. The
+            // local branch below writes into the render cache, which
+            // coe-live.js replaces from the database on the next boot - so the
+            // link would look added and be gone after a refresh. Say so rather
+            // than losing it quietly. Same guard as uploadMaterialToLibrary()
+            // and upload-ui.js.
+            if (window.CoeApi?.isServed?.()) {
+                window.showLibraryToast?.(
+                    'Link not saved',
+                    'Not signed in to the library server. Reload the page and sign in, then try again.',
+                    'error'
+                );
+                return;
+            }
+
+            // Local only: index.html opened straight off the filesystem, where
+            // there is no server to reach.
             const uploadedFile = normalizeUploadedFileRecord({
                 folderId: folderId || undefined,
                 folderIndex: folderIndex,
@@ -22879,19 +22990,7 @@ document.addEventListener('DOMContentLoaded', function () {
             saveFiles();
             notifyUploadEvent(uploadedFile);
             addActivity('Added Google Drive link to the library', { type: 'file', fileIndex: uploadedFileIndex, fileId: uploadedFile.id });
-            if (window.enhancedLibrary?.populateLibraryFolderTree) {
-                window.enhancedLibrary.populateLibraryFolderTree();
-                window.enhancedLibrary.populateSubjectFilter?.();
-                window.enhancedLibrary.populateLessonFilter?.();
-                window.enhancedLibrary.populateTagFilter?.();
-            }
-            displayLibrary();
-            libraryUploadPageForm.reset();
-            if (libraryUploadFileName) libraryUploadFileName.textContent = 'No file selected';
-            if (libraryUploadFolderNameInput) libraryUploadFolderNameInput.value = '';
-            populateLibraryUploadFolders();
-            showPage('library');
-            window.showLibraryToast?.("Link added to the library", formatLibraryFolderLabel(folderId) || "Library", "success");
+            finishLinkUpload('Link added to the library', formatLibraryFolderLabel(folderId) || 'Library', 'success');
             return;
         }
 
