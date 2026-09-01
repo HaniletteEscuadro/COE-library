@@ -227,6 +227,9 @@
             renderTimer = null;
 
             try {
+                global.reloadSharedLibraryUploads?.();
+                global.refreshSharedLibraryPanels?.();
+
                 const library = global.enhancedLibrary;
                 if (library) {
                     library.populateLibraryFolderTree?.();

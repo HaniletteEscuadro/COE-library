@@ -3107,9 +3107,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderHomeUploadProgress() {
         if (!homeUploadProgressList || !homeProgressPanel) return;
-        const uploads = isAdmin
-            ? uploadedFiles.slice(-6).reverse()
-            : uploadedFiles.filter(file => (file.ownerUsername || '').toLowerCase() === currentUsername.toLowerCase()).slice(-6).reverse();
+        const uploads = uploadedFiles.slice(-6).reverse();
 
         if (!uploads.length) {
             homeUploadProgressList.innerHTML = '<div class="empty-home-section">No submissions yet.</div>';
@@ -3612,7 +3610,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function syncDashboardNotifications() {
         const notifications = loadNotifications();
         const scheduleItems = loadScheduleItems();
-        const userUploads = uploadedFiles.filter(file => (file.ownerUsername || '').toLowerCase() === currentUsername.toLowerCase());
+        const sharedUploads = uploadedFiles;
         const announcementCount = announcements.length;
 
         function ensureNotification(id, message) {
@@ -3632,8 +3630,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        if (userUploads.length) {
-            ensureNotification('notif-upload', `Track Progress: ${userUploads.length} upload${userUploads.length === 1 ? '' : 's'} available.`);
+        if (sharedUploads.length) {
+            ensureNotification('notif-upload', `Track Progress: ${sharedUploads.length} upload${sharedUploads.length === 1 ? '' : 's'} available.`);
         } else {
             removeNotification('notif-upload');
         }
@@ -21454,6 +21452,42 @@ document.addEventListener('DOMContentLoaded', function () {
         currentFolderIndex = null;
     }
 
+    function reloadSharedLibraryUploads() {
+        const savedFiles = localStorage.getItem(LOCAL_STORAGE_FILES);
+        uploadedFiles.length = 0;
+
+        if (!savedFiles) return uploadedFiles;
+
+        try {
+            const parsed = JSON.parse(savedFiles);
+            if (!Array.isArray(parsed)) return uploadedFiles;
+
+            const hydrated = window.CoeLibraryStorage?.hydrateRecords
+                ? window.CoeLibraryStorage.hydrateRecords(parsed)
+                : parsed;
+
+            hydrated.forEach(function (savedFile) {
+                uploadedFiles.push(normalizeUploadedFileRecord({ ...savedFile }));
+            });
+        } catch (error) {
+            console.error('Unable to refresh shared library uploads:', error);
+        }
+
+        return uploadedFiles;
+    }
+
+    window.reloadSharedLibraryUploads = reloadSharedLibraryUploads;
+
+    function refreshSharedLibraryPanels() {
+        renderHomeUploadProgress();
+        syncDashboardNotifications();
+        displayHomeDashboardStats();
+        displayTaskSummary();
+        displayRecentActivity();
+    }
+
+    window.refreshSharedLibraryPanels = refreshSharedLibraryPanels;
+
     function saveTasks() {
         localStorage.setItem(LOCAL_STORAGE_TASKS, JSON.stringify(tasks));
     }
@@ -24164,6 +24198,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial folder, library, task summary, and home displays
     loadSavedState();
+    reloadSharedLibraryUploads();
     hydrateLibraryContent();
     displayFolders();
     populateLibraryUploadFolders();
