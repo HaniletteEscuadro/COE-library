@@ -109,6 +109,7 @@
     <link rel="stylesheet" href="coe-fix.css?v=fix-2026-08a">
     <!-- Content-first refresh. Last, so it can correct the layers above. -->
     <link rel="stylesheet" href="coe-refresh.css?v=refresh-2026-08a">
+    <link rel="stylesheet" href="coe-library-polish.css?v=libpolish-2026-09a">
 </head>
 
 <body>
@@ -705,10 +706,10 @@
                                 <span class="material-icons">view_list</span>
                             </button>
                             <!-- Hidden filters driven by JavaScript -->
-                            <select id="library-filter-lesson" hidden>
+                            <select id="library-filter-lesson" title="Filter by lesson" aria-label="Lesson">
                                 <option value="">All Lessons</option>
                             </select>
-                            <select id="library-filter-tag" hidden>
+                            <select id="library-filter-tag" title="Filter by tag" aria-label="Tag">
                                 <option value="">All Tags</option>
                             </select>
                         </div>
@@ -3229,6 +3230,7 @@
     <!-- Last: it clears scroll locks left behind by the dialogs and the drawer
          that the files above own, so it has to load after all of them. -->
     <script src="coe-fix.js?v=fix-2026-08a" defer></script>
+    <script src="coe-library-polish.js?v=libpolish-2026-09a" defer></script>
 </body>
 
 </html>

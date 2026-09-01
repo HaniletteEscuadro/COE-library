@@ -1,0 +1,476 @@
+/* ==========================================================================
+   coe-library-polish.css — library layout pass
+   ==========================================================================
+
+   Loads last, after all 31 sheets before it, and only touches #library-panel.
+
+   The library already had every part it needed; what it lacked was restraint
+   in how much of the screen those parts claimed before the first file
+   appeared. Header, breadcrumb row, toolbar and five equally-sized stat cards
+   stacked to roughly 340px of chrome above the grid, so on a laptop a student
+   scrolled before seeing anything they came for.
+
+   Four changes, in the order a reader meets them:
+
+     1. the five stat cards collapse into one thin strip of pills
+     2. the lesson and tag filters — already wired, only hidden — surface
+     3. material cards get a clearer type icon, tighter meta, hover actions
+     4. the folder sidebar gets a readable hierarchy and an obvious selection
+
+   Selectors are prefixed `body:not(.auth-body) #library-panel` throughout.
+   That is not defensive habit: coe-requested-polish.css sets several of these
+   rules with an id and `!important`, and one id outweighs any number of
+   classes, so a class-only rule here would parse, match, and still lose.
+   ========================================================================== */
+
+body:not(.auth-body) #library-panel {
+    --libp-gap: 14px;
+    --libp-pill-bg: rgba(123, 30, 39, 0.05);
+    --libp-pill-line: rgba(123, 30, 39, 0.14);
+    --libp-hover-lift: translateY(-2px);
+}
+
+/* --------------------------------------------------------------------------
+   1. Stats: five cards -> one strip
+   --------------------------------------------------------------------------
+   The numbers are worth keeping — they answer "is there anything here?" at a
+   glance — but they are orientation, not the destination, so they now read as
+   one line rather than five boxes. The icon stays: it is what makes the strip
+   scannable without reading the labels.
+
+   `.library-summary-enhanced` is the id-scoped grid from
+   coe-requested-polish.css; it needs `!important` to become a flex row. The
+   folder-view rule in coe-library-focus.css hides this whole block, and that
+   still applies — this only changes how it looks when shown.
+   -------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel .library-summary-enhanced,
+body:not(.auth-body) #library-panel .lib-stats {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+    padding: 0 !important;
+    margin: 0 0 var(--libp-gap) !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+body:not(.auth-body) #library-panel .library-stat-card {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 6px 12px !important;
+    background: var(--libp-pill-bg) !important;
+    border: 1px solid var(--libp-pill-line) !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    text-align: left !important;
+}
+
+body:not(.auth-body) #library-panel .library-stat-card .material-icons {
+    font-size: 16px !important;
+    color: var(--coe-maroon, #7b1e27);
+    opacity: 0.75;
+}
+
+body:not(.auth-body) #library-panel .library-stat-number {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    color: var(--coe-ink, #2a1f21);
+}
+
+body:not(.auth-body) #library-panel .library-stat-label {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    color: var(--coe-ink-soft, #6b5a5d);
+}
+
+/* The tagline repeats what the page title and the folder tree already say,
+   and it costs a full line above the fold. Kept for screen readers. */
+body:not(.auth-body) #library-panel .library-tagline {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. Filters
+   --------------------------------------------------------------------------
+   `#library-filter-lesson` and `#library-filter-tag` were marked `hidden` in
+   the markup while enhanced-library.js populated them (populateLessonFilter,
+   populateTagFilter) and read them when filtering — a finished feature with
+   no way in. They are visible now.
+
+   A select with only "All Lessons" in it is worse than no select, so
+   coe-library-polish.js marks an empty one `.libp-empty` and it hides again.
+   -------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel .filter-group-enhanced select,
+body:not(.auth-body) #library-panel .lib-filters select {
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--coe-ink, #2a1f21);
+    background-color: var(--coe-surface, #fff);
+    border: 1px solid var(--coe-line, #e9e0dc);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+body:not(.auth-body) #library-panel .filter-group-enhanced select:hover {
+    border-color: rgba(123, 30, 39, 0.35);
+    background-color: var(--libp-pill-bg);
+}
+
+body:not(.auth-body) #library-panel .filter-group-enhanced select:focus-visible {
+    outline: 2px solid var(--coe-maroon, #7b1e27);
+    outline-offset: 1px;
+}
+
+/* A filter holding a value is the one thing on the toolbar a student needs to
+   notice — it explains why the grid looks emptier than they expect. */
+body:not(.auth-body) #library-panel .filter-group-enhanced select.libp-active {
+    color: var(--coe-maroon-deep, #5c151c);
+    background-color: var(--libp-pill-bg);
+    border-color: rgba(123, 30, 39, 0.45);
+    font-weight: 600;
+}
+
+body:not(.auth-body) #library-panel .filter-group-enhanced select.libp-empty {
+    display: none;
+}
+
+/* --------------------------------------------------------------------------
+   3. Material cards
+   --------------------------------------------------------------------------
+   Three columns: type icon, body, actions. The icon carries the file type so
+   the meta line no longer has to lead with it, the description is clamped so
+   a long upload cannot push the next card off the fold, and the quick actions
+   rest at low opacity until the card is hovered or focused.
+
+   They return to full opacity on any device without hover — on a phone there
+   is no hover to reveal them, so fading them there would hide them for good.
+   -------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel .material-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 14px;
+    padding: 15px 16px;
+    background: var(--coe-surface, #fff);
+    border: 1px solid var(--coe-line, #e9e0dc);
+    border-radius: var(--coe-radius, 14px);
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+body:not(.auth-body) #library-panel .material-card:hover,
+body:not(.auth-body) #library-panel .material-card:focus-within {
+    transform: var(--libp-hover-lift);
+    border-color: rgba(123, 30, 39, 0.28);
+    box-shadow: 0 10px 26px rgba(42, 31, 33, 0.09);
+}
+
+body:not(.auth-body) #library-panel .material-card .post-file-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: var(--libp-pill-bg);
+    color: var(--coe-maroon, #7b1e27);
+}
+
+body:not(.auth-body) #library-panel .material-card .post-file-icon .material-icons {
+    font-size: 22px;
+}
+
+/* Dots between the meta items instead of whitespace: at 0.75rem the gaps
+   alone were not enough to tell "Handout" from the date beside it. */
+body:not(.auth-body) #library-panel .material-card .post-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 5px;
+    font-size: 0.75rem;
+    color: var(--coe-ink-soft, #6b5a5d);
+}
+
+body:not(.auth-body) #library-panel .material-card .post-meta-line > span + span::before {
+    content: "·";
+    margin-right: 6px;
+    opacity: 0.5;
+}
+
+body:not(.auth-body) #library-panel .material-card .post-type-chip {
+    padding: 2px 9px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--coe-maroon-deep, #5c151c);
+    background: var(--libp-pill-bg);
+    border: 1px solid var(--libp-pill-line);
+    border-radius: 999px;
+}
+
+body:not(.auth-body) #library-panel .material-card .post-type-chip + span::before {
+    content: none;
+}
+
+body:not(.auth-body) #library-panel .material-card h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--coe-ink, #2a1f21);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+body:not(.auth-body) #library-panel .material-card .material-card-description {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--coe-ink-soft, #6b5a5d);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+body:not(.auth-body) #library-panel .material-card .post-folder-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.76rem;
+    color: var(--coe-ink-soft, #6b5a5d);
+    opacity: 0.9;
+}
+
+body:not(.auth-body) #library-panel .material-card .post-folder-path .material-icons {
+    font-size: 15px;
+}
+
+body:not(.auth-body) #library-panel .material-card .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+body:not(.auth-body) #library-panel .material-card .tag-chip {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    border-radius: 999px;
+    background: rgba(42, 31, 33, 0.05);
+    color: var(--coe-ink-soft, #6b5a5d);
+}
+
+body:not(.auth-body) #library-panel .material-card-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    opacity: 0.35;
+    transition: opacity 0.16s ease;
+}
+
+body:not(.auth-body) #library-panel .material-card:hover .material-card-quick-actions,
+body:not(.auth-body) #library-panel .material-card:focus-within .material-card-quick-actions {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    body:not(.auth-body) #library-panel .material-card-quick-actions {
+        opacity: 1;
+    }
+}
+
+body:not(.auth-body) #library-panel .material-card .icon-action-btn {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--coe-ink-soft, #6b5a5d);
+    cursor: pointer;
+    transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+body:not(.auth-body) #library-panel .material-card .icon-action-btn:hover {
+    color: var(--coe-maroon, #7b1e27);
+    background: var(--libp-pill-bg);
+    border-color: var(--libp-pill-line);
+}
+
+body:not(.auth-body) #library-panel .material-card .icon-action-btn .material-icons {
+    font-size: 18px;
+}
+
+/* A recent upload is worth a mark, but a full coloured card competes with the
+   type icon and the title. A gold rail on the leading edge is enough. */
+body:not(.auth-body) #library-panel .material-card.is-new {
+    box-shadow: inset 3px 0 0 var(--coe-gold, #b8912f);
+}
+
+body:not(.auth-body) #library-panel .material-card.completed .post-file-icon {
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803d;
+}
+
+/* --------------------------------------------------------------------------
+   4. Folder sidebar
+   --------------------------------------------------------------------------
+   The tree is the primary way into the library, so selection has to be
+   unmistakable: a maroon rail down the leading edge, not a background tint
+   that a hover state could be mistaken for.
+   -------------------------------------------------------------------------- */
+
+body:not(.auth-body) #library-panel .library-folder-panel .folder-tree-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .tree-toggle,
+body:not(.auth-body) #library-panel .library-folder-panel .fb-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--coe-ink, #2a1f21);
+    font-size: 0.87rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .tree-toggle:hover,
+body:not(.auth-body) #library-panel .library-folder-panel .fb-row:hover {
+    background: var(--libp-pill-bg);
+    border-color: var(--libp-pill-line);
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .tree-toggle.active,
+body:not(.auth-body) #library-panel .library-folder-panel .fb-row.active,
+body:not(.auth-body) #library-panel .library-folder-panel .fb-row[aria-selected="true"] {
+    background: var(--libp-pill-bg);
+    border-color: var(--libp-pill-line);
+    box-shadow: inset 3px 0 0 var(--coe-maroon, #7b1e27);
+    font-weight: 600;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .material-icons {
+    font-size: 19px;
+    color: var(--coe-ink-soft, #6b5a5d);
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .tree-toggle.active .material-icons,
+body:not(.auth-body) #library-panel .library-folder-panel .fb-row.active .material-icons {
+    color: var(--coe-maroon, #7b1e27);
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .folder-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The trail under a folder name is context, not a second label — it should
+   never win the eye against the name above it. */
+body:not(.auth-body) #library-panel .library-folder-panel .folder-count {
+    display: block;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    color: var(--coe-ink-soft, #6b5a5d);
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .sidebar-search input {
+    width: 100%;
+    padding: 8px 11px;
+    font-size: 0.85rem;
+    border: 1px solid var(--coe-line, #e9e0dc);
+    border-radius: 10px;
+    background: var(--coe-surface, #fff);
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .sidebar-search input:focus-visible {
+    outline: 2px solid var(--coe-maroon, #7b1e27);
+    outline-offset: 1px;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .course-tabs {
+    display: flex;
+    gap: 5px;
+    margin-top: 9px;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .course-tab {
+    flex: 1 1 0;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--coe-ink-soft, #6b5a5d);
+    background: transparent;
+    border: 1px solid var(--coe-line, #e9e0dc);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .course-tab:hover {
+    border-color: rgba(123, 30, 39, 0.3);
+}
+
+body:not(.auth-body) #library-panel .library-folder-panel .course-tab.active {
+    color: #fff;
+    background: var(--coe-maroon, #7b1e27);
+    border-color: var(--coe-maroon, #7b1e27);
+}
+
+/* --------------------------------------------------------------------------
+   Motion
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    body:not(.auth-body) #library-panel * {
+        transition: none !important;
+    }
+
+    body:not(.auth-body) #library-panel .material-card:hover,
+    body:not(.auth-body) #library-panel .material-card:focus-within {
+        transform: none;
+    }
+}
