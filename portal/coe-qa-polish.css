@@ -1,0 +1,215 @@
+/* ==========================================================================
+   coe-qa-polish.css — question detail dialog
+   ==========================================================================
+
+   Loads last and only touches #question-detail-modal.
+
+   The attachment was the problem. renderQaAttachment() wraps the image in
+   `<a class="qa-attachment-link">`, an inline element, inside a panel that
+   styles.css gives a full-width background and border. So a phone photo
+   narrower than the dialog sat hard against the left edge with the rest of
+   an 800px panel left blank beside it — the picture read as small and the
+   panel read as broken.
+
+   The image now scales to the panel's width and the panel wraps it, so the
+   space the dialog already claimed is space the photograph actually uses.
+   A cap keeps a tall portrait shot from pushing the answers off screen;
+   `object-fit: contain` means that cap crops nothing.
+
+   Rules carry `!important` because styles.css sets the panel's background,
+   border and radius that way at line 18090.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Attachment
+   -------------------------------------------------------------------------- */
+
+#question-detail-modal .attachment-preview {
+    margin: 14px 0 !important;
+    padding: 10px !important;
+    display: block !important;
+}
+
+/* Empty on a question with no attachment — renderQaAttachment returns "" —
+   and an empty bordered panel is a box that says nothing. */
+#question-detail-modal .attachment-preview:empty {
+    display: none !important;
+}
+
+#question-detail-modal .attachment-preview .qa-attachment-link {
+    display: block;
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    line-height: 0;
+    transition: opacity 0.16s ease;
+}
+
+#question-detail-modal .attachment-preview .qa-attachment-link:hover {
+    opacity: 0.92;
+}
+
+#question-detail-modal .attachment-preview .qa-attachment-link:focus-visible {
+    outline: 2px solid var(--coe-maroon, #7b1e27);
+    outline-offset: 2px;
+}
+
+#question-detail-modal .attachment-preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: min(62vh, 560px);
+    margin: 0 !important;
+    object-fit: contain;
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+#question-detail-modal .question-detail-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e9dcd7;
+}
+
+#question-detail-modal .detail-question-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+#question-detail-modal .asker-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   Body
+   --------------------------------------------------------------------------
+   Subject and Lesson were two spans on one line with nothing but a space
+   between them, so at a glance they read as one sentence. They are separate
+   facts and now sit as separate pills.
+   -------------------------------------------------------------------------- */
+
+#question-detail-modal .detail-section {
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid #e9dcd7;
+    border-radius: 12px;
+}
+
+#question-detail-modal .detail-section h4,
+#question-detail-modal .answers-section h4,
+#question-detail-modal .add-answer-section h4 {
+    margin: 0 0 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b5a5d;
+}
+
+#question-detail-modal #detail-question-description {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #2a1f21;
+}
+
+#question-detail-modal .detail-info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+#question-detail-modal .detail-info-row > span {
+    padding: 5px 11px;
+    font-size: 0.8rem;
+    color: #2a1f21;
+    background: rgba(123, 30, 39, 0.05);
+    border: 1px solid rgba(123, 30, 39, 0.14);
+    border-radius: 999px;
+}
+
+#question-detail-modal .detail-info-row strong {
+    font-weight: 600;
+    color: #6b5a5d;
+}
+
+#question-detail-modal .detail-actions {
+    margin-top: 12px;
+    font-size: 0.76rem;
+    color: #6b5a5d;
+}
+
+/* --------------------------------------------------------------------------
+   Answers
+   -------------------------------------------------------------------------- */
+
+#question-detail-modal .answers-section,
+#question-detail-modal .add-answer-section {
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid #e9dcd7;
+    border-radius: 12px;
+}
+
+#question-detail-modal .answers-list .empty-state {
+    margin: 0;
+    padding: 20px 0;
+    font-size: 0.88rem;
+    color: #6b5a5d;
+    text-align: center;
+}
+
+#question-detail-modal .add-answer-section .upload-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Phones
+   --------------------------------------------------------------------------
+   The dialog is close to full-bleed here, so the panels give their padding
+   back to the content rather than to their own edges.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+    #question-detail-modal .detail-section,
+    #question-detail-modal .answers-section,
+    #question-detail-modal .add-answer-section {
+        padding: 13px 14px;
+    }
+
+    #question-detail-modal .attachment-preview img {
+        max-height: 46vh;
+    }
+
+    #question-detail-modal .asker-info {
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #question-detail-modal .attachment-preview .qa-attachment-link {
+        transition: none;
+    }
+}
