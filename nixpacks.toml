@@ -34,5 +34,18 @@
 # If Railway ever stops mounting that cache, this file can go and the default
 # `npm ci` returns.
 
+# WHY `--include=dev`
+# ----------------------
+# NODE_ENV is `production` on Railway, and npm reads that: `npm install` then
+# omits devDependencies. But the Next build needs two of them at build time —
+# `@tailwindcss/postcss` and `tailwindcss` — and without them the build dies at
+#
+#     Error: Cannot find module '@tailwindcss/postcss'
+#
+# This passed for several deploys only because Railway's mounted node_modules
+# cache still held them from an earlier build; the first cold cache failed.
+# They belong in devDependencies — they are build tooling, not runtime — so the
+# flag goes here rather than moving the packages.
+
 [phases.install]
-cmds = ["npm install --no-audit --no-fund"]
+cmds = ["npm install --no-audit --no-fund --include=dev"]
