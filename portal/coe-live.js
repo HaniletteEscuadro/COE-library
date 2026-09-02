@@ -151,7 +151,10 @@
             uploadedAt: material.createdAt || new Date().toISOString(),
             lastModified: material.updatedAt || material.createdAt || '',
             uploadedBy: material.uploadedByName || 'COE user',
-            ownerUsername: material.uploadedById || '',
+            // The username, not the id: every ownership test in the library
+            // compares this against the cached user's `username`, so an id
+            // here silently denied uploaders their own Edit and Delete.
+            ownerUsername: material.uploadedByUsername || '',
 
             views: Number(material.viewCount || 0),
             downloads: Number(material.downloadCount || 0),

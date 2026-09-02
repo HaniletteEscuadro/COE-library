@@ -107,6 +107,21 @@ export type RealtimeMaterial = {
   ratingAverage: number;
   uploadedById: string | null;
   uploadedByName: string | null;
+  /**
+   * The uploader's username, alongside their id.
+   *
+   * The portal decides whether to offer Edit and Delete on a material by
+   * comparing its owner against the signed-in account, and every one of those
+   * comparisons is against a *username* — the cached user carries both, and
+   * the username is what `ownerUsername` is named for. The only owner field
+   * sent here was the id, so coe-live.js put a cuid in that slot and the
+   * comparison could never match: an uploader could not manage their own
+   * upload unless they were separately a moderator.
+   *
+   * Sending it costs nothing — every query feeding this already selects
+   * `uploadedBy.username`, because `uploadedByName` falls back to it.
+   */
+  uploadedByUsername: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -767,6 +782,7 @@ export function toRealtimeMaterial(material: {
         : 0,
     uploadedById: material.uploadedById,
     uploadedByName: material.uploadedBy?.name ?? material.uploadedBy?.username ?? null,
+    uploadedByUsername: material.uploadedBy?.username ?? null,
     createdAt: material.createdAt.toISOString(),
     updatedAt: material.updatedAt.toISOString(),
   };
