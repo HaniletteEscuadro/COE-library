@@ -204,6 +204,8 @@ serving a deployment that is quietly broken. Every one of these fails
 | `NEXTAUTH_SECRET` shorter than 32 chars | it signs every session token; a short one is brute-forceable |
 | `NEXTAUTH_URL` missing or has no scheme | the Socket.IO CORS origin falls back to the bind address, `0.0.0.0`, which matches no browser — live updates stop and nothing says why |
 | `DATABASE_URL` or `STORAGE_DIR` points inside the app directory | **the deploy would erase every account and every uploaded file** — see below |
+| a data path is not under the volume Railway says is mounted, or shares a filesystem with the app | the volume is named but not mounted there, so the accounts are erased on the next deploy |
+| the database is empty where it previously held accounts | it is a different database than last boot — restore before anyone registers into this one |
 
 A deploy that will not boot is easier to diagnose than one that boots broken.
 
@@ -231,6 +233,101 @@ would land on the container's own disk instead of the mounted volume:
 For a throwaway preview where losing everything is genuinely the intent, set
 `ALLOW_EPHEMERAL_STORAGE=true`. It boots, and prints a warning on every start.
 Never set it on the deployment students actually use.
+
+### The volume has to be mounted, not just named
+
+The check above proves the path is *outside* the app. It does not prove
+anything is mounted at it — and there is a third case between "inside the app"
+and "nothing is there at all": `/var/data` exists, because something created it
+on the container's own disk when the volume's Mount Path was set elsewhere, or
+when the volume was detached and the variables left behind. Every earlier check
+passes. SQLite writes there, migrations apply, the health check goes green, and
+the deploy that erases every account looks exactly like the one that does not.
+
+Two things tell them apart. Railway names the volume's real mount point in the
+environment, so when a data path is not under it the platform has already said
+which value is wrong:
+
+```
+  DATABASE_URL points at /srv, which is not on the
+    volume. The volume attached to this service is mounted at
+    "/var/data", so that directory is the container's own disk.
+    Every account is erased on the next deploy. Set:
+      DATABASE_URL=file:/var/data/coe.db
+      STORAGE_DIR=/var/data/storage
+```
+
+Where nothing names a mount point, the filesystems are compared instead: a
+mounted volume is a different device from the container image, a directory the
+app created is the same one. That is fatal on Railway, Render and Fly, where the
+application directory is rebuilt on every deploy by definition. On a VPS it
+prints as a warning and the server starts, because one filesystem for everything
+is normal there and perfectly durable.
+
+### And it has to be the *same* volume as last time
+
+The last way to lose the accounts leaves the volume mounted and every path
+correct: `DATABASE_URL` gets edited, or the volume is remounted onto another
+service, and the file behind it is a different, emptier database.
+
+`> data: 0 accounts` already prints on every boot, with a note that an empty
+database is expected on a brand-new volume and alarming otherwise. Which of
+those it is was left to whoever read the log. Now it is checked: a marker file
+beside the database (`.coe-storage.json`) records the highest account count ever
+seen there, and if that is above zero and the database now holds none, the
+server refuses to start.
+
+```
+  Cannot start:
+  The database at this path is empty, but it previously held 42 accounts:
+
+      /var/data/coe.db
+
+  Something replaced the database instead of reusing it. Check whether
+  DATABASE_URL changed, whether this is the same volume as last deploy,
+  and restore the newest file from the backups directory before any
+  traffic reaches this instance.
+```
+
+Refusing is the point. A server that starts on the empty database collects
+registrations into it, and merging those rows back into the restored database
+afterwards is far harder than the ten minutes a restore costs.
+
+---
+
+## Backups
+
+Accounts are permanent by design: registration writes a row that nothing
+expires, and the admin panel's delete is a soft delete. The remaining risks are
+the ones no boot check can see — a mistaken hard-delete, a bad migration,
+corruption after an unclean shutdown.
+
+So the server copies the database at boot and then every
+`DB_BACKUP_INTERVAL_HOURS` (default 24) into `<STORAGE_DIR>/backups`, keeping
+the newest `DB_BACKUP_KEEP` (default 14) and deleting the rest — a full volume
+would itself stop new accounts being created, which is the outcome the backups
+exist to prevent. The copy goes through SQLite's online backup API rather than
+`cp`, so a write landing mid-copy produces a consistent file instead of an
+unopenable one.
+
+The first copy is taken at boot rather than a day later, so every deploy leaves
+behind the state it started from — which is what you want when a migration in
+that same deploy turns out to be wrong.
+
+Take one by hand before anything risky:
+
+```bash
+npm run db:backup
+```
+
+To restore: stop the service, copy the chosen file over the one at
+`DATABASE_URL`, start it again.
+
+**These backups sit on the same volume as the database.** They cover the slow
+losses, not the loss of the volume itself — the checks above are what covers
+that. If the accounts matter, open a shell on the service (`railway ssh`), find
+the newest file in `/var/data/storage/backups`, and copy it somewhere that is
+not this host.
 
 ---
 

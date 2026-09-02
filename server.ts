@@ -18,13 +18,14 @@
 import "dotenv/config";
 
 import { createHash } from "crypto";
-import { existsSync, statfs } from "fs";
+import { existsSync, readFileSync, statSync, statfs, writeFileSync } from "fs";
 import { createServer } from "http";
 import { dirname, join, relative, resolve, isAbsolute } from "path";
 import next from "next";
 import { getToken } from "next-auth/jwt";
 import { Server, type Socket } from "socket.io";
 import { prisma } from "./src/lib/prisma";
+import { startDatabaseBackups } from "./src/lib/backup";
 import {
   ADMIN_ONLY_EVENTS,
   ADMIN_ROOM,
@@ -123,6 +124,53 @@ function sqliteFilePath(databaseUrl: string) {
   // Resolved against the working directory, which is how the better-sqlite3
   // adapter interprets a relative path.
   return resolve(databaseUrl.slice("file:".length));
+}
+
+/**
+ * Is `target` inside `root`? Used to test a data path against the volume's
+ * real mount point, so `/var/data2` does not pass as being under `/var/data`.
+ */
+function isInside(root: string, target: string) {
+  const relation = relative(resolve(root), resolve(target));
+  return relation === "" || (!relation.startsWith("..") && !isAbsolute(relation));
+}
+
+/**
+ * Filesystem device id of `target`, or of its nearest existing ancestor.
+ *
+ * A mounted volume is a different filesystem from the container image, so a
+ * different `dev`. That is what separates "/var/data is the volume" from
+ * "/var/data is an ordinary directory on the container's own disk" — two
+ * situations indistinguishable by path, identical while the container runs, and
+ * entirely different on the next deploy.
+ */
+function deviceOf(target: string): number | null {
+  let current = resolve(target);
+
+  for (;;) {
+    try {
+      return statSync(current).dev;
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return null;
+      current = parent;
+    }
+  }
+}
+
+/**
+ * The container platform this is running on, if it announces itself.
+ *
+ * Only decides how loud to be about a shared filesystem. On these hosts the
+ * application directory is rebuilt on every deploy by definition, so sharing a
+ * filesystem with it proves the volume is missing. Anywhere else it proves
+ * nothing.
+ */
+function containerPlatform() {
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID) return "Railway";
+  if (process.env.RENDER || process.env.RENDER_SERVICE_ID) return "Render";
+  if (process.env.FLY_APP_NAME) return "Fly.io";
+  return null;
 }
 
 /**
@@ -285,6 +333,97 @@ function assertDurableStorage() {
    * is only the operator's expectation that is wrong, and refusing to boot
    * over an expectation would be worse than saying so.
    */
+  /*
+   * The directory is there — but is it the volume, or a directory on the
+   * container's own disk that happens to have the same name?
+   *
+   * The two checks above catch a path inside the app, and a path with nothing
+   * mounted at it at all. Between them sits the case neither sees: /var/data
+   * exists, because `mkdir -p` created it on the container's disk when the
+   * volume's mount path was set to something else, or when the volume was
+   * detached and the variables left behind. Everything passes. SQLite writes
+   * there, migrations apply, the health check goes green, and the deploy that
+   * erases every account is indistinguishable from the one that does not.
+   *
+   * Two ways to tell them apart, in order of authority:
+   *
+   *   1. Railway states the volume's real mount path in the environment. When
+   *      a data path is not under it, the answer is not a heuristic — the two
+   *      values disagree and the platform has told us which one is real.
+   *
+   *   2. Otherwise, compare filesystems. A mounted volume is a different
+   *      device from the container image; a directory the app created is the
+   *      same one. That is fatal on a container host, where the application
+   *      directory is rebuilt on every deploy by definition — and only a
+   *      warning anywhere else, because a VPS with one filesystem for
+   *      everything is perfectly normal and perfectly durable.
+   */
+  const appDevice = deviceOf(process.cwd());
+  const mountPath = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
+  const platform = containerPlatform();
+
+  const dataPaths = [
+    databaseFile
+      ? {
+          label: "DATABASE_URL",
+          dir: dirname(databaseFile),
+          lost: "Every account",
+          // The path whose absence the check above already reported. When it is
+          // missing, that check has said everything useful and saying it a
+          // second way only buries the fix.
+          reportedIfMissing: dirname(databaseFile),
+        }
+      : null,
+    {
+      label: "STORAGE_DIR",
+      dir: storageRoot,
+      lost: "Every uploaded file",
+      // storage/ is created lazily on the first upload, so it is its parent —
+      // the volume — that the check above tested.
+      reportedIfMissing: dirname(storageRoot),
+    },
+  ].filter((entry) => entry !== null);
+
+  for (const target of dataPaths) {
+    // Already reported above as inside the app, or as not existing at all.
+    // Saying it a second way would only make the real fix harder to find.
+    if (isInsideAppDirectory(target.dir)) continue;
+    if (!existsSync(target.reportedIfMissing)) continue;
+
+    if (mountPath && !isInside(mountPath, target.dir)) {
+      problems.push(
+        `  ${target.label} points at ${target.dir}, which is not on the\n` +
+          `    volume. The volume attached to this service is mounted at\n` +
+          `    "${mountPath}", so that directory is the container's own disk.\n` +
+          `    ${target.lost} is erased on the next deploy. Set:\n` +
+          `      DATABASE_URL=file:${mountPath}/coe.db\n` +
+          `      STORAGE_DIR=${mountPath}/storage`,
+      );
+      continue;
+    }
+
+    // Railway already answered for us; do not second-guess it with a heuristic.
+    if (mountPath) continue;
+
+    const device = deviceOf(existsSync(target.dir) ? target.dir : dirname(target.dir));
+
+    // A different filesystem is a real volume. Nothing to say.
+    if (device === null || appDevice === null || device !== appDevice) continue;
+
+    const message =
+      `  ${target.label} points at ${target.dir}, which is on the same\n` +
+      `    filesystem as the application — so it is the container's own disk,\n` +
+      `    not a mounted volume.\n` +
+      `    ${target.lost} is erased on the next deploy.\n` +
+      `    Attach a volume to the service with exactly this mount path.`;
+
+    if (platform) {
+      problems.push(message);
+    } else {
+      console.warn(`\n  Warning:\n${message}\n`);
+    }
+  }
+
   warnIfCapacityExceedsVolume(storageRoot);
 
   if (problems.length === 0) return;
@@ -511,8 +650,121 @@ async function reportStoredData() {
   }
 }
 
+/** Written beside the SQLite file, on whatever volume actually holds it. */
+const STORAGE_MARKER = ".coe-storage.json";
+
+type StorageMarker = {
+  /** When this volume was first seen by the app. */
+  firstSeenAt: string;
+  lastBootAt: string;
+  /** Highest row count ever observed here. Only ever grows. */
+  maxAccounts: number;
+};
+
+/**
+ * Refuse to serve an empty database where accounts used to be.
+ *
+ * `reportStoredData` already says "an empty database is expected on a brand-new
+ * volume; if it was not empty before this deploy, the data is not on the
+ * volume" — which is the right thing to say and the wrong thing to leave to a
+ * human reading a log. It has no way to know which of those two it is looking
+ * at. This does: a marker file beside the database records the highest row
+ * count ever seen there, so "was not empty before" becomes a fact rather than a
+ * question for whoever happens to read the deploy output.
+ *
+ * It catches the one loss the checks in `assertDurableStorage` cannot see: the
+ * path is right, the volume is genuinely mounted, and the file behind it is a
+ * different, emptier database — an edited DATABASE_URL, a volume remounted onto
+ * another service, a `migrate reset` that reached production.
+ *
+ * The marker travels with the database, so if both are gone the volume itself
+ * is gone, which the mount checks catch first.
+ *
+ * Refusing is the whole point. A server that starts on the empty database
+ * collects registrations into it, and merging those rows back into the restored
+ * database afterwards is far harder than the ten minutes a restore costs.
+ *
+ * Counts every row, soft-deleted included: a deleted account is still data that
+ * was there, and the question here is whether the file is the same file.
+ */
+async function verifyAccountsSurvived() {
+  let accounts: number;
+
+  try {
+    accounts = await prisma.user.count();
+  } catch (error) {
+    // Almost always "the migrations have not run yet" on a first local boot.
+    // Not worth blocking a dev server over.
+    console.warn("> storage: could not read the account count —", error);
+    return;
+  }
+
+  const databaseFile = sqliteFilePath(process.env.DATABASE_URL ?? "");
+
+  // A managed database server keeps its own history; this is for the file.
+  if (!databaseFile) return;
+
+  const markerPath = join(dirname(databaseFile), STORAGE_MARKER);
+  let marker: StorageMarker | null = null;
+
+  try {
+    marker = JSON.parse(readFileSync(markerPath, "utf8")) as StorageMarker;
+  } catch {
+    // Absent on the first boot after this shipped, and on a genuinely new
+    // volume. Both are fine; it is written below.
+  }
+
+  const previous = marker?.maxAccounts ?? 0;
+
+  if (previous > 0 && accounts === 0) {
+    const detail =
+      `\n  The database at this path is empty, but it previously held ` +
+      `${previous} account${previous === 1 ? "" : "s"}:\n\n` +
+      `      ${databaseFile}\n\n` +
+      `  Something replaced the database instead of reusing it. Check whether\n` +
+      `  DATABASE_URL changed, whether this is the same volume as last deploy,\n` +
+      `  and restore the newest file from the backups directory before any\n` +
+      `  traffic reaches this instance.\n`;
+
+    if (dev) {
+      console.warn(`  Warning:${detail}`);
+    } else if (process.env.ALLOW_EPHEMERAL_STORAGE === "true") {
+      console.warn(`  ALLOW_EPHEMERAL_STORAGE=true, starting anyway:${detail}`);
+    } else {
+      console.error(
+        `  Cannot start:${detail}\n` +
+          `  If the accounts really were meant to be cleared, set\n` +
+          `  ALLOW_EPHEMERAL_STORAGE=true for one deploy.\n`,
+      );
+      process.exit(1);
+    }
+  }
+
+  const now = new Date().toISOString();
+
+  try {
+    writeFileSync(
+      markerPath,
+      JSON.stringify(
+        {
+          firstSeenAt: marker?.firstSeenAt ?? now,
+          lastBootAt: now,
+          maxAccounts: Math.max(previous, accounts),
+        } satisfies StorageMarker,
+        null,
+        2,
+      ),
+    );
+  } catch (error) {
+    // Losing the marker only loses the tripwire, never the data.
+    console.warn(`> storage: could not write ${markerPath} — tripwire disabled.`, error);
+  }
+}
+
 async function main() {
   assertProductionConfig();
+
+  await verifyAccountsSurvived();
 
   await app.prepare();
 
@@ -698,6 +950,10 @@ async function main() {
     ),
   ];
 
+  // Backups run in production only: in development the database is disposable
+  // and a full copy on every restart is noise.
+  const stopBackups = dev ? () => {} : startDatabaseBackups();
+
   httpServer.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> Socket.IO listening on path /api/socket`);
@@ -710,6 +966,7 @@ async function main() {
   const shutdown = async (signal: string) => {
     console.log(`\n> ${signal} received, shutting down`);
     unsubscribers.forEach((unsubscribe) => unsubscribe());
+    stopBackups();
     io.close();
     httpServer.close();
     await prisma.$disconnect();
