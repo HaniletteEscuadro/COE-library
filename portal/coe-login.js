@@ -49,16 +49,14 @@
     /**
      * The server's password rules, mirrored exactly.
      *
-     * `strongPassword` in `src/lib/validation.ts` is the authority. Keeping a
-     * looser copy here is how a form tells someone their password is fine and
-     * then shows them a server error for the same password.
+     * `accountPassword` in `src/lib/validation.ts` is the authority. Keeping a
+     * stricter copy here is how a form rejects a password the server would have
+     * accepted; keeping a looser one is how it promises one the server refuses.
+     * There is one rule now — length — and the list stays a list so adding a
+     * second later means adding a line, not rebuilding the checklist.
      */
     const PASSWORD_RULES = [
-        { test: (v) => v.length >= 8, label: 'At least 8 characters' },
-        { test: (v) => /[a-z]/.test(v), label: 'A lowercase letter' },
-        { test: (v) => /[A-Z]/.test(v), label: 'An uppercase letter' },
-        { test: (v) => /[0-9]/.test(v), label: 'A number' },
-        { test: (v) => /[^A-Za-z0-9]/.test(v), label: 'A symbol' }
+        { test: (v) => v.length >= 8, label: 'At least 8 characters' }
     ];
 
     const THEME_KEY = 'coePortalLoginTheme';
@@ -183,8 +181,7 @@
      * Live checklist against the server's actual rules.
      *
      * A checklist rather than a strength bar: "weak/medium/strong" does not tell
-     * anyone what to type next, and the server rejects on specific missing
-     * characters, so those are what the form should name.
+     * anyone what to type next, while a rule the server actually enforces does.
      */
     function renderPasswordRules(value) {
         const host = el('password-rules');
@@ -284,7 +281,7 @@
         }
 
         if (!passwordMeetsRules(details.password)) {
-            setMessage('Your password does not meet all the requirements below.', 'error');
+            setMessage('Your password is too short — see the rule below.', 'error');
             el('reg-password').focus();
             return;
         }

@@ -18,8 +18,9 @@ const CSRF_COOKIE = "auth_csrf_token";
  *
  * What actually stops a brute-force attack on this app is not the window:
  *
- *   * every password must be 8+ characters with upper, lower, digit and symbol
- *     (`strongPassword` in validation.ts), so the search space is enormous;
+ *   * every password is at least 8 characters (`accountPassword` in
+ *     validation.ts), so the search space is large even without the character
+ *     classes that policy used to demand;
  *   * every attempt costs a bcrypt comparison at cost factor 12 — roughly a
  *     quarter of a second of CPU, which no amount of parallelism removes.
  *

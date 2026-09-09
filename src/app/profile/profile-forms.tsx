@@ -184,7 +184,7 @@ export function ProfileForms({ initial }: Props) {
               {passwordErrors.password ? (
                 <em>{passwordErrors.password}</em>
               ) : (
-                <em className="lg-hint">Needs upper and lower case, a number, and a symbol.</em>
+                <em className="lg-hint">At least 8 characters. A phrase you will remember is fine.</em>
               )}
             </label>
 

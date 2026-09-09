@@ -24,14 +24,20 @@ import {
 // Shared field rules
 // ---------------------------------------------------------------------------
 
-const strongPassword = z
+/**
+ * Account password. Length is the only rule.
+ *
+ * The old policy also demanded an upper case letter, a number and a symbol.
+ * Rules like that do not buy the strength they promise: people satisfy them
+ * with `Password1!` and its cousins, which is the first thing a cracker tries,
+ * and everyone else is stuck fighting the sign-up form. NIST 800-63B dropped
+ * composition rules for exactly this reason — length is what actually costs an
+ * attacker time, so that is all we ask for.
+ */
+const accountPassword = z
   .string()
   .min(8, "Use at least 8 characters.")
-  .max(128, "Password is too long.")
-  .regex(/[a-z]/, "Add a lowercase letter.")
-  .regex(/[A-Z]/, "Add an uppercase letter.")
-  .regex(/[0-9]/, "Add a number.")
-  .regex(/[^A-Za-z0-9]/, "Add a symbol.");
+  .max(128, "Password is too long.");
 
 const email = z
   .string()
@@ -77,7 +83,7 @@ const discipline = z
 
 export const loginSchema = z.object({
   email,
-  // Deliberately only `min(1)`: applying the strong-password rules at login
+  // Deliberately only `min(1)`: applying the sign-up length rule at login
   // would reject legacy passwords and leak the policy to attackers.
   password: z.string().min(1, "Enter your password."),
   remember: z.boolean().default(false),
@@ -89,7 +95,7 @@ export const registerSchema = z
     username,
     email,
     discipline: discipline.optional().default(""),
-    password: strongPassword,
+    password: accountPassword,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -102,7 +108,7 @@ export const forgotPasswordSchema = z.object({ email });
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(24, "Reset token is missing."),
-    password: strongPassword,
+    password: accountPassword,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -135,7 +141,7 @@ export const profileSchema = z.object({
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Enter your current password."),
-    password: strongPassword,
+    password: accountPassword,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -173,7 +179,7 @@ export const adminCreateUserSchema = z.object({
   discipline: discipline.optional().default(""),
   role: z.enum(USER_ROLES).default("STUDENT"),
   status: z.enum(ACCOUNT_STATUSES).default("ACTIVE"),
-  password: strongPassword,
+  password: accountPassword,
 });
 
 export const adminStatusSchema = z.object({
